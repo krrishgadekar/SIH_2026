@@ -1,0 +1,6 @@
+{
+  "default": {
+    "focusThreshold": 0.4,
+    "illuminationThreshold": 0.4
+  }
+}
