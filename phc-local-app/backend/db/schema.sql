@@ -1,0 +1,74 @@
+-- =============================================================================
+-- PHC local application SQLite schema  (Task 0.2)
+-- Applied automatically by db/localDb.js on require, and by
+-- scripts/setupLocalDb.js.
+--
+-- This DB lives on the PHC machine and must work with zero connectivity
+-- (design doc §10, "Offline capability"). Every timestamp column is TEXT
+-- holding an ISO 8601 UTC string, e.g. '2026-09-06T09:05:00.000Z' -- never an
+-- epoch number, never a locale-formatted string (api-contracts.md, "Global
+-- date rule"), so values round-trip to JSON unchanged.
+--
+-- IDs are TEXT in the format {PHC_CODE}-{base36 timestamp}-{4 random alnum},
+-- e.g. 'PHC001-lz3k9f-a2x9' (api-contracts.md, "Global ID rule").
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS patients (
+  patient_id     TEXT PRIMARY KEY,
+  name           TEXT NOT NULL,
+  age            INTEGER NOT NULL,
+  contact_number TEXT NOT NULL,   -- required: the only channel for delayed results
+  registered_at  TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS captures (
+  capture_id       TEXT PRIMARY KEY,
+  patient_id       TEXT NOT NULL REFERENCES patients(patient_id),
+  camera_device_id TEXT,
+  image_path       TEXT NOT NULL,
+  -- 'pending' while the quality gate runs, then one of pass/retake/borderline.
+  quality_status   TEXT NOT NULL,
+  quality_reason   TEXT,          -- NULL on pass; else one of the six enum strings
+  retake_count     INTEGER NOT NULL DEFAULT 0,
+  captured_at      TEXT NOT NULL
+);
+
+-- Patient symptom + risk answers (design doc §9.1) -- about the PATIENT.
+CREATE TABLE IF NOT EXISTS questionnaire_responses (
+  response_id        TEXT PRIMARY KEY,
+  capture_id         TEXT NOT NULL REFERENCES captures(capture_id),
+  risk_factor_fields TEXT NOT NULL,  -- JSON string
+  symptom_fields     TEXT NOT NULL,  -- JSON string
+  language           TEXT,
+  recorded_at        TEXT NOT NULL
+);
+
+-- Capture-context answers (design doc §9.6) -- about the PHOTO, not the patient.
+-- Deliberately a separate table from questionnaire_responses (design doc §1.10).
+CREATE TABLE IF NOT EXISTS capture_metadata_responses (
+  response_id             TEXT PRIMARY KEY,
+  capture_id              TEXT NOT NULL REFERENCES captures(capture_id),
+  camera_device_reported  TEXT,
+  pupil_status            TEXT,
+  lighting_environment    TEXT,
+  observed_issues         TEXT NOT NULL,  -- JSON array string
+  worker_usability_rating TEXT,
+  recorded_at             TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS sync_queue (
+  queue_id        TEXT PRIMARY KEY,
+  capture_id      TEXT NOT NULL REFERENCES captures(capture_id),
+  status          TEXT NOT NULL DEFAULT 'pending',
+  -- 'high' = referable/uncertain (full data first), 'low' = confident-negative
+  -- (summary only). Provisional until a first central pass classifies it (§9.2).
+  priority        TEXT NOT NULL DEFAULT 'low',
+  chunks_sent     INTEGER NOT NULL DEFAULT 0,
+  chunks_total    INTEGER NOT NULL DEFAULT 1,
+  last_attempt_at TEXT
+);
+
+-- Indexes for the Local Queue table and the sync poll loop.
+CREATE INDEX IF NOT EXISTS idx_captures_patient    ON captures(patient_id);
+CREATE INDEX IF NOT EXISTS idx_captures_status     ON captures(quality_status);
+CREATE INDEX IF NOT EXISTS idx_sync_queue_status   ON sync_queue(status);

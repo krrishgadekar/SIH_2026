@@ -93,3 +93,15 @@ out/
 # ── Simulink autosave / derived files ────────────────────────────────────────
 simulink-model/slprj/
 *.slxc
+
+# ── Generated per-case artefacts (patient-derived — never commit) ─────────────
+# Grad-CAM overlays written by gradingOrchestrator.js, and the media/ tree the
+# central server serves case images from. Both are derived from patient fundus
+# photographs and fall under the same handling rule as the captures themselves.
+central-system/backend/explainability-outputs/
+central-system/backend/media/
+
+# ── Test scaffolding ─────────────────────────────────────────────────────────
+# Written by scripts/seedTestCase.js, read by verify_task27.js. Regenerated on
+# every seed, and points at a case_id that only exists in one local database.
+test_case_id.txt

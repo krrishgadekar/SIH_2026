@@ -1,0 +1,64 @@
+'use strict';
+
+/**
+ * server.js -- PHC local application backend (Task 0.1)
+ *
+ * Runs ON the Primary Health Centre machine, on localhost:4000. Must be fully
+ * functional with zero connectivity (design doc §10): capture, quality gate,
+ * both questionnaires and local queueing all work offline, and the sync manager
+ * opportunistically drains the queue when the network returns.
+ *
+ * Endpoint shapes are defined in docs/api-contracts.md, "Local API". The route
+ * bodies themselves are filled in by Task 3.2 -- this file only wires them up.
+ */
+
+require('dotenv').config();
+
+const express = require('express');
+
+const patientsRouter = require('./routes/patients');
+const capturesRouter = require('./routes/captures');
+const syncRouter     = require('./routes/sync');
+
+const PORT = parseInt(process.env.PORT || '4000', 10);
+
+const app = express();
+
+app.use(express.json());
+
+// Requiring the DB module creates local.sqlite and applies schema.sql. Done at
+// startup rather than lazily on first request so that a broken schema fails the
+// server immediately, instead of surfacing mid-capture with a patient waiting.
+require('./db/localDb');
+
+app.use('/patients', patientsRouter);
+app.use('/captures', capturesRouter);
+app.use('/sync',     syncRouter);
+
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+// ── Error handling ───────────────────────────────────────────────────────────
+// api-contracts.md: every non-2xx body is { error, message } -- never a bare
+// string, never an HTML error page. The frontend switches on .error and only
+// displays .message, so both fields have to be present on every failure path.
+
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'not_found',
+    message: `No route matches ${req.method} ${req.originalUrl}`,
+  });
+});
+
+app.use((err, req, res, next) => {   // eslint-disable-line no-unused-vars
+  console.error('[local] Unhandled error:', err);
+  res.status(500).json({
+    error: 'internal_error',
+    message: err.message || 'Unexpected server error',
+  });
+});
+
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`local backend on ${PORT}`));
+}
+
+module.exports = app;
