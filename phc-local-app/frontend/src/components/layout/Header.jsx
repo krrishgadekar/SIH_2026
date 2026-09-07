@@ -38,7 +38,7 @@ export const Header = () => {
     <header className="app-header">
       {/* Brand */}
       <div className="app-logo">
-        DR<span className="star">✦</span>AI
+        Netra<span className="star">Setu</span>
       </div>
       
       {/* Terminal Output */}

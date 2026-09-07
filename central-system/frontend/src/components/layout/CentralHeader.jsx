@@ -34,7 +34,7 @@ export const CentralHeader = ({ role, onLogout }) => {
   return (
     <header className="app-header">
       <div className="app-logo">
-        DR<span className="star">✦</span>AI
+        Netra<span className="star">Setu</span>
       </div>
 
       <div style={{ overflow: 'hidden' }}>
