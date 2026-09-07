@@ -119,6 +119,93 @@ router.get('/:caseId', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── POST /api/v1/cases/:caseId/review  (Task 3.5) ────────────────────────────
+const DECISIONS = ['confirm', 'override'];
+const OVERRIDE_CATEGORIES = ['artifact_misread', 'lesion_missed',
+                             'wrong_severity', 'image_quality_issue'];
+
+router.post('/:caseId/review', async (req, res, next) => {
+  const { caseId } = req.params;
+  const {
+    ophthalmologistId, decision,
+    overrideReasonCategory, overrideReasonText, reviewDurationSeconds,
+  } = req.body || {};
+
+  if (!UUID_RE.test(caseId)) return notFound(res, caseId);
+
+  if (!DECISIONS.includes(decision)) {
+    return res.status(400).json({
+      error: 'invalid_field',
+      message: `decision must be one of: ${DECISIONS.join(', ')}.`,
+    });
+  }
+
+  // A confirm carries no reason; an override must carry one of the four
+  // categories. The database enforces this too (override_requires_category),
+  // but a CHECK violation surfaces as a 500 — catching it here gives the
+  // reviewer an actionable 400 instead.
+  if (decision === 'confirm' && overrideReasonCategory) {
+    return res.status(400).json({
+      error: 'invalid_field',
+      message: "overrideReasonCategory must be null when decision is 'confirm'.",
+    });
+  }
+  if (decision === 'override' && !OVERRIDE_CATEGORIES.includes(overrideReasonCategory)) {
+    return res.status(400).json({
+      error: 'invalid_field',
+      message: `overrideReasonCategory must be one of: ${OVERRIDE_CATEGORIES.join(', ')}.`,
+    });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const exists = await client.query('SELECT 1 FROM cases WHERE case_id = $1', [caseId]);
+    if (!exists.rows.length) {
+      await client.query('ROLLBACK');
+      return notFound(res, caseId);
+    }
+
+    const inserted = await client.query(`
+      INSERT INTO ophthalmologist_reviews
+        (case_id, ophthalmologist_id, decision,
+         override_reason_category, override_reason_text, review_duration_seconds)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING review_id
+    `, [caseId, ophthalmologistId || null, decision,
+        decision === 'override' ? overrideReasonCategory : null,
+        overrideReasonText || null,
+        Number.isInteger(reviewDurationSeconds) ? reviewDurationSeconds : null]);
+
+    const reviewId = inserted.rows[0].review_id;
+
+    // An override is a labelled correction: the ophthalmologist has told us the
+    // model was wrong AND why. That is the training signal the continual
+    // learning loop consumes (design doc §6.11), so it is recorded in the same
+    // transaction as the review — a review whose correction row failed to write
+    // would be silently lost from retraining, and nothing downstream would ever
+    // notice the gap.
+    if (decision === 'override') {
+      await client.query(
+        'INSERT INTO corrections (case_id, review_id) VALUES ($1, $2)', [caseId, reviewId]);
+    }
+
+    await client.query('COMMIT');
+
+    // TASK 3.6 HOOK: on a referable outcome this is where
+    // referralNotificationService.handleConfirmedReferral(caseId) is called —
+    // create the referral row and send the patient SMS. Deliberately not wired
+    // yet: an SMS is irreversible and must not fire from an unverified path.
+    res.json({ reviewId });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    next(err);
+  } finally {
+    client.release();
+  }
+});
+
 // ── Upload errors ────────────────────────────────────────────────────────────
 router.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {

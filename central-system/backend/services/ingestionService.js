@@ -119,7 +119,7 @@ async function ensurePatientReference(client, patientId) {
 async function ingestCase(fields) {
   const {
     patientId, phcId, captureIdRef, cameraDeviceId, imageFile,
-    patientName, patientAge, patientContactNumber,
+    patientName, patientAge, patientContactNumber, capturedAt,
   } = fields;
 
   if (!patientId) throw badRequest('patient_id_required', 'patientId is required.');
@@ -189,11 +189,15 @@ async function ingestCase(fields) {
     const inserted = await client.query(`
       INSERT INTO cases
         (patient_id, phc_id, capture_id_ref, camera_device_id, image_path,
-         questionnaire_data, capture_metadata, status)
-      VALUES ($1, $2, $3, $4, '', $5, $6, 'processing')
+         questionnaire_data, capture_metadata, status, captured_at)
+      VALUES ($1, $2, $3, $4, '', $5, $6, 'processing', $7)
       RETURNING case_id, received_at
     `, [patientId, phcId || null, captureIdRef || null, cameraDeviceId || null,
-        questionnaireData, captureMetadata]);
+        questionnaireData, captureMetadata,
+        // Falls back to now() only when the PHC did not send one. That fallback
+        // is wrong for any case that synced late, so the sync manager (Task 3.4)
+        // must always send the local captures.captured_at.
+        capturedAt || new Date().toISOString()]);
 
     const caseId    = inserted.rows[0].case_id;
     const imagePath = mediaPaths.originalPath(caseId, ext);

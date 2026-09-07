@@ -82,6 +82,16 @@ CREATE TABLE IF NOT EXISTS cases (
   capture_metadata       JSONB,         -- capture-context answers
   received_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
 
+  -- CONTRACT: the ophthalmologist queue and case detail return capturedAt.
+  -- This is NOT received_at. The system is offline-first by design: a capture
+  -- may sit in the PHC's sync queue for days before it reaches this server
+  -- (design doc §1.4, §8.2), so received_at can be far later than the moment
+  -- the patient was actually photographed. An ophthalmologist triaging a case
+  -- needs the capture date -- it is the clinical fact -- and using received_at
+  -- as a stand-in would silently misreport every case that synced late, which
+  -- is precisely the rural deployment this system is built for.
+  captured_at            TIMESTAMPTZ,
+
   -- CONTRACT: GET /api/v1/cases/:caseId/status returns exactly
   -- "processing" | "graded" | "error". Task 0.3's DDL omits this column
   -- entirely, so that endpoint cannot be built without it.
@@ -215,6 +225,20 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- -----------------------------------------------------------------------------
+-- Additive migrations
+--
+-- CREATE TABLE IF NOT EXISTS silently SKIPS a table that already exists, so a
+-- column added to a definition above never reaches a database that was created
+-- before it. These ALTERs are how an existing dev database picks those changes
+-- up without a destructive --reset. They are no-ops on a fresh install, where
+-- the column is already present from the CREATE above.
+--
+-- Keep every entry here idempotent (IF NOT EXISTS), and add to this list rather
+-- than editing a CREATE alone, or the two paths drift apart.
+-- -----------------------------------------------------------------------------
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS captured_at TIMESTAMPTZ;
 
 -- -----------------------------------------------------------------------------
 -- Indexes for the query patterns api-contracts.md's endpoints actually use

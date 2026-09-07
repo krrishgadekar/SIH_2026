@@ -1,39 +1,99 @@
 'use strict';
 
 /**
- * routes/ophthalmologistQueue.js
+ * routes/ophthalmologistQueue.js  (Task 3.5)
  *
- * Placeholder router (Task 0.1). Mounted at /api/v1/ophthalmologist.
+ * Mounted at /api/v1/ophthalmologist.
  *
- * Endpoint this router owns, per docs/api-contracts.md ("Central API"):
+ *   GET /api/v1/ophthalmologist/queue -> 200 [ queue rows, priorityRank ascending ]
  *
- *   GET /api/v1/ophthalmologist/queue -> 200 [ { caseId, patientReference, phcName,
- *                                                capturedAt, drGradeCnn,
- *                                                drGradeRuleEngine, branchAgreement,
- *                                                confidenceScore, conformalTier,
- *                                                priorityRank } ]
+ * ── The ranking rule, and why it is computed in SQL ─────────────────────────
+ * api-contracts.md, checkpoint version:
+ *   Tier C ranked 1-100 by uncertaintyScore DESCENDING  (most uncertain first)
+ *   Tier B ranked 101-200 by confidenceScore ASCENDING  (least confident first)
+ *   Tier A never appears — it auto-clears and skips this queue entirely.
  *
- * Three things this endpoint has to get right (Task 3.5):
+ * Both orderings put the case the model is least sure about at the top, which
+ * is the entire point: reviewer time is the scarce resource in this system, so
+ * it goes where the model is weakest, not where the disease is worst.
  *
- *   1. WHERE conformal_tier != 'A'. Tier A auto-clears and never appears here.
- *   2. Ranking: Tier C ranked 1-100 by uncertaintyScore DESCENDING, then Tier B
- *      ranked 101-200 by confidenceScore ASCENDING. Sorted ascending by
- *      priorityRank, so rank 1 is reviewed first. uncertainty_score is NULL
- *      until Phase 6, so use (1 - confidence_score) as its stand-in for now.
- *   3. patientReference, never the raw patientId -- an ophthalmologist's screen
- *      may be visible to people who should not see patient identifiers.
- *
- * drGradeRuleEngine and branchAgreement are null until Branch B ships in Phase 5.
- * That is not a temporary inconvenience to code around: the frontend has to
- * handle null here from day one.
- *
- * IMPLEMENTED BY: Task 3.5.
+ * ROW_NUMBER() in SQL rather than sorting in JS, because the ranks must be
+ * assigned over the WHOLE queue. Ranking a page of results in JS would give the
+ * first row of page 2 a priorityRank of 1.
  */
 
 const express = require('express');
+const pool    = require('../db/pgClient');
 
 const router = express.Router();
 
-router.get('/queue', (req, res) => res.json([]));
+router.get('/queue', async (req, res, next) => {
+  try {
+    const { rows } = await pool.query(`
+      WITH ranked AS (
+        SELECT
+          c.case_id,
+          p.patient_reference,
+          site.name AS phc_name,
+          c.captured_at,
+          g.dr_grade_cnn,
+          g.dr_grade_rule_engine,
+          g.branch_agreement,
+          g.confidence_score,
+          g.conformal_tier,
+          -- uncertainty_score is NULL until Phase 6 ships, so (1 - confidence)
+          -- stands in for it. Same ordering, different scale -- it is a
+          -- placeholder for RANKING only and is never reported as uncertainty.
+          COALESCE(g.uncertainty_score, 1 - g.confidence_score) AS uncertainty_rank_key,
+          ROW_NUMBER() OVER (
+            PARTITION BY g.conformal_tier
+            ORDER BY
+              CASE WHEN g.conformal_tier = 'C'
+                   THEN COALESCE(g.uncertainty_score, 1 - g.confidence_score)
+              END DESC NULLS LAST,
+              CASE WHEN g.conformal_tier = 'B'
+                   THEN g.confidence_score
+              END ASC NULLS LAST,
+              c.case_id                              -- deterministic tie-break
+          ) AS tier_rank
+        FROM cases c
+        JOIN      patients        p    ON p.patient_id = c.patient_id
+        JOIN      grading_results g    ON g.case_id    = c.case_id
+        LEFT JOIN phc_sites       site ON site.phc_id  = c.phc_id
+        -- <> 'A' would also drop NULL tiers, but saying so explicitly documents
+        -- that an ungraded case has no tier and belongs in neither bucket.
+        WHERE g.conformal_tier IS NOT NULL AND g.conformal_tier <> 'A'
+      ),
+      c_count AS (SELECT COUNT(*) AS n FROM ranked WHERE conformal_tier = 'C')
+      SELECT ranked.*,
+             CASE
+               WHEN conformal_tier = 'C' THEN tier_rank
+               -- Tier B starts at 101 per the contract. GREATEST guards the
+               -- case of more than 100 Tier C rows: without it, B would start
+               -- at 101 while C had already reached 150, and the ranks would
+               -- interleave -- putting a Tier B case above a Tier C one, which
+               -- inverts the entire safety ordering.
+               ELSE GREATEST(100, (SELECT n FROM c_count)) + tier_rank
+             END AS priority_rank
+      FROM ranked
+      ORDER BY priority_rank ASC
+    `);
+
+    res.json(rows.map((r) => ({
+      caseId:            r.case_id,
+      patientReference:  r.patient_reference ?? null,
+      phcName:           r.phc_name ?? null,
+      capturedAt:        r.captured_at ? r.captured_at.toISOString() : null,
+      drGradeCnn:        r.dr_grade_cnn ?? null,
+      // null until Branch B ships in Phase 5. The frontend must handle null
+      // here from day one, not once Branch B lands.
+      drGradeRuleEngine: r.dr_grade_rule_engine ?? null,
+      branchAgreement:   r.branch_agreement ?? null,
+      confidenceScore:   r.confidence_score ?? null,
+      conformalTier:     r.conformal_tier,
+      priorityRank:      Number(r.priority_rank),
+    })));
+  } catch (err) { next(err); }
+});
 
 module.exports = router;
