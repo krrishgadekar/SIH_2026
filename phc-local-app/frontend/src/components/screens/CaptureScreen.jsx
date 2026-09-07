@@ -159,28 +159,29 @@ export const CaptureScreen = () => {
         </div>
 
         {/* Right Column: Workflow Context */}
-        <div className="panel" style={{ background: 'var(--c-black)' }}>
+        <div className="panel capture-context-panel">
           {activeStep === 1 && (
-            <div className="u-p-6">
+            <div className="capture-instructions">
               <h2 className="t-h3" style={{ color: 'var(--c-crimson)' }}>INSTRUCTIONS</h2>
-              <ul className="t-mono u-mt-4" style={{ color: 'var(--c-text-muted)', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <li>1. Align patient head on chin rest.</li>
-                <li>2. Adjust height until pupil is centered in feed.</li>
-                <li>3. Ensure room lighting is sufficiently dim.</li>
-                <li>4. Instruct patient to focus on internal green target.</li>
-                <li>5. Initiate capture when focus indicator is solid.</li>
+              <div className="capture-instructions__divider" />
+              <ul className="capture-instructions__list">
+                <li><span className="capture-instructions__num">01</span> Align patient head on chin rest.</li>
+                <li><span className="capture-instructions__num">02</span> Adjust height until pupil is centered in feed.</li>
+                <li><span className="capture-instructions__num">03</span> Ensure room lighting is sufficiently dim.</li>
+                <li><span className="capture-instructions__num">04</span> Instruct patient to focus on internal green target.</li>
+                <li><span className="capture-instructions__num">05</span> Initiate capture when focus indicator is solid.</li>
               </ul>
             </div>
           )}
 
           {activeStep === 2 && qualityResult && (
-            <div className="u-p-4">
+            <div className="capture-quality-wrapper">
               <QualityResultPanel result={qualityResult} onRetake={handleRetake} onAccept={handleAcceptQuality} />
             </div>
           )}
 
           {activeStep === 3 && (
-            <div className="u-p-4" style={{ overflowY: 'auto', maxHeight: '500px' }}>
+            <div style={{ overflowY: 'auto', maxHeight: '500px', padding: 'var(--sp-4)' }}>
               <CaptureMetadataForm onChange={setMetadata} />
               <div className="u-mt-6">
                 <PatientQuestionnaireForm onChange={setQuestionnaire} />
