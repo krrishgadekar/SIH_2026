@@ -17,11 +17,16 @@ yarn-error.log*
 *.sqlite
 *.sqlite3
 *.db
+# WAL sidecars (localDb.js sets journal_mode = WAL); *.sqlite does not match these
+*.sqlite-wal
+*.sqlite-shm
 
 # ── Uploaded / captured images ────────────────────────────────────────────────
 # Captures saved by the PHC app go here — never commit patient images
 phc-local-app/backend/uploads/
 phc-local-app/backend/captures/
+# Written by services/captureHandler.js (Task 3.1)
+phc-local-app/backend/storage/
 
 # ── Dataset images ────────────────────────────────────────────────────────────
 # datasets/.gitignore already handles this with */

@@ -12,7 +12,12 @@
  * bodies themselves are filled in by Task 3.2 -- this file only wires them up.
  */
 
-require('dotenv').config();
+// Load the repo-root .env explicitly. A bare .config() resolves relative to the
+// process's cwd, so it would silently find nothing when the server is started
+// from anywhere other than this directory -- and the variable that goes missing
+// is MATLAB_EXECUTABLE, which makes every capture fail at the quality gate.
+const path = require('path');
+require('dotenv').config({ path: path.resolve(__dirname, '..', '..', '.env') });
 
 const express = require('express');
 

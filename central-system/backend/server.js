@@ -12,9 +12,13 @@
  * them up.
  */
 
-require('dotenv').config();
+const path = require('path');
 
-const path    = require('path');
+// Explicit path: a bare .config() resolves against the process cwd, so starting
+// the server from the repo root rather than this directory would silently load
+// nothing -- taking DATABASE_URL and MATLAB_EXECUTABLE with it.
+require('dotenv').config({ path: path.resolve(__dirname, '..', '..', '.env') });
+
 const express = require('express');
 
 const casesRouter              = require('./routes/cases');
