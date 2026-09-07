@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { RetinalWaveCanvas } from '../shared/RetinalWaveCanvas';
-import { BinarySeparator } from '../shared/BinarySeparator';
 
 const ROLES = [
   {
@@ -67,8 +66,6 @@ export const LoginScreen = ({ onLogin }) => {
             CENTRAL REVIEW SYSTEM v1.0
           </p>
         </div>
-
-        <BinarySeparator />
 
         {/* Role Selection */}
         <div className="login-roles">
