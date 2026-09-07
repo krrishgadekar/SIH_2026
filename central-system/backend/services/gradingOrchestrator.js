@@ -39,6 +39,7 @@ const { spawn }  = require('child_process');
 const path       = require('path');
 const fs         = require('fs');
 const pool       = require('../db/pgClient');
+const mediaPaths = require('./mediaPaths');
 
 // ── Path constants ────────────────────────────────────────────────────────────
 const ML_ROOT          = path.resolve(__dirname, '..', 'ml-pipeline');
@@ -47,14 +48,17 @@ const GRADING_DIR       = path.join(ML_ROOT, 'grading');
 const CALIBRATION_DIR   = path.join(ML_ROOT, 'calibration');
 const EXPLAINABILITY_DIR= path.join(ML_ROOT, 'explainability');
 const MODELS_DIR        = path.join(ML_ROOT, 'models');
-const GRADCAM_OUT_DIR   = path.resolve(__dirname, '..', 'explainability-outputs');
 
 const MODEL_VERSION     = 'branchA_v1';
 const MATLAB_EXE        = process.env.MATLAB_EXECUTABLE || 'matlab';
 const TIMEOUT_MS        = parseInt(process.env.MATLAB_TIMEOUT_MS || '120000', 10);
 
-// Ensure Grad-CAM output directory exists at module load time
-fs.mkdirSync(GRADCAM_OUT_DIR, { recursive: true });
+// Grad-CAM output location comes from mediaPaths, NOT a local constant. It has
+// to land under backend/media so the URL api-contracts.md returns
+// (/media/cases/<id>/gradcam.png) actually resolves — this previously wrote to
+// backend/explainability-outputs/, which is outside the static root, so the
+// stored path was correct and the file was really there and the frontend could
+// still never have loaded it.
 
 // ── MATLAB bridge (shared with qualityGateClient pattern) ─────────────────────
 function spawnMatlabBatch(expr) {
@@ -111,7 +115,7 @@ async function processCase(caseId) {
   // ── Step 2: single MATLAB round-trip for the full pipeline ────────────────
   // All five MATLAB functions are chained in ONE matlab -batch call to avoid
   // per-call startup overhead (each startup costs ~3–8 s).
-  const gradcamPath = path.join(GRADCAM_OUT_DIR, `${caseId}.png`);
+  const gradcamPath = mediaPaths.gradcamPath(caseId);   // creates the dir too
 
   const expr = buildMatlabExpr(imagePath, gradcamPath);
   let raw;
