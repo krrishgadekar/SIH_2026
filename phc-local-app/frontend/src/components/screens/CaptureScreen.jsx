@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { QualityResultPanel } from './QualityResultPanel';
 import { CaptureMetadataForm } from './CaptureMetadataForm';
 import { PatientQuestionnaireForm } from './PatientQuestionnaireForm';
 import { localApi } from '../../api/localApiClient';
-import { mockCaptureResults } from '../../api/mockData';
+import { ML_API_ENDPOINT } from '../../config';
 
 export const CaptureScreen = () => {
   const [searchParams] = useSearchParams();
@@ -12,25 +12,78 @@ export const CaptureScreen = () => {
   const patientId = searchParams.get('patientId') || 'UNKNOWN_PATIENT';
   
   const [activeStep, setActiveStep] = useState(1);
-  const [image, setImage] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
   const [qualityResult, setQualityResult] = useState(null);
   const [metadata, setMetadata] = useState({});
   const [questionnaire, setQuestionnaire] = useState({});
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
+  const fileInputRef = useRef(null);
 
-  const handleCapture = () => {
-    // Simulate taking a photo and receiving a result
-    setImage('mock_fundus_image.jpg');
-    // For demo purposes, randomly select a quality result
-    const results = Object.values(mockCaptureResults);
-    const randomResult = results[Math.floor(Math.random() * results.length)];
-    setQualityResult(randomResult);
-    setActiveStep(2);
+  const handleCaptureClick = () => {
+    if (fileInputRef.current && !imageFile) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      setImagePreviewUrl(URL.createObjectURL(file));
+    }
+  };
+
+  const runQualityCheck = async () => {
+    if (!imageFile) return;
+    
+    setIsAnalyzing(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', imageFile);
+
+      const response = await fetch(ML_API_ENDPOINT, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Map API response to UI model
+      const apiStatus = data.imageQuality?.status || 'poor';
+      let uiStatus = 'retake';
+      if (apiStatus === 'good') uiStatus = 'pass';
+      if (apiStatus === 'borderline') uiStatus = 'borderline';
+
+      setQualityResult({
+        captureId: `CAPT-${Date.now()}`,
+        qualityStatus: uiStatus,
+        issues: data.imageQuality?.issues || [],
+        qualityScore: data.imageQuality?.qualityScore,
+        aiPrediction: data // store full data for later
+      });
+      setActiveStep(2);
+    } catch (err) {
+      console.error("Quality Check Error:", err);
+      alert("Failed to analyze image. Ensure the ML API is running.");
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleRetake = () => {
-    setImage(null);
+    setImageFile(null);
+    setImagePreviewUrl(null);
     setQualityResult(null);
     setActiveStep(1);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''; // clear input
+    }
   };
 
   const handleAcceptQuality = () => {
@@ -41,7 +94,8 @@ export const CaptureScreen = () => {
     try {
       await localApi.saveCaptureMetadata(qualityResult.captureId, {
         metadata,
-        questionnaire
+        questionnaire,
+        aiPrediction: qualityResult.aiPrediction
       });
       navigate('/queue');
     } catch (err) {
@@ -69,15 +123,20 @@ export const CaptureScreen = () => {
         <div className="panel u-p-4 hash-fill" style={{ minHeight: '500px' }}>
           <div className="u-flex u-justify-between u-mb-2">
             <span className="t-label">LIVE FEED / PREVIEW</span>
-            <span className="t-label">{image ? 'CAPTURED' : 'READY'}</span>
+            <span className="t-label">{imageFile ? 'CAPTURED' : 'READY'}</span>
           </div>
           
-          <div className={`capture-zone ${image ? 'has-image' : ''}`} onClick={!image ? handleCapture : undefined}>
-            {image ? (
-              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--c-black)'}}>
-                 {/* Placeholder for actual image */}
-                 <div className="t-mono" style={{ color: 'var(--c-crimson)', opacity: 0.5 }}>FUNDUS_IMAGE_PLACEHOLDER</div>
-              </div>
+          <input 
+            type="file" 
+            accept="image/png, image/jpeg, image/jpg" 
+            style={{ display: 'none' }} 
+            ref={fileInputRef}
+            onChange={handleFileChange}
+          />
+
+          <div className={`capture-zone ${imageFile ? 'has-image' : ''}`} onClick={handleCaptureClick}>
+            {imagePreviewUrl ? (
+              <img src={imagePreviewUrl} alt="Fundus Capture" className="capture-zone__preview" />
             ) : (
               <>
                 <div className="capture-zone__placeholder">
@@ -89,10 +148,12 @@ export const CaptureScreen = () => {
             )}
           </div>
           
-          {image && activeStep === 1 && (
+          {imageFile && activeStep === 1 && (
              <div className="u-mt-4 u-flex u-justify-between">
-                <button className="btn btn--outline" onClick={handleRetake}>RETAKE</button>
-                <button className="btn" onClick={() => setActiveStep(2)}>RUN QUALITY CHECK ✦</button>
+                <button className="btn btn--outline" onClick={handleRetake} disabled={isAnalyzing}>RETAKE</button>
+                <button className="btn" onClick={runQualityCheck} disabled={isAnalyzing}>
+                  {isAnalyzing ? 'ANALYZING... ✦' : 'RUN QUALITY CHECK ✦'}
+                </button>
              </div>
           )}
         </div>

@@ -29,7 +29,11 @@ export const QualityResultPanel = ({ result, onRetake, onAccept }) => {
       <div className="quality-result__icon">{icon}</div>
       <div className="quality-result__status">{title}</div>
       
-      {result.qualityReason && (
+      {result.issues && result.issues.length > 0 ? (
+        <div className="quality-result__reason u-mt-2">
+          {result.issues.map(issue => qualityReasonMessages[issue] || issue).join(', ')}
+        </div>
+      ) : result.qualityReason && (
         <div className="quality-result__reason u-mt-2">
           {qualityReasonMessages[result.qualityReason] || result.qualityReason}
         </div>
