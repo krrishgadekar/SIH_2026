@@ -1,36 +1,37 @@
 'use strict';
 
 /**
- * routes/adminDashboard.js
+ * routes/adminDashboard.js  (Task 3.7)
  *
- * Placeholder router (Task 0.1). Mounted at /api/v1/admin.
+ * Mounted at /api/v1/admin.
  *
- * Endpoints this router owns, per docs/api-contracts.md ("Central API"):
+ *   GET /api/v1/admin/dashboard -> { casesToday, casesPerPhc, averageReviewTurnaroundSeconds }
+ *   GET /api/v1/admin/referrals -> [ { referralId, patientReference, status,
+ *                                      assignedWorker, updatedAt } ]
  *
- *   GET /api/v1/admin/dashboard  -> 200 { casesToday, casesPerPhc, averageReviewTurnaroundSeconds }
- *       casesToday                     COUNT(*) FROM cases WHERE received_at::date = CURRENT_DATE
- *       casesPerPhc                    GROUP BY phc_id joined to phc_sites for the name
- *       averageReviewTurnaroundSeconds AVG(review_duration_seconds) FROM ophthalmologist_reviews
+ * Thin by intent: the SQL lives in services/analyticsAggregator.js so the
+ * queries can be read and changed in one place, and so the timezone handling in
+ * "cases today" is not buried in a route handler.
  *
- *   GET /api/v1/admin/referrals  -> 200 [ { referralId, patientReference, status,
- *                                           assignedWorker, updatedAt } ]
- *
- * This view is aggregate-first by design (design doc §1.6): a district admin
- * needs to see where the system is backed up, not a per-patient feed. Do not add
- * per-case push notifications here.
- *
- * IMPLEMENTED BY: Task 3.7, with the queries living in
- * services/analyticsAggregator.js rather than inline in the route.
+ * Aggregate-only (design doc §1.6). No per-case detail and no per-case push
+ * belongs on these endpoints.
  */
 
 const express = require('express');
+const analytics = require('../services/analyticsAggregator');
 
 const router = express.Router();
 
-router.get('/dashboard', (req, res) => {
-  res.json({ casesToday: 0, casesPerPhc: [], averageReviewTurnaroundSeconds: null });
+router.get('/dashboard', async (req, res, next) => {
+  try {
+    res.json(await analytics.getDashboard());
+  } catch (err) { next(err); }
 });
 
-router.get('/referrals', (req, res) => res.json([]));
+router.get('/referrals', async (req, res, next) => {
+  try {
+    res.json(await analytics.getReferrals());
+  } catch (err) { next(err); }
+});
 
 module.exports = router;

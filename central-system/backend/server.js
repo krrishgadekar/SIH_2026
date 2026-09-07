@@ -25,6 +25,7 @@ const casesRouter              = require('./routes/cases');
 const ophthalmologistQueueRouter = require('./routes/ophthalmologistQueue');
 const adminDashboardRouter     = require('./routes/adminDashboard');
 const referralsRouter          = require('./routes/referrals');
+const phcRouter                = require('./routes/phc');
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
 
@@ -43,6 +44,7 @@ app.use('/api/v1/cases',           casesRouter);
 app.use('/api/v1/ophthalmologist', ophthalmologistQueueRouter);
 app.use('/api/v1/admin',           adminDashboardRouter);
 app.use('/api/v1/referrals',       referralsRouter);
+app.use('/api/v1/phc',             phcRouter);
 
 // Case media (fundus images, Grad-CAM overlays). api-contracts.md's case-detail
 // response returns imageUrl / gradCamOverlayUrl as paths under /media, so those

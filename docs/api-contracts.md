@@ -249,6 +249,9 @@ An `"override"` also writes a `corrections` row in the same transaction — that
 > **Gap, unresolved.** There is no endpoint to read a case's review history, but the design doc's Case Detail screen specifies a per-patient audit trail. Something like `GET /api/v1/cases/:caseId/reviews` is needed. It is deliberately **not** invented here — the frontend track should specify the shape it actually needs first, rather than the backend guessing and both sides building to different assumptions.
 
 ### `GET /api/v1/admin/dashboard`
+`casesToday` and `casesPerPhc` are both scoped to **today in the district's local timezone** (`REPORT_TIMEZONE`, default `Asia/Kolkata`), not UTC. A UTC day boundary would roll over at 05:30 local time in India, counting each morning's first hours of screening against the previous day — wrong in a way nobody notices. The two figures always reconcile: `casesPerPhc` counts sum exactly to `casesToday`, and cases that arrived without a `phcId` appear as a bucket with `phcId: null` rather than being dropped.
+`averageReviewTurnaroundSeconds` is `null` — not `0` — when nothing has been reviewed. A `0` would read as reviews completing instantly, which is the opposite of "no data".
+
 Response `200`:
 ```json
 {
@@ -271,6 +274,9 @@ Response `200`: the updated referral object, same shape as the list item above.
 
 ### `GET /api/v1/phc/:phcId/sync-status`
 Response `200`: `{ "phcId": "string", "phcName": "PHC Kharadi", "lastSyncAt": "2026-09-06T08:00:00.000Z", "pendingCount": 5 }`
+Response `404`: `{ "error": "phc_not_found", "message": "..." }`
+
+**Read `lastSyncAt` and `pendingCount` together — `pendingCount` alone is misleading.** The sync queue lives in that PHC's local SQLite; central has no view into it, so this is the number the PHC last *reported*, true only as of `lastSyncAt`. The site whose backlog is genuinely growing is exactly the offline one whose count is frozen at whatever it was when it last made contact. A PHC reporting `pendingCount: 0` with a three-day-old `lastSyncAt` is a far bigger problem than one reporting `40` from a minute ago. Any UI built on this must surface the staleness, not just the count. `lastSyncAt` is `null` and `pendingCount` is `0` for a site that has never synced.
 
 ---
 

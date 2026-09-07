@@ -32,9 +32,16 @@ CREATE TABLE IF NOT EXISTS phc_sites (
   phc_id        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name          TEXT NOT NULL,
 
-  -- CONTRACT: GET /api/v1/phc/:phcId/sync-status returns lastSyncAt. Task 0.3's
-  -- DDL has no column for it, so this is additive -- the endpoint needs it.
-  last_sync_at  TIMESTAMPTZ
+  -- CONTRACT: GET /api/v1/phc/:phcId/sync-status returns lastSyncAt and
+  -- pendingCount. Task 0.3's DDL has neither, so both are additive.
+  --
+  -- pending_count is REPORTED BY the PHC on each sync, not computed here: the
+  -- sync queue lives in that PHC's local SQLite and this server cannot see it.
+  -- So the value is only true as of last_sync_at, and the PHC whose backlog is
+  -- actually growing is precisely the offline one whose number is frozen. The
+  -- two columns are meaningless apart and must always be read together.
+  last_sync_at  TIMESTAMPTZ,
+  pending_count INTEGER NOT NULL DEFAULT 0
 );
 
 -- -----------------------------------------------------------------------------
@@ -238,7 +245,8 @@ CREATE TABLE IF NOT EXISTS users (
 -- Keep every entry here idempotent (IF NOT EXISTS), and add to this list rather
 -- than editing a CREATE alone, or the two paths drift apart.
 -- -----------------------------------------------------------------------------
-ALTER TABLE cases ADD COLUMN IF NOT EXISTS captured_at TIMESTAMPTZ;
+ALTER TABLE cases     ADD COLUMN IF NOT EXISTS captured_at   TIMESTAMPTZ;
+ALTER TABLE phc_sites ADD COLUMN IF NOT EXISTS pending_count INTEGER NOT NULL DEFAULT 0;
 
 -- -----------------------------------------------------------------------------
 -- Indexes for the query patterns api-contracts.md's endpoints actually use

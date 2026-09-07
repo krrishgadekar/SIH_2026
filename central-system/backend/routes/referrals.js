@@ -3,33 +3,73 @@
 /**
  * routes/referrals.js
  *
- * Placeholder router (Task 0.1). Mounted at /api/v1/referrals.
- *
- * Endpoint this router owns, per docs/api-contracts.md ("Central API"):
+ * Mounted at /api/v1/referrals.
  *
  *   PATCH /api/v1/referrals/:referralId
- *     Request:  { status, assignedWorker }
- *     Response: 200 -- the updated referral object, same shape as the list item
- *               in GET /api/v1/admin/referrals:
- *               { referralId, patientReference, status, assignedWorker, updatedAt }
+ *     Request  { status, assignedWorker }
+ *     Response 200 — the updated referral, same shape as a
+ *                    GET /api/v1/admin/referrals list item.
  *
- * status progresses referred -> contacted -> attended, with 'lost' as the
- * terminal failure state (design doc §9.3). The whole point of this table is
- * making loss-to-follow-up visible, so 'lost' is a real outcome to record, not
- * an error condition to suppress.
+ * Referral CREATION and the patient SMS belong to Task 3.6
+ * (referralNotificationService.js) and are deliberately not here. This endpoint
+ * only advances the tracking state of a referral that already exists.
  *
- * Remember to set updated_at = now() on every PATCH -- the admin tracker sorts
- * on it, and a stale timestamp makes a followed-up referral look abandoned.
- *
- * IMPLEMENTED BY: Task 3.6 / Task 3.7.
+ * The whole point of this table is making loss-to-follow-up VISIBLE (design doc
+ * §9.3): referred -> contacted -> attended, with 'lost' as a terminal state.
+ * 'lost' is a real outcome to record, not an error to suppress — a screening
+ * program that cannot count the patients it failed to reach cannot improve.
  */
 
 const express = require('express');
+const analytics = require('../services/analyticsAggregator');
 
 const router = express.Router();
 
-router.get('/__placeholder', (req, res) => {
-  res.json({ router: 'referrals', implemented: false, implementedBy: 'Tasks 3.6 / 3.7' });
+const STATUSES = ['referred', 'contacted', 'attended', 'lost'];
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+router.patch('/:referralId', async (req, res, next) => {
+  const { referralId } = req.params;
+  const { status, assignedWorker } = req.body || {};
+
+  // Postgres raises 22P02 on a malformed UUID rather than returning no rows,
+  // which would surface as a 500 for what is really a bad request.
+  if (!UUID_RE.test(referralId)) {
+    return res.status(404).json({
+      error: 'referral_not_found', message: `No referral with id ${referralId}`,
+    });
+  }
+
+  if (status !== undefined && !STATUSES.includes(status)) {
+    return res.status(400).json({
+      error: 'invalid_field',
+      message: `status must be one of: ${STATUSES.join(', ')} — got '${status}'.`,
+    });
+  }
+
+  if (status === undefined && assignedWorker === undefined) {
+    return res.status(400).json({
+      error: 'no_fields_to_update',
+      message: 'Supply status, assignedWorker, or both.',
+    });
+  }
+
+  try {
+    // assignedWorker is forwarded only when the key was actually present, so
+    // that omitting it leaves the current worker alone while sending an
+    // explicit null unassigns them. Collapsing those two into one behaviour
+    // would silently wipe the assignment on every status-only update.
+    const patch = { status };
+    if ('assignedWorker' in (req.body || {})) patch.assignedWorker = assignedWorker;
+
+    const updated = await analytics.updateReferral(referralId, patch);
+    if (!updated) {
+      return res.status(404).json({
+        error: 'referral_not_found', message: `No referral with id ${referralId}`,
+      });
+    }
+    res.json(updated);
+  } catch (err) { next(err); }
 });
 
 module.exports = router;
