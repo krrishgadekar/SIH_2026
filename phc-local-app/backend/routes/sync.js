@@ -1,31 +1,47 @@
 'use strict';
 
 /**
- * routes/sync.js
+ * routes/sync.js  (Task 3.2)
  *
- * Placeholder router (Task 0.1). Mounted at /sync by server.js.
- *
- * Endpoints this router owns, per docs/api-contracts.md ("Local API"):
+ * Mounted at /sync. Implements the "Local API" sync endpoint from
+ * docs/api-contracts.md:
  *
  *   GET /sync/status -> 200 { online, pendingCount, lastSyncAttempt }
- *                       lastSyncAttempt is null if no attempt has ever been made.
  *
- * IMPLEMENTED BY: Task 3.2, counting sync_queue rows WHERE status = 'pending'
- * and reading the last attempt timestamp written by syncManager.js (Task 3.4).
- *
- * The Sync Status indicator is always visible in the local UI (design doc §4.1),
- * so this endpoint is polled continuously -- keep it a cheap COUNT, not a join.
+ * The Sync Status indicator is always visible in the local UI (design doc
+ * §4.1), so the frontend polls this continuously. Both queries below are
+ * therefore deliberately cheap -- a COUNT and a MAX over an indexed column, no
+ * joins. Anything heavier here is paid for on every poll, on modest PHC
+ * hardware, forever.
  */
 
 const express = require('express');
 
+const db         = require('../db/localDb');
+const syncState  = require('../services/syncState');
+
 const router = express.Router();
 
-// Placeholder. Reports offline with nothing pending, which is the honest answer
-// before syncManager.js exists -- no sync has been attempted, so there is no
-// last attempt to report and nothing has been queued.
 router.get('/status', (req, res) => {
-  res.json({ online: false, pendingCount: 0, lastSyncAttempt: null });
+  const { n } = db.prepare(
+    "SELECT COUNT(*) AS n FROM sync_queue WHERE status = 'pending'").get();
+
+  // MAX over the whole queue, not just pending rows: "when did we last try"
+  // stays meaningful after a successful drain empties the pending set.
+  const { last } = db.prepare(
+    'SELECT MAX(last_attempt_at) AS last FROM sync_queue').get();
+
+  const state = syncState.getState();
+
+  res.json({
+    online:       state.online,
+    pendingCount: n,
+    // null when no attempt has ever been made, per the contract. Prefer the
+    // in-memory value (this process's own last attempt) and fall back to the
+    // durable one from the queue, so a restart does not erase the fact that
+    // syncing has happened at some point.
+    lastSyncAttempt: state.lastSyncAttempt || last || null,
+  });
 });
 
 module.exports = router;

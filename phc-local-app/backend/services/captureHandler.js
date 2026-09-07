@@ -18,7 +18,8 @@
  *   1. write the image to disk
  *   2. INSERT the capture row with quality_status = 'pending'
  *   3. run the quality gate (slow -- spawns MATLAB)
- *   4. UPDATE the row with the real status/reason
+ *   4. UPDATE the row with the real status/reason, and -- atomically with it --
+ *      enqueue the capture for sync if it passed
  *
  * The row is inserted BEFORE the gate runs so that a MATLAB crash, a timeout,
  * or the technician closing the laptop mid-check cannot lose the capture. The
@@ -133,6 +134,29 @@ function countPriorRetakes(patientId, nowIso) {
 }
 
 /**
+ * provisionalPriority(qualityStatus)
+ *
+ * Which captures the sync manager should send first when bandwidth is scarce.
+ *
+ * The design doc wants referable/uncertain cases prioritised over
+ * confident-negative ones (§9.2) -- but referable-ness is a central grading
+ * result, and this runs before the image has left the building. So the value
+ * written here is explicitly PROVISIONAL, "until a first central pass
+ * classifies it" (§4.3).
+ *
+ * 'borderline' is the only uncertainty signal available locally: the gate found
+ * no single hard failure but the composite score was still below par, so the
+ * image is the kind that most benefits from central enhancement and a human
+ * look. That earns 'high'. A clean pass starts 'low'.
+ *
+ * This is a heuristic standing in for a real signal, not a validated ranking.
+ * Task 3.4 should update the row once the central classification comes back.
+ */
+function provisionalPriority(qualityStatus) {
+  return qualityStatus === 'borderline' ? 'high' : 'low';
+}
+
+/**
  * handleCapture(patientId, imageFile, cameraDeviceId)
  *
  * @param {string} patientId       — an existing patients.patient_id
@@ -186,12 +210,30 @@ async function handleCapture(patientId, imageFile, cameraDeviceId = 'unknown') {
     throw new Error(`quality_gate_failed: ${err.message}`);
   }
 
-  // ── 4. Record the verdict ──────────────────────────────────────────────────
-  // qualityGateClient already normalises MATLAB's empty-matrix reason to null.
-  db.prepare(`
-    UPDATE captures SET quality_status = ?, quality_reason = ?
-    WHERE capture_id = ?
-  `).run(gate.status, gate.reason, captureId);
+  // ── 4. Record the verdict, and enqueue for sync ────────────────────────────
+  // Both writes in one transaction. A capture that passed the gate but has no
+  // sync_queue row would never reach the central server and nothing would ever
+  // notice -- it would just look like a case the ophthalmologist never got to.
+  const commit = db.transaction(() => {
+    // qualityGateClient already normalises MATLAB's empty-matrix reason to null.
+    db.prepare(`
+      UPDATE captures SET quality_status = ?, quality_reason = ?
+      WHERE capture_id = ?
+    `).run(gate.status, gate.reason, captureId);
+
+    // Only pass/borderline get queued. A 'retake' is not a case -- the
+    // technician is about to shoot it again (design doc §8.1 loops back to
+    // step 1), so uploading it would spend scarce rural bandwidth on an image
+    // that is already being replaced.
+    if (gate.status === 'pass' || gate.status === 'borderline') {
+      db.prepare(`
+        INSERT INTO sync_queue
+          (queue_id, capture_id, status, priority, chunks_sent, chunks_total, last_attempt_at)
+        VALUES (?, ?, 'pending', ?, 0, 1, NULL)
+      `).run(generateLocalId(), captureId, provisionalPriority(gate.status));
+    }
+  });
+  commit();
 
   // Sub-scores are for logging only -- api-contracts.md does not expose them,
   // and they are not part of the response below.
