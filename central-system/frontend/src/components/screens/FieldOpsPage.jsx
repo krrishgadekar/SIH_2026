@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { InfoBanner } from '../shared/InfoBanner';
 
 const SortHeader = ({ label, sortKey, currentSort, onRequestSort, width }) => {
   const active = currentSort.key === sortKey;
@@ -103,6 +104,11 @@ export const FieldOpsPage = () => {
           />
         </div>
       </div>
+
+      <InfoBanner 
+        title="PHC OVERSIGHT" 
+        text="Monitor aggregate quality metrics across deployed sites. Search by PHC or technician to isolate low-performing units. Click on any row to instantly filter your Review Queue to that specific center." 
+      />
 
       <div style={{ border: 'var(--border)' }}>
         <table className="table">

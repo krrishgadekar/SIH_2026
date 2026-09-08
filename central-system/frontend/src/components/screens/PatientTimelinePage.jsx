@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { InfoBanner } from '../shared/InfoBanner';
 
 const mockPatientData = {
   id: 'PT-1099-B',
@@ -133,6 +134,11 @@ export const PatientTimelinePage = () => {
           {diffView ? 'DISABLE DIFF VIEW' : 'ENABLE DIFF VIEW'}
         </button>
       </div>
+
+      <InfoBanner 
+        title="PATIENT HISTORY & COMPARISON" 
+        text="Review the longitudinal visit history for this patient. Enable Diff View to automatically highlight changes in lesion evidence between adjacent visits. Track the referral progress loop across different nodes." 
+      />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-6)' }}>
         {patient.history.map((visit, index) => {

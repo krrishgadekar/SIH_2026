@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { centralApi } from '../../api/centralApiClient';
 import { drGradeLabels } from '../../api/mockData';
+import { InfoBanner } from '../shared/InfoBanner';
 
 const SortHeader = ({ label, sortKey, currentSort, onRequestSort, width }) => {
   const active = currentSort.key === sortKey;
@@ -141,6 +142,11 @@ export const ReviewQueuePage = () => {
           {disagreeCount > 0 && <span className="badge badge--fail">⚠ {disagreeCount} MISMATCH</span>}
         </div>
       </div>
+
+      <InfoBanner 
+        title="QUEUE PRIORITIZATION" 
+        text="Cases are automatically sorted by urgency. Tier C cases and branch disagreements are floated to the top, followed by lowest confidence scores. Spot-check Tier B cases appear last." 
+      />
 
       {/* Filter Bar */}
       <div className="queue-filter-bar u-mb-4">

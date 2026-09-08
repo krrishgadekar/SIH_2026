@@ -1,4 +1,5 @@
 import React from 'react';
+import { InfoBanner } from '../shared/InfoBanner';
 
 const StatCard = ({ title, value, subtext, trend, isWarning }) => (
   <div className="panel u-p-4" style={{ border: isWarning ? '1px solid var(--c-danger)' : '1px solid var(--border)' }}>
@@ -30,6 +31,11 @@ export const ProgramHealthPage = () => {
           <span className="badge badge--neutral">UPDATED: JUST NOW</span>
         </div>
       </div>
+
+      <InfoBanner 
+        title="DISTRICT OPERATIONS & DRIFT" 
+        text="Review high-level screening throughput and turnaround times. The Model Drift Indicator tracks the continuous learning pipeline's stability. The Simulink Engine actively forecasts bottlenecks and recommends load-balancing measures." 
+      />
 
       {/* Top Stats Row */}
       <div className="grid--4 u-mb-6" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--sp-4)' }}>
