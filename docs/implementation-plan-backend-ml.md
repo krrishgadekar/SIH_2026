@@ -129,12 +129,12 @@ this audit.*
 | **1.** CLAHE + illumination normalization | 2.1 | ✅ done |
 | **1.** Denoising | **2.1b** | ❌ was missing entirely |
 | **1.** *Adaptive* enhancement for borderline | **2.8** | ❌ borderline detected, then ignored |
-| **2.** Optic disc / fovea localization | 4.5 | ⬜ not started |
-| **2.** Vessel segmentation | 4.1 | ⬜ not started |
+| **2.** Optic disc / fovea localization | 4.5 | ⚠️ classical CV built + verified; regressor refinement blocked on IDRiD |
+| **2.** Vessel segmentation | 4.1 | ⚠️ Frangi half built + verified (10.4% coverage); U-Net blocked on DRIVE |
 | **2.** Microaneurysm detection (**sub-pixel**) | 4.2 | ⬜ not started |
 | **2.** Exudate segmentation | 4.3 | ⬜ not started |
 | **2.** Hemorrhage *classification* (distinct from MA) | 4.2 | ⬜ not started |
-| **2.** Neovascularization | 4.4 | ⬜ deliberate deviation — see task |
+| **2.** Neovascularization | 4.4 | ⚠️ suspicion score built + verified; deliberate deviation from "detection" — see task |
 | **3.** ICDR 0–4 grading | 2.2–2.4 | ⚠️ architecture only; model is an untrained stub |
 | **3.** >90% sens / >85% spec, referable | **9.1** | ❌ no harness existed to measure it |
 | **4.** Grad-CAM | 2.6 | ✅ built (meaningless until a real model lands) |
