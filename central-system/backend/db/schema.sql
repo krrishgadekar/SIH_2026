@@ -246,6 +246,12 @@ CREATE TABLE IF NOT EXISTS users (
 -- than editing a CREATE alone, or the two paths drift apart.
 -- -----------------------------------------------------------------------------
 ALTER TABLE cases     ADD COLUMN IF NOT EXISTS captured_at   TIMESTAMPTZ;
+-- The PHC quality gate's six sub-scores, forwarded by the sync manager. They
+-- steer Task 2.8's adaptive enhancement, which needs to know WHICH dimension of
+-- an image is weak in order to correct that one rather than applying a fixed
+-- chain to everything. Nullable: captures taken before this existed have none,
+-- and the pipeline falls back to the default chain for those.
+ALTER TABLE cases     ADD COLUMN IF NOT EXISTS quality_scores JSONB;
 ALTER TABLE phc_sites ADD COLUMN IF NOT EXISTS pending_count INTEGER NOT NULL DEFAULT 0;
 
 -- notifications: a row must record what ACTUALLY happened, not merely that a

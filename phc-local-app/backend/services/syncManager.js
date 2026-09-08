@@ -133,6 +133,14 @@ function buildFormData({ capture, patient, questionnaire, metadata }) {
     }));
   }
 
+  // The quality gate's sub-scores, steering Task 2.8's adaptive enhancement
+  // centrally. Forwarded as a JSON string like the questionnaires; absent for
+  // captures taken before this column existed, which the central side treats as
+  // "no scores" and falls back to the default chain.
+  if (capture.quality_scores) {
+    form.append('qualityScores', capture.quality_scores);
+  }
+
   // Lets the central server keep phc_sites.pending_count current, which is what
   // the admin PHC Health screen reads. Counted BEFORE this upload succeeds, so
   // it is the depth at the moment contact was made.

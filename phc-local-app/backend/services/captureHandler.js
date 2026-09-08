@@ -216,10 +216,17 @@ async function handleCapture(patientId, imageFile, cameraDeviceId = 'unknown') {
   // notice -- it would just look like a case the ophthalmologist never got to.
   const commit = db.transaction(() => {
     // qualityGateClient already normalises MATLAB's empty-matrix reason to null.
+    // quality_scores is stored, not just logged. The six sub-scores say WHICH
+    // dimension of an image is weak, and Task 2.8's adaptive enhancement runs
+    // centrally -- so discarding them here means the central pipeline can only
+    // apply one fixed chain to every image, which is what "adaptive" was
+    // supposed to stop.
     db.prepare(`
-      UPDATE captures SET quality_status = ?, quality_reason = ?
+      UPDATE captures SET quality_status = ?, quality_reason = ?, quality_scores = ?
       WHERE capture_id = ?
-    `).run(gate.status, gate.reason, captureId);
+    `).run(gate.status, gate.reason,
+           gate.scores ? JSON.stringify(gate.scores) : null,
+           captureId);
 
     // Only pass/borderline get queued. A 'retake' is not a case -- the
     // technician is about to shoot it again (design doc §8.1 loops back to

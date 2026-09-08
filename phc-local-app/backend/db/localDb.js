@@ -41,4 +41,18 @@ db.pragma('foreign_keys = ON');
 
 db.exec(fs.readFileSync(SCHEMA_PATH, 'utf8'));
 
+// ── Additive migrations ─────────────────────────────────────────────────────
+// CREATE TABLE IF NOT EXISTS skips a table that already exists, so a column
+// added to schema.sql never reaches a database created before it. SQLite has no
+// ADD COLUMN IF NOT EXISTS either, so each one is guarded by an explicit
+// column-presence check. Idempotent: a no-op on a fresh database.
+function addColumnIfMissing(table, column, definition) {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+  if (!cols.includes(column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+}
+
+addColumnIfMissing('captures', 'quality_scores', 'TEXT');
+
 module.exports = db;

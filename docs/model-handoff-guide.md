@@ -64,40 +64,51 @@ gate is non-negotiable).
 
 **This is the single highest-risk item in the handoff.**
 
-At inference, `gradingOrchestrator.js` runs precisely this, in this order:
+**THE CHAIN CHANGED on 2026-09-09.** If you started before that date against
+the old three-step sequence, re-read this section — training on the old chain
+and serving on the new one is exactly the silent failure described above.
 
-```matlab
-img          = imread(imagePath);
-preprocessed = illuminationNormalize(claheEnhance(benGrahamCrop(img, 512)));
-result       = classifyBranchA(preprocessed);
-```
-
-Your training images must go through **the same three functions, in the same
-order, with the same parameters.** Call the real files in
-`ml-pipeline/preprocessing/` — do not reimplement them in your training script,
-and do not substitute a plain `imresize`.
+There is now ONE function that defines the chain, and both sides call it:
 
 ```matlab
 addpath('central-system/backend/ml-pipeline/preprocessing');
 
-function out = preprocessForBranchA(img)
-    out = illuminationNormalize(claheEnhance(benGrahamCrop(img, 512)));
-end
+preprocessed = preprocessForBranchA(img);        % training: no quality scores
 ```
 
-What each does, so you can see why substituting is not safe:
+`gradingOrchestrator.js` calls the identical function at inference. **Do not
+call the individual steps, and do not reimplement the sequence** — a
+hand-written copy in two places is how the skew starts, and it has already
+changed once.
 
-- **`benGrahamCrop(img, 512)`** — detects the retinal disc (`gray > 15` +
-  `imfill`), crops to its bounding box, resizes to 512, then subtracts a heavily
-  blurred copy of itself and re-adds at mid-grey. This is a large local-contrast
-  boost, not a resize. Images that skip it look nothing like images that got it.
-- **`claheEnhance(img)`** — CLAHE on the LAB L channel only, `ClipLimit` 0.01.
-- **`illuminationNormalize(img)`** — per-channel `imgaussfilt(·, 50)` background
-  subtraction, re-added at midpoint 128.
+What it does internally, for reference only:
 
-If you train on raw resized images and inference feeds contrast-boosted
-illumination-flattened ones, nothing errors. Accuracy just quietly collapses,
-and it will look like a bad model rather than a preprocessing mismatch.
+```
+benGrahamCrop(img, 512)   ->  denoiseRetinal(...)  ->  adaptiveEnhance(..., scores)
+```
+
+- `denoiseRetinal` (Task 2.1b) is NEW. Edge-preserving anisotropic diffusion,
+  placed before contrast amplification because CLAHE amplifies whatever noise it
+  is handed. Verified to retain microaneurysm-scale detail: 6/6 synthetic blobs
+  of radius 2–8 px survive at 89% contrast.
+- `adaptiveEnhance` (Task 2.8) SUBSUMES the old `claheEnhance` +
+  `illuminationNormalize` pair. It also varies the treatment by which quality
+  dimension is weak, using the PHC quality gate's sub-scores.
+
+**Training images have no quality scores, and that is fine.** With none
+supplied, `adaptiveEnhance` takes its default path — CLAHE at clip 0.01, no
+sharpening, no glare attenuation — which is deterministic, reproducible, and
+the same path a good-quality clinical image takes at inference. That is the
+property that keeps the two aligned for the images that matter most.
+
+Why substituting any of it is unsafe: `benGrahamCrop` is a large
+local-contrast boost, not a resize — it detects the retinal disc, crops to its
+bounding box, resizes, then subtracts a heavily blurred copy of itself and
+re-adds at mid-grey. Images that skip it look nothing like images that got it.
+
+If you train on raw resized images and inference feeds the full chain, nothing
+errors. Accuracy just quietly collapses, and it will look like a bad model
+rather than a preprocessing mismatch.
 
 > **Cache the preprocessed images to disk once**, then train from that. The chain
 > is slow, and re-running it every epoch wastes hours. Just make sure the cache is

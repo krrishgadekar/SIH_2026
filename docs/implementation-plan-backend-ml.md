@@ -128,7 +128,7 @@ this audit.*
 | **1.** Recapture feedback for ungradeable | 1.5, 3.1, 3.2 | ✅ done |
 | **1.** CLAHE + illumination normalization | 2.1 | ✅ done |
 | **1.** Denoising | **2.1b** | ✅ built + verified (all microaneurysm-scale blobs survive) |
-| **1.** *Adaptive* enhancement for borderline | **2.8** | ⚠️ built + verified; needs quality scores plumbed PHC→central to run live |
+| **1.** *Adaptive* enhancement for borderline | **2.8** | ✅ built, plumbed PHC→central, and live in the pipeline |
 | **2.** Optic disc / fovea localization | 4.5 | ⚠️ classical CV built + verified; regressor refinement blocked on IDRiD |
 | **2.** Vessel segmentation | 4.1 | ⚠️ Frangi half built + verified (10.4% coverage); U-Net blocked on DRIVE |
 | **2.** Microaneurysm detection (**sub-pixel**) | 4.2 | ⬜ not started |

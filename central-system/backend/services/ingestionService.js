@@ -122,6 +122,12 @@ async function ingestCase(fields) {
     patientName, patientAge, patientContactNumber, capturedAt, pendingCount,
   } = fields;
 
+  // Parsed to an object, like the questionnaires: pg encodes a JS object to
+  // JSONB itself, and a pre-stringified value would be stored as a JSON STRING
+  // inside the column, which only surfaces later when a query on a nested key
+  // matches nothing.
+  const qualityScores = parseJsonField(fields.qualityScores, 'qualityScores');
+
   if (!patientId) throw badRequest('patient_id_required', 'patientId is required.');
   if (!imageFile) throw badRequest('image_required', 'An image file is required.');
 
@@ -189,15 +195,15 @@ async function ingestCase(fields) {
     const inserted = await client.query(`
       INSERT INTO cases
         (patient_id, phc_id, capture_id_ref, camera_device_id, image_path,
-         questionnaire_data, capture_metadata, status, captured_at)
-      VALUES ($1, $2, $3, $4, '', $5, $6, 'processing', $7)
+         questionnaire_data, capture_metadata, status, captured_at, quality_scores)
+      VALUES ($1, $2, $3, $4, '', $5, $6, 'processing', $7, $8)
       RETURNING case_id, received_at
     `, [patientId, phcId || null, captureIdRef || null, cameraDeviceId || null,
         questionnaireData, captureMetadata,
         // Falls back to now() only when the PHC did not send one. That fallback
         // is wrong for any case that synced late, so the sync manager (Task 3.4)
         // must always send the local captures.captured_at.
-        capturedAt || new Date().toISOString()]);
+        capturedAt || new Date().toISOString(), qualityScores]);
 
     const caseId    = inserted.rows[0].case_id;
     const imagePath = mediaPaths.originalPath(caseId, ext);

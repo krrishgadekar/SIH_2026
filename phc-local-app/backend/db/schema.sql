@@ -30,7 +30,11 @@ CREATE TABLE IF NOT EXISTS captures (
   quality_status   TEXT NOT NULL,
   quality_reason   TEXT,          -- NULL on pass; else one of the six enum strings
   retake_count     INTEGER NOT NULL DEFAULT 0,
-  captured_at      TEXT NOT NULL
+  captured_at      TEXT NOT NULL,
+  -- The gate's six sub-scores, as a JSON string. Previously computed, logged,
+  -- and thrown away. Task 2.8's adaptive enhancement runs centrally and needs
+  -- them to decide WHICH fault to correct, so they have to survive the trip.
+  quality_scores   TEXT
 );
 
 -- Patient symptom + risk answers (design doc §9.1) -- about the PATIENT.

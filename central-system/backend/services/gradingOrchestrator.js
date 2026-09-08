@@ -81,6 +81,32 @@ function spawnMatlabBatch(expr) {
   });
 }
 
+/**
+ * matlabStructLiteral(scores)
+ *
+ * Renders the quality-score object as a MATLAB struct literal, or `[]` when
+ * there are none.
+ *
+ * Only the six known numeric sub-scores are emitted, and each is coerced with
+ * Number() and checked finite. This expression is interpolated into a command
+ * line that MATLAB evaluates, so anything unvalidated reaching it would be
+ * executed — a whitelist of numeric fields is the boundary that keeps a value
+ * originating at a PHC from becoming code here.
+ */
+const SCORE_FIELDS = ['focusScore', 'illuminationScore', 'fovScore',
+                      'coveragePercent', 'glareScore', 'motionScore',
+                      'occlusionScore'];
+
+function matlabStructLiteral(scores) {
+  if (!scores || typeof scores !== 'object') return '[]';
+  const parts = [];
+  for (const key of SCORE_FIELDS) {
+    const v = Number(scores[key]);
+    if (Number.isFinite(v)) parts.push(`'${key}', ${v}`);
+  }
+  return parts.length ? `struct(${parts.join(', ')})` : '[]';
+}
+
 // ── Path escaping for MATLAB string literals ───────────────────────────────────
 function toMatlabStr(p) {
   return p.replace(/\\/g, '/').replace(/'/g, "''");
@@ -136,7 +162,12 @@ async function processCase(caseId) {
   // per-call startup overhead (each startup costs ~3–8 s).
   const gradcamPath = mediaPaths.gradcamPath(caseId);   // creates the dir too
 
-  const expr = buildMatlabExpr(imagePath, gradcamPath);
+  // The PHC quality gate's sub-scores steer Task 2.8's adaptive enhancement.
+  // Null for a case captured before they were transmitted, which the MATLAB
+  // side treats as "no scores" and falls back to the default chain.
+  const qualityScores = caseRow.quality_scores || null;
+
+  const expr = buildMatlabExpr(imagePath, gradcamPath, qualityScores);
   let raw;
   try {
     raw = await spawnMatlabBatch(expr);
@@ -214,7 +245,7 @@ async function processCase(caseId) {
 }
 
 // ── MATLAB expression builder ──────────────────────────────────────────────────
-function buildMatlabExpr(imagePath, gradcamPath) {
+function buildMatlabExpr(imagePath, gradcamPath, qualityScores) {
   const p  = toMatlabStr;
   const preDir   = p(PREPROCESSING_DIR);
   const gradDir  = p(GRADING_DIR);
@@ -238,8 +269,19 @@ function buildMatlabExpr(imagePath, gradcamPath) {
     `addpath('${expDir}');`,
 
     // ── Preprocessing
+    // preprocessForBranchA is THE chain — benGrahamCrop -> denoiseRetinal ->
+    // adaptiveEnhance. It is called rather than the individual steps being
+    // re-listed here on purpose: training must run the identical chain, and a
+    // hand-written copy in two places is how train/serve skew starts. That skew
+    // is silent — nothing errors, no test fails, the model is just worse for
+    // reasons nobody can see (docs/model-handoff-guide.md §2).
+    //
+    // This replaced `illuminationNormalize(claheEnhance(benGrahamCrop(...)))`,
+    // which is now wrong in two ways: it skips denoising, and CLAHE plus
+    // illumination are folded into adaptiveEnhance.
     `img = imread('${imgPath}');`,
-    `preprocessed = illuminationNormalize(claheEnhance(benGrahamCrop(img, 512)));`,
+    `qualityScores = ${matlabStructLiteral(qualityScores)};`,
+    `preprocessed = preprocessForBranchA(img, qualityScores);`,
 
     // ── CNN classification (loads net via persistent var in classifyBranchA)
     `cnnResult = classifyBranchA(preprocessed);`,
@@ -263,4 +305,8 @@ function buildMatlabExpr(imagePath, gradcamPath) {
   ].join(' ');
 }
 
-module.exports = { processCase, assignTier };
+// buildMatlabExpr is exported for testing: asserting on the EXPRESSION it
+// actually generates is a real check, whereas grepping this file's source is
+// not -- a comment quoting the old chain would fail such a grep while the
+// generated code was perfectly correct.
+module.exports = { processCase, assignTier, buildMatlabExpr };
