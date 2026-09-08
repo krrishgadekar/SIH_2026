@@ -1,0 +1,226 @@
+// ── Central System Mock Data — shapes match api-contracts.md exactly ──
+
+export const mockOphthQueue = [
+  {
+    caseId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+    patientReference: 'PT-4821',
+    phcName: 'PHC Kharadi',
+    capturedAt: '2026-09-06T09:05:00.000Z',
+    drGradeCnn: 2,
+    drGradeRuleEngine: 3,
+    branchAgreement: false,
+    confidenceScore: 0.81,
+    conformalTier: 'C',
+    priorityRank: 1,
+  },
+  {
+    caseId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+    patientReference: 'PT-3190',
+    phcName: 'PHC Wagholi',
+    capturedAt: '2026-09-06T08:45:00.000Z',
+    drGradeCnn: 3,
+    drGradeRuleEngine: 3,
+    branchAgreement: true,
+    confidenceScore: 0.64,
+    conformalTier: 'C',
+    priorityRank: 2,
+  },
+  {
+    caseId: 'c3d4e5f6-a7b8-9012-cdef-123456789012',
+    patientReference: 'PT-7712',
+    phcName: 'PHC Hadapsar',
+    capturedAt: '2026-09-06T07:30:00.000Z',
+    drGradeCnn: 1,
+    drGradeRuleEngine: null,
+    branchAgreement: null,
+    confidenceScore: 0.93,
+    conformalTier: 'B',
+    priorityRank: 101,
+  },
+  {
+    caseId: 'd4e5f6a7-b8c9-0123-defa-234567890123',
+    patientReference: 'PT-2056',
+    phcName: 'PHC Lohegaon',
+    capturedAt: '2026-09-05T16:20:00.000Z',
+    drGradeCnn: 4,
+    drGradeRuleEngine: 4,
+    branchAgreement: true,
+    confidenceScore: 0.72,
+    conformalTier: 'C',
+    priorityRank: 3,
+  },
+  {
+    caseId: 'e5f6a7b8-c9d0-1234-efab-345678901234',
+    patientReference: 'PT-9145',
+    phcName: 'PHC Kharadi',
+    capturedAt: '2026-09-05T14:10:00.000Z',
+    drGradeCnn: 0,
+    drGradeRuleEngine: null,
+    branchAgreement: null,
+    confidenceScore: 0.97,
+    conformalTier: 'B',
+    priorityRank: 102,
+  },
+  {
+    caseId: 'f6a7b8c9-d0e1-2345-fabc-456789012345',
+    patientReference: 'PT-1338',
+    phcName: 'PHC Wagholi',
+    capturedAt: '2026-09-05T11:55:00.000Z',
+    drGradeCnn: 2,
+    drGradeRuleEngine: 2,
+    branchAgreement: true,
+    confidenceScore: 0.88,
+    conformalTier: 'B',
+    priorityRank: 103,
+  },
+];
+
+export const mockCaseDetail = {
+  caseId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  patientReference: 'PT-4821',
+  imageUrl: null, // We'll generate a placeholder
+  gradCamOverlayUrl: null, // We'll generate a placeholder
+  lesionCounts: { microaneurysms: 6, hemorrhages: 2, hardExudates: 0, softExudates: 0 },
+  nvSuspicionScore: 0.12,
+  evidenceSummaryText: '6 microaneurysms (superior-temporal: 3, inferior-nasal: 3), 2 dot hemorrhages. Severe-NPDR criteria not met.',
+  drGradeCnn: 2,
+  drGradeRuleEngine: 3,
+  branchAgreement: false,
+  confidenceScore: 0.81,
+  uncertaintyScore: 0.34,
+  conformalTier: 'C',
+  lesionAttentionConsistencyScore: 0.71,
+  questionnaireData: {
+    riskFactors: {
+      yearsSinceDiagnosis: '5to10',
+      glycemicControl: 'moderate',
+      bloodPressure: 'high',
+      pregnant: null,
+    },
+    symptoms: {
+      blurredVision: true,
+      floaters: false,
+      suddenVisionChange: false,
+      eyePain: false,
+    },
+    language: 'hi',
+  },
+  captureMetadata: {
+    cameraDeviceReported: 'forus_3nethra_v2',
+    pupilStatus: 'dilated',
+    lightingEnvironment: 'indoor_clinic',
+    observedIssues: ['none_noticed'],
+    workerUsabilityRating: 'clear',
+  },
+  priorAssessments: [
+    { caseId: 'prev-case-001', gradedAt: '2026-06-01T10:00:00.000Z', drGradeCnn: 1 },
+    { caseId: 'prev-case-002', gradedAt: '2026-03-15T09:30:00.000Z', drGradeCnn: 0 },
+  ],
+};
+
+// Additional case details for other cases
+export const mockCaseDetails = {
+  'a1b2c3d4-e5f6-7890-abcd-ef1234567890': mockCaseDetail,
+  'b2c3d4e5-f6a7-8901-bcde-f12345678901': {
+    ...mockCaseDetail,
+    caseId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
+    patientReference: 'PT-3190',
+    drGradeCnn: 3,
+    drGradeRuleEngine: 3,
+    branchAgreement: true,
+    confidenceScore: 0.64,
+    uncertaintyScore: 0.51,
+    conformalTier: 'C',
+    lesionCounts: { microaneurysms: 12, hemorrhages: 5, hardExudates: 3, softExudates: 1 },
+    nvSuspicionScore: 0.38,
+    lesionAttentionConsistencyScore: 0.62,
+    evidenceSummaryText: '12 microaneurysms scattered across quadrants, 5 blot hemorrhages (predominantly inferior), 3 hard exudates near macula. Approaching PDR threshold.',
+    priorAssessments: [],
+  },
+  'd4e5f6a7-b8c9-0123-defa-234567890123': {
+    ...mockCaseDetail,
+    caseId: 'd4e5f6a7-b8c9-0123-defa-234567890123',
+    patientReference: 'PT-2056',
+    drGradeCnn: 4,
+    drGradeRuleEngine: 4,
+    branchAgreement: true,
+    confidenceScore: 0.72,
+    uncertaintyScore: 0.42,
+    conformalTier: 'C',
+    lesionCounts: { microaneurysms: 18, hemorrhages: 8, hardExudates: 5, softExudates: 3 },
+    nvSuspicionScore: 0.79,
+    lesionAttentionConsistencyScore: 0.55,
+    evidenceSummaryText: 'Extensive neovascularization detected. 18 microaneurysms, 8 hemorrhages including vitreous, 5 hard exudates encroaching on macula. PDR confirmed.',
+    questionnaireData: {
+      ...mockCaseDetail.questionnaireData,
+      riskFactors: { yearsSinceDiagnosis: 'gt10', glycemicControl: 'poor', bloodPressure: 'high', pregnant: false },
+      symptoms: { blurredVision: true, floaters: true, suddenVisionChange: true, eyePain: false },
+    },
+    priorAssessments: [
+      { caseId: 'prev-case-010', gradedAt: '2026-07-01T10:00:00.000Z', drGradeCnn: 3 },
+      { caseId: 'prev-case-011', gradedAt: '2026-04-01T10:00:00.000Z', drGradeCnn: 2 },
+      { caseId: 'prev-case-012', gradedAt: '2025-12-01T10:00:00.000Z', drGradeCnn: 1 },
+    ],
+  },
+};
+
+export const mockAdminDashboard = {
+  casesToday: 42,
+  casesThisWeek: 187,
+  totalCasesProcessed: 1284,
+  averageReviewTurnaroundSeconds: 27,
+  modelAccuracy: 0.946,
+  overrideRate: 0.083,
+  casesPerPhc: [
+    { phcId: 'PHC001', phcName: 'PHC Kharadi', count: 18 },
+    { phcId: 'PHC002', phcName: 'PHC Wagholi', count: 12 },
+    { phcId: 'PHC003', phcName: 'PHC Hadapsar', count: 7 },
+    { phcId: 'PHC004', phcName: 'PHC Lohegaon', count: 5 },
+  ],
+  drGradeDistribution: [
+    { grade: 0, label: 'No DR', count: 312, percentage: 24.3 },
+    { grade: 1, label: 'Mild NPDR', count: 445, percentage: 34.7 },
+    { grade: 2, label: 'Moderate NPDR', count: 298, percentage: 23.2 },
+    { grade: 3, label: 'Severe NPDR', count: 156, percentage: 12.1 },
+    { grade: 4, label: 'PDR', count: 73, percentage: 5.7 },
+  ],
+  weeklyTrend: [
+    { week: 'W31', cases: 32, referrals: 4 },
+    { week: 'W32', cases: 45, referrals: 6 },
+    { week: 'W33', cases: 38, referrals: 5 },
+    { week: 'W34', cases: 51, referrals: 8 },
+    { week: 'W35', cases: 48, referrals: 7 },
+    { week: 'W36', cases: 42, referrals: 6 },
+  ],
+};
+
+export const mockReferrals = [
+  { referralId: 'ref-001', patientReference: 'PT-4821', status: 'referred', assignedWorker: null, updatedAt: '2026-09-06T09:20:00.000Z', phcName: 'PHC Kharadi', drGrade: 3 },
+  { referralId: 'ref-002', patientReference: 'PT-2056', status: 'contacted', assignedWorker: 'ASHA-112', updatedAt: '2026-09-05T16:30:00.000Z', phcName: 'PHC Lohegaon', drGrade: 4 },
+  { referralId: 'ref-003', patientReference: 'PT-3190', status: 'attended', assignedWorker: 'ASHA-087', updatedAt: '2026-09-04T11:00:00.000Z', phcName: 'PHC Wagholi', drGrade: 3 },
+  { referralId: 'ref-004', patientReference: 'PT-6621', status: 'lost', assignedWorker: 'ASHA-045', updatedAt: '2026-08-28T14:00:00.000Z', phcName: 'PHC Hadapsar', drGrade: 2 },
+  { referralId: 'ref-005', patientReference: 'PT-1102', status: 'referred', assignedWorker: null, updatedAt: '2026-09-06T08:00:00.000Z', phcName: 'PHC Kharadi', drGrade: 4 },
+  { referralId: 'ref-006', patientReference: 'PT-7803', status: 'contacted', assignedWorker: 'ASHA-112', updatedAt: '2026-09-05T10:15:00.000Z', phcName: 'PHC Wagholi', drGrade: 3 },
+];
+
+export const mockPhcSyncStatuses = [
+  { phcId: 'PHC001', phcName: 'PHC Kharadi', lastSyncAt: '2026-09-06T09:10:00.000Z', pendingCount: 0, totalScreened: 456, status: 'online' },
+  { phcId: 'PHC002', phcName: 'PHC Wagholi', lastSyncAt: '2026-09-06T08:45:00.000Z', pendingCount: 3, totalScreened: 312, status: 'online' },
+  { phcId: 'PHC003', phcName: 'PHC Hadapsar', lastSyncAt: '2026-09-05T22:00:00.000Z', pendingCount: 12, totalScreened: 189, status: 'offline' },
+  { phcId: 'PHC004', phcName: 'PHC Lohegaon', lastSyncAt: '2026-09-06T07:00:00.000Z', pendingCount: 1, totalScreened: 327, status: 'online' },
+];
+
+export const drGradeLabels = {
+  0: 'No DR',
+  1: 'Mild NPDR',
+  2: 'Moderate NPDR',
+  3: 'Severe NPDR',
+  4: 'PDR',
+};
+
+export const overrideReasonCategories = [
+  { value: 'artifact_misread', label: 'Artifact Misread' },
+  { value: 'lesion_missed', label: 'Lesion Missed' },
+  { value: 'wrong_severity', label: 'Wrong Severity' },
+  { value: 'image_quality_issue', label: 'Image Quality Issue' },
+];
