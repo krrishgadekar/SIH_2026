@@ -50,6 +50,29 @@ const IMAGE = path.resolve(__dirname, 'datasets', '2.jpg');
 const PORT  = 5123;
 
 let failures = 0;
+/**
+ * pollUntilTerminal(base, caseId, timeoutMs)   [Task 8.3]
+ *
+ * Grading is queued, so 'processing' is a transient state the client waits out
+ * by polling — the same thing a PHC or a frontend does.
+ *
+ * The timeout is bounded and the last-seen status is returned rather than
+ * throwing: a case still 'processing' when time runs out is a real result the
+ * assertions below should report as a failure, not an exception that hides
+ * which state it was actually stuck in.
+ */
+async function pollUntilTerminal(base, caseId, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  let last = { caseId, status: 'processing' };
+  while (Date.now() < deadline) {
+    last = await (await fetch(`${base}/api/v1/cases/${caseId}/status`)).json();
+    if (last.status === 'graded' || last.status === 'error') return last;
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  console.log(`        [verify] still '${last.status}' after ${timeoutMs / 1000}s`);
+  return last;
+}
+
 function check(label, ok, detail) {
   console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${label}`);
   if (!ok) { failures++; if (detail !== undefined) console.log(`        ${detail}`); }
@@ -79,7 +102,8 @@ async function main() {
 
     // ── POST /api/v1/cases ────────────────────────────────────────────────
     console.log('\n--- POST /api/v1/cases ---');
-    console.log('[verify] grading runs synchronously; allow ~30s for MATLAB.\n');
+    console.log('[verify] grading is queued (Task 8.3): the POST returns at once,');
+    console.log('         and the status is polled until it is terminal.\n');
 
     const form = new FormData();
     form.append('patientId', patientId);
@@ -120,20 +144,32 @@ async function main() {
     if (!caseId) { console.error('\nNo caseId returned; cannot continue.'); return; }
 
     // ── GET status ────────────────────────────────────────────────────────
+    //
+    // UPDATED BY TASK 8.3. Grading used to run inside the POST, so this file
+    // originally read the status once and asserted it was already terminal.
+    // Grading is now queued, so the first read is legitimately 'processing' and
+    // a single read races the worker. Polling is not a workaround for a flaky
+    // test — it is the contract: GET /status exists precisely because the
+    // answer is not ready when the POST returns.
     console.log('\n--- GET /api/v1/cases/:caseId/status ---');
-    const st = await (await fetch(`${BASE}/api/v1/cases/${caseId}/status`)).json();
+
+    const first = await (await fetch(`${BASE}/api/v1/cases/${caseId}/status`)).json();
     check('returns exactly { caseId, status }',
-      Object.keys(st).sort().join(',') === 'caseId,status', Object.keys(st).join(','));
+      Object.keys(first).sort().join(',') === 'caseId,status', Object.keys(first).join(','));
     check("status is 'processing' | 'graded' | 'error'",
-      ['processing', 'graded', 'error'].includes(st.status), st.status);
+      ['processing', 'graded', 'error'].includes(first.status), first.status);
+
+    const st = await pollUntilTerminal(BASE, caseId, SKIP_GRADING ? 30_000 : 180_000);
+
     if (SKIP_GRADING) {
-      // Grading was deliberately made to fail, so the case must be marked
-      // 'error' -- NOT left on 'processing'. A poller cannot otherwise tell
-      // "failed, needs attention" apart from "still working".
+      // Grading was deliberately made to fail, so the case must end on 'error'
+      // -- NOT left on 'processing'. A poller cannot otherwise tell "failed,
+      // needs attention" apart from "still working", and would wait forever.
       check("status is 'error' when grading fails (not stuck on 'processing')",
         st.status === 'error', st.status);
     } else {
-      check("status is 'graded' after synchronous grading", st.status === 'graded', st.status);
+      check("status reaches 'graded' once the queue has run the case",
+        st.status === 'graded', st.status);
     }
 
     // ── GET detail ────────────────────────────────────────────────────────

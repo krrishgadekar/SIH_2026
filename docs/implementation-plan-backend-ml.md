@@ -676,11 +676,35 @@ directory structure from Task 0 and has been empty the whole time.
 **Task 8.1 — MATLAB Compiler packaging for the local quality gate**
 - Build: package `qualityGateMain.m` as a standalone executable via MATLAB Compiler + MATLAB Runtime, so the PHC machine doesn't need a MATLAB license. Swap `qualityGateClient.js` (Task 1.3) from calling the Engine API to shelling out to the compiled executable.
 
-**Task 8.2 — Chunked/resumable sync upload**
-- Update `syncManager.js` (Task 3.4) and add `POST /api/v1/cases/:id/chunks` to `central-system/backend/routes/cases.js` for large-image transfer under poor bandwidth.
+**Task 8.2 — Chunked/resumable sync upload** — DONE (2026-09-09)
+- Files: `central-system/backend/services/chunkedUploadService.js`, four routes in
+  `routes/cases.js`, chunked path in `phc-local-app/backend/services/syncManager.js`.
+- Session key is the PHC's own capture id, so a client that crashes mid-upload
+  resumes without having kept a server-issued token. `GET .../chunks` reports
+  what the server holds; the client sends only the gaps.
+- Two levels of checksum: per chunk on arrival, and the whole file before
+  ingestion. The second catches a set of individually-valid chunks that
+  assemble wrong — which would otherwise be a subtly-corrupt fundus image that
+  decodes fine and gets graded.
+- Completion is idempotent: a repeat returns the original `caseId` rather than
+  creating a second case for one scan.
+- Verified by `verify_task82_83.js`.
 
-**Task 8.3 — Proper job queue for grading**
-- Replace the synchronous call in `ingestionService.js` (Task 3.3) with a real queue (e.g. a simple in-memory or Redis-backed job queue) so central grading doesn't block the ingestion request under load.
+**Task 8.3 — Proper job queue for grading** — DONE (2026-09-09)
+- File: `central-system/backend/services/gradingQueue.js`, wired into
+  `routes/cases.js` and `server.js`.
+- POST /cases went from tens of seconds (a full MATLAB run held the PHC's
+  connection open) to milliseconds. **Contract change:** a case is always
+  `processing` when the POST returns; clients poll `GET /:caseId/status`.
+  api-contracts.md and `verify_task33.js` updated accordingly.
+- Bounded retries with backoff for transient failures; permanent error codes
+  are not retried at all.
+- **`recoverStranded()` is the load-bearing part.** The queue is in memory, so a
+  restart would otherwise leave every queued case on `processing` forever with
+  no retry, no error and no log line — a worse and far less visible failure than
+  the blocking request this replaces. `server.js` calls it at boot; the database
+  is the queue of record.
+- Verified by `verify_task82_83.js`.
 
 **Task 8.4 — Simulink district model** → **MOVED to Task 3.8** *(2026-09-08)*
 - Pulled above the checkpoint. It is PS requirement 5 of 5, it is named again in

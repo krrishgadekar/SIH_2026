@@ -21,6 +21,8 @@ require('dotenv').config({ path: path.resolve(__dirname, '..', '..', '.env') });
 
 const express = require('express');
 
+const gradingQueue             = require('./services/gradingQueue');
+
 const casesRouter              = require('./routes/cases');
 const ophthalmologistQueueRouter = require('./routes/ophthalmologistQueue');
 const adminDashboardRouter     = require('./routes/adminDashboard');
@@ -69,8 +71,39 @@ app.use((err, req, res, next) => {   // eslint-disable-line no-unused-vars
   });
 });
 
+// Task 8.3. Workers start on IMPORT, not just when this file is run directly.
+// Several verification scripts require this module and call app.listen()
+// themselves; if starting the queue lived only in the block below, those would
+// enqueue cases that no worker ever picks up and sit on 'processing' forever —
+// a hang with no error, which is the least debuggable failure available.
+// Starting here costs nothing until something is actually enqueued.
+gradingQueue.start();
+
 if (require.main === module) {
-  app.listen(PORT, () => console.log(`central backend on ${PORT}`));
+  // Re-enqueue anything a previous run left mid-flight. The queue is in memory,
+  // so without this a restart would strand every unfinished case on
+  // 'processing' permanently: no retry, no error, no log line — a scan that
+  // looks like it is about to be graded and never is. The database is the queue
+  // of record; recovery is what makes that true.
+  //
+  // Deliberately NOT at import: recovery sweeps every stranded case in the
+  // database, which is right when the server boots and wrong when a test
+  // imports the app — that test would start grading unrelated real backlog.
+  gradingQueue.recoverStranded().catch((err) =>
+    console.error('[central] stranded-case recovery failed:', err.message));
+
+  const server = app.listen(PORT, () => console.log(`central backend on ${PORT}`));
+
+  // Let a case that is mid-MATLAB finish rather than killing it half-written.
+  // Anything still queued stays 'processing' in the database and is picked up
+  // by the next boot's recoverStranded().
+  for (const signal of ['SIGINT', 'SIGTERM']) {
+    process.on(signal, async () => {
+      console.log(`[central] ${signal} — draining the grading queue`);
+      await gradingQueue.stop({ drain: true });
+      server.close(() => process.exit(0));
+    });
+  }
 }
 
 module.exports = app;

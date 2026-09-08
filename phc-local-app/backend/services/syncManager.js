@@ -21,11 +21,17 @@
  *   - nothing is deleted on success. The queue row flips to 'synced' and stays,
  *     because it is the audit trail of what left this building.
  *
- * Chunked/resumable upload for large images is Task 8.2, deliberately not here.
+ * ── Chunked upload (Task 8.2) ───────────────────────────────────────────────
+ * Images above CHUNK_THRESHOLD_BYTES go up in pieces against the central
+ * /chunks endpoints, so a dropped connection costs one chunk instead of the
+ * whole transfer. Smaller ones keep the single-shot POST: chunking a 400 KB
+ * image spends four extra round trips to save nothing, and on these links round
+ * trips are the expensive part.
  */
 
-const fs   = require('fs');
-const path = require('path');
+const fs     = require('fs');
+const path   = require('path');
+const crypto = require('crypto');
 
 const db        = require('../db/localDb');
 const syncState = require('./syncState');
@@ -34,6 +40,18 @@ const CENTRAL_URL   = process.env.CENTRAL_URL   || 'http://localhost:5000';
 const SYNC_INTERVAL = parseInt(process.env.SYNC_INTERVAL_MS || '10000', 10);
 const HEALTH_TIMEOUT = parseInt(process.env.SYNC_HEALTH_TIMEOUT_MS || '3000', 10);
 const UPLOAD_TIMEOUT = parseInt(process.env.SYNC_UPLOAD_TIMEOUT_MS || '600000', 10);
+
+// Above this, upload in chunks (Task 8.2). 2 MB is roughly where a single-shot
+// POST stops reliably completing on the slowest tier in design doc §7 — below
+// it the extra round trips cost more than they save.
+const CHUNK_THRESHOLD = parseInt(process.env.SYNC_CHUNK_THRESHOLD_BYTES || String(2 * 1024 * 1024), 10);
+
+// Each chunk is its own request with its own timeout, so this is the real unit
+// of "work lost when the link drops". Small enough that a drop is cheap, large
+// enough that a 15 MB image is not 60 round trips.
+const CHUNK_SIZE = parseInt(process.env.SYNC_CHUNK_BYTES || String(1024 * 1024), 10);
+
+const CHUNK_TIMEOUT = parseInt(process.env.SYNC_CHUNK_TIMEOUT_MS || '120000', 10);
 
 // The central phc_sites UUID for this site. Set per deployment. When unset, the
 // case is still accepted centrally but lands with phc_id NULL, which shows up
@@ -94,22 +112,22 @@ function loadCaseBundle(captureId) {
  * the very first case for a patient is rejected with patient_not_found. See the
  * note on that endpoint in api-contracts.md.
  */
-function buildFormData({ capture, patient, questionnaire, metadata }) {
-  const form = new FormData();
+function buildCaseFields({ capture, patient, questionnaire, metadata }) {
+  const fields = {
+    patientId:      capture.patient_id,
+    captureIdRef:   capture.capture_id,
+    cameraDeviceId: capture.camera_device_id || 'unknown',
+    // The capture time, NOT the sync time. A case queued overnight must not be
+    // dated to the moment the network came back.
+    capturedAt:     capture.captured_at,
+  };
 
-  form.append('patientId',      capture.patient_id);
-  form.append('captureIdRef',   capture.capture_id);
-  form.append('cameraDeviceId', capture.camera_device_id || 'unknown');
-  // The capture time, NOT the sync time. A case queued overnight must not be
-  // dated to the moment the network came back.
-  form.append('capturedAt',     capture.captured_at);
-
-  if (PHC_ID) form.append('phcId', PHC_ID);
+  if (PHC_ID) fields.phcId = PHC_ID;
 
   if (patient) {
-    form.append('patientName',          patient.name);
-    form.append('patientAge',           String(patient.age));
-    form.append('patientContactNumber', patient.contact_number);
+    fields.patientName          = patient.name;
+    fields.patientAge           = String(patient.age);
+    fields.patientContactNumber = patient.contact_number;
   }
 
   // Local columns are TEXT holding JSON; central expects JSON strings it will
@@ -117,20 +135,20 @@ function buildFormData({ capture, patient, questionnaire, metadata }) {
   // blind, so a corrupt row fails here with a clear error instead of being
   // stored centrally as unusable JSONB.
   if (questionnaire) {
-    form.append('questionnaireData', JSON.stringify({
+    fields.questionnaireData = JSON.stringify({
       riskFactors: JSON.parse(questionnaire.risk_factor_fields),
       symptoms:    JSON.parse(questionnaire.symptom_fields),
       language:    questionnaire.language,
-    }));
+    });
   }
   if (metadata) {
-    form.append('captureMetadata', JSON.stringify({
+    fields.captureMetadata = JSON.stringify({
       cameraDeviceReported:  metadata.camera_device_reported,
       pupilStatus:           metadata.pupil_status,
       lightingEnvironment:   metadata.lighting_environment,
       observedIssues:        JSON.parse(metadata.observed_issues),
       workerUsabilityRating: metadata.worker_usability_rating,
-    }));
+    });
   }
 
   // The quality gate's sub-scores, steering Task 2.8's adaptive enhancement
@@ -138,22 +156,118 @@ function buildFormData({ capture, patient, questionnaire, metadata }) {
   // captures taken before this column existed, which the central side treats as
   // "no scores" and falls back to the default chain.
   if (capture.quality_scores) {
-    form.append('qualityScores', capture.quality_scores);
+    fields.qualityScores = capture.quality_scores;
   }
 
   // Lets the central server keep phc_sites.pending_count current, which is what
   // the admin PHC Health screen reads. Counted BEFORE this upload succeeds, so
   // it is the depth at the moment contact was made.
-  form.append('pendingCount', String(countPending()));
+  fields.pendingCount = String(countPending());
 
-  const buf = fs.readFileSync(capture.image_path);
-  const ext = path.extname(capture.image_path).toLowerCase() || '.jpg';
-  const mime = ext === '.png' ? 'image/png'
-             : (ext === '.tif' || ext === '.tiff') ? 'image/tiff'
-             : 'image/jpeg';
-  form.append('image', new Blob([buf], { type: mime }), `image${ext}`);
+  return fields;
+}
+
+function imageMime(imagePath) {
+  const ext = path.extname(imagePath).toLowerCase() || '.jpg';
+  return ext === '.png' ? 'image/png'
+       : (ext === '.tif' || ext === '.tiff') ? 'image/tiff'
+       : 'image/jpeg';
+}
+
+function buildFormData(bundle) {
+  const form = new FormData();
+  for (const [k, v] of Object.entries(buildCaseFields(bundle))) form.append(k, v);
+
+  const imagePath = bundle.capture.image_path;
+  const buf = fs.readFileSync(imagePath);
+  const ext = path.extname(imagePath).toLowerCase() || '.jpg';
+  form.append('image', new Blob([buf], { type: imageMime(imagePath) }), `image${ext}`);
 
   return form;
+}
+
+const sha256 = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
+
+/**
+ * uploadChunked(bundle)
+ *
+ * Init → ask what is already there → send only the gaps → complete.
+ *
+ * The "ask what is already there" step is the whole point. A resumed upload
+ * after a dropped link re-sends the missing chunks, not the file; a site that
+ * got to 90% overnight finishes in a minute the next morning instead of
+ * starting again and very likely dropping again.
+ *
+ * Nothing here is stored locally between attempts: the chunk boundaries are a
+ * pure function of the file and CHUNK_SIZE, and the session key is the capture
+ * id the row already has. So a crash mid-upload loses no resume state, which is
+ * exactly the crash this has to survive.
+ */
+async function uploadChunked({ capture, patient, questionnaire, metadata }) {
+  const bundle = { capture, patient, questionnaire, metadata };
+  const imagePath = capture.image_path;
+  const buf = fs.readFileSync(imagePath);
+  const ext = path.extname(imagePath).toLowerCase() || '.jpg';
+  const totalChunks = Math.ceil(buf.length / CHUNK_SIZE);
+  const captureRef = capture.capture_id;
+
+  const base = `${CENTRAL_URL}/api/v1/cases/${encodeURIComponent(captureRef)}/chunks`;
+
+  const initRes = await fetch(`${base}/init`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      ...buildCaseFields(bundle),
+      totalChunks,
+      totalBytes: buf.length,
+      sha256: sha256(buf),
+      filename: `image${ext}`,
+    }),
+    signal: AbortSignal.timeout(CHUNK_TIMEOUT),
+  });
+  if (!initRes.ok) {
+    throw new Error(`chunk init returned ${initRes.status}: ${(await initRes.text()).slice(0, 200)}`);
+  }
+  const session = await initRes.json();
+
+  // Central has already assembled and ingested this capture — a previous run
+  // completed and we never saw the response. Treat it as success rather than
+  // uploading a second copy of the same scan.
+  if (session.alreadyIngested) {
+    return { caseId: session.caseId, resumedDuplicate: true };
+  }
+
+  const missing = session.missing ?? [...Array(totalChunks).keys()];
+  if (session.resumed && missing.length < totalChunks) {
+    console.log(`[syncManager] resuming ${captureRef}: `
+      + `${totalChunks - missing.length}/${totalChunks} chunks already there`);
+  }
+
+  for (const i of missing) {
+    const slice = buf.subarray(i * CHUNK_SIZE, Math.min((i + 1) * CHUNK_SIZE, buf.length));
+    const form = new FormData();
+    form.append('sha256', sha256(slice));
+    form.append('chunk', new Blob([slice], { type: 'application/octet-stream' }), `${i}.part`);
+
+    const res = await fetch(`${base}/${i}`, {
+      method: 'POST', body: form, signal: AbortSignal.timeout(CHUNK_TIMEOUT),
+    });
+    if (!res.ok) {
+      // Thrown, so the case stays 'pending' and the next cycle resumes from
+      // whatever did land. Chunks already accepted are not re-sent.
+      throw new Error(`chunk ${i}/${totalChunks} returned ${res.status}: `
+        + `${(await res.text()).slice(0, 200)}`);
+    }
+  }
+
+  const doneRes = await fetch(`${base}/complete`, {
+    method: 'POST', signal: AbortSignal.timeout(UPLOAD_TIMEOUT),
+  });
+  if (!doneRes.ok) {
+    throw new Error(`chunk complete returned ${doneRes.status}: `
+      + `${(await doneRes.text()).slice(0, 200)}`);
+  }
+  return doneRes.json();
 }
 
 function countPending() {
@@ -205,22 +319,31 @@ async function syncOnce() {
         throw new Error(`image missing at ${bundle.capture.image_path}`);
       }
 
-      const res = await fetch(`${CENTRAL_URL}/api/v1/cases`, {
-        method: 'POST',
-        body: buildFormData(bundle),
-        signal: AbortSignal.timeout(UPLOAD_TIMEOUT),
-      });
+      // Task 8.2: chunk the big ones, post the small ones whole.
+      const bytes = fs.statSync(bundle.capture.image_path).size;
+      let caseId;
 
-      if (!res.ok) {
-        const body = await res.text();
-        throw new Error(`central returned ${res.status}: ${body.slice(0, 200)}`);
+      if (bytes > CHUNK_THRESHOLD) {
+        ({ caseId } = await uploadChunked(bundle));
+      } else {
+        const res = await fetch(`${CENTRAL_URL}/api/v1/cases`, {
+          method: 'POST',
+          body: buildFormData(bundle),
+          signal: AbortSignal.timeout(UPLOAD_TIMEOUT),
+        });
+
+        if (!res.ok) {
+          const body = await res.text();
+          throw new Error(`central returned ${res.status}: ${body.slice(0, 200)}`);
+        }
+        ({ caseId } = await res.json());
       }
 
-      const { caseId } = await res.json();
       db.prepare("UPDATE sync_queue SET status = 'synced' WHERE queue_id = ?")
         .run(row.queue_id);
       synced++;
-      console.log(`[syncManager] ${row.capture_id} -> case ${caseId}`);
+      console.log(`[syncManager] ${row.capture_id} -> case ${caseId}`
+        + `${bytes > CHUNK_THRESHOLD ? ` (chunked, ${(bytes / 1048576).toFixed(1)} MB)` : ''}`);
     } catch (err) {
       // Left 'pending' on purpose, with last_attempt_at recorded. The next
       // cycle retries it. Nothing is dropped and nothing is marked failed —
@@ -276,4 +399,9 @@ function stop() {
   if (timer) { clearInterval(timer); timer = null; }
 }
 
-module.exports = { start, stop, syncOnce, isOnline, countPending };
+module.exports = {
+  start, stop, syncOnce, isOnline, countPending,
+  // Exported for Task 8.2's verification: the chunked path needs to be drivable
+  // against a live central server without going through the whole poll cycle.
+  uploadChunked, CHUNK_THRESHOLD, CHUNK_SIZE,
+};

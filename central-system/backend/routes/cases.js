@@ -33,7 +33,7 @@ const express = require('express');
 const multer  = require('multer');
 
 const ingestion = require('../services/ingestionService');
-const { processCase } = require('../services/gradingOrchestrator');
+const gradingQueue = require('../services/gradingQueue');
 const { handleConfirmedReferral } = require('../services/referralNotificationService');
 const pool = require('../db/pgClient');
 
@@ -68,21 +68,21 @@ router.post('/', upload.single('image'), async (req, res, next) => {
     const result = await ingestion.ingestCase({ ...req.body, imageFile: req.file });
     caseId = result.caseId;
 
-    // Checkpoint version: grade synchronously so a POST followed immediately by
-    // a GET returns real values (Task 3.3's Definition of Done). This makes the
-    // request as slow as a MATLAB run — tens of seconds — which is exactly why
-    // Task 8.3 replaces it with a job queue. Do not build anything that depends
-    // on this being synchronous.
-    try {
-      await processCase(caseId);
-    } catch (gradingErr) {
-      // The case IS received and stored — the image is on disk and the row
-      // exists — so this is still a 201. Marking it 'error' rather than leaving
-      // it 'processing' distinguishes "failed, needs attention" from "still
-      // working", which a poller cannot otherwise tell apart.
-      console.error(`[cases] grading failed for ${caseId}:`, gradingErr.message);
-      await pool.query("UPDATE cases SET status = 'error' WHERE case_id = $1", [caseId]);
-    }
+    // Task 8.3: hand grading to the queue and return. This used to be an
+    // `await processCase(caseId)` right here, which held the PHC's upload
+    // connection open for the whole MATLAB run — tens of seconds, over the bad
+    // link this system is built for.
+    //
+    // The response is unchanged: still 201 { caseId, receivedAt }. What changed
+    // is that the case is now 'processing' when it arrives rather than already
+    // 'graded', so a client must poll GET /cases/:caseId/status instead of
+    // assuming the POST returning means the answer is ready.
+    //
+    // enqueue() is deliberately NOT awaited beyond its synchronous bookkeeping,
+    // and it cannot reject for grading reasons — a grading failure is recorded
+    // against the case as status 'error', not returned to a PHC that has
+    // already handed over the image and moved on.
+    gradingQueue.enqueue(caseId);
 
     res.status(201).json(result);
   } catch (err) {
@@ -94,6 +94,88 @@ router.post('/', upload.single('image'), async (req, res, next) => {
     }
     next(err);
   }
+});
+
+// ── Chunked / resumable upload (Task 8.2) ────────────────────────────────────
+//
+//   POST /api/v1/cases/:captureRef/chunks/init      open or resume a session
+//   GET  /api/v1/cases/:captureRef/chunks           what the server already has
+//   POST /api/v1/cases/:captureRef/chunks/:index    send one chunk
+//   POST /api/v1/cases/:captureRef/chunks/complete  assemble, verify, ingest
+//
+// For large images on links too poor to finish a single-shot POST. The small
+// case stays on POST /cases — chunking a 400 KB image is four extra round trips
+// to save nothing, and round trips are the expensive thing on these links.
+//
+// :captureRef is the PHC's own capture id, so a client that crashed can resume
+// without having kept a server-issued token. See chunkedUploadService.js.
+//
+// ROUTE ORDER IS LOAD-BEARING: '/chunks/init' and '/chunks/complete' are
+// declared before '/chunks/:index', because Express matches in declaration
+// order and ':index' would otherwise swallow the literal words 'init' and
+// 'complete' and try to parse them as chunk numbers.
+
+const chunked = require('../services/chunkedUploadService');
+
+const chunkUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: chunked.MAX_CHUNK_BYTES },
+});
+
+// A chunk is a slice of a file, not a file: it has no image mimetype and will
+// not decode on its own, so the image fileFilter used on POST /cases must not
+// be applied here. Integrity is enforced by the per-chunk SHA-256 instead, and
+// the assembled whole is checked against the declared hash before it is
+// allowed anywhere near ingestion.
+
+function sendUploadError(res, err, next) {
+  if (err && err.status) {
+    return res.status(err.status).json({ error: err.code, message: err.message });
+  }
+  return next(err);
+}
+
+router.post('/:captureRef/chunks/init', async (req, res, next) => {
+  try {
+    res.status(201).json(await chunked.initSession(req.params.captureRef, req.body || {}));
+  } catch (err) { sendUploadError(res, err, next); }
+});
+
+router.post('/:captureRef/chunks/complete', async (req, res, next) => {
+  try {
+    const result = await chunked.completeSession(req.params.captureRef);
+    // 200 rather than 201 on a duplicate: the second call created nothing. The
+    // caseId is still returned so a client that lost our first response can
+    // reconcile without re-uploading.
+    res.status(result.duplicate ? 200 : 201).json(result);
+  } catch (err) { sendUploadError(res, err, next); }
+});
+
+router.get('/:captureRef/chunks', (req, res, next) => {
+  try {
+    const session = chunked.getSession(req.params.captureRef);
+    if (!session) {
+      return res.status(404).json({
+        error: 'session_not_found',
+        message: `No upload session for ${req.params.captureRef}.`,
+      });
+    }
+    res.json(session);
+  } catch (err) { sendUploadError(res, err, next); }
+});
+
+router.post('/:captureRef/chunks/:index', chunkUpload.single('chunk'), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        error: 'empty_chunk', message: "Send the chunk bytes as the 'chunk' field.",
+      });
+    }
+    const result = await chunked.putChunk(
+      req.params.captureRef, req.params.index, req.file.buffer,
+      req.body?.sha256 || req.get('x-chunk-sha256'));
+    res.json(result);
+  } catch (err) { sendUploadError(res, err, next); }
 });
 
 // ── GET /api/v1/cases/:caseId/status ─────────────────────────────────────────

@@ -19,6 +19,12 @@
 Kept because this file is the tie-breaker: when it changes, the code and both
 plans have to be re-checked against it, and a silent edit makes that impossible.
 
+**2026-09-09 — Tasks 8.2 and 8.3.** One behaviour change and one new endpoint group.
+
+- **Breaking for any client that assumed it:** `POST /api/v1/cases` no longer grades before responding. Grading is queued (Task 8.3), so the case is **always** `"processing"` when the `201` returns. A client that read the case immediately after posting and expected a grade now gets nulls. Poll `GET /api/v1/cases/:caseId/status` — which is what that endpoint was always for. The request itself went from tens of seconds to milliseconds.
+- Added the chunked/resumable upload group under `POST|GET /api/v1/cases/:captureRef/chunks…` (Task 8.2), for large images on links that cannot finish a single-shot POST.
+- No change to the `status` enum: `"processing"` already means "not ready, keep polling", and queued-vs-grading is not a distinction any client can act on.
+
 **2026-09-08 — reconciled against the implemented backend.** Every change below
 came from building against this document and finding it under-specified rather
 than wrong. Nothing documented here was reinterpreted; the additions fill gaps
@@ -167,12 +173,37 @@ Plus these, added 2026-09-08:
 
 Response `201`: `{ "caseId": "a1b2c3d4-...", "receivedAt": "2026-09-06T09:15:00.000Z" }`
 
-A `201` means the case was **stored**, not that it was graded. Grading runs synchronously in the checkpoint build, but if it fails the case is still stored and returns `201` with its status set to `"error"` — poll `GET /api/v1/cases/:caseId/status`.
+A `201` means the case was **stored**, not that it was graded. **Since Task 8.3 grading is queued, so a case is always `"processing"` when the POST returns** — clients must poll `GET /api/v1/cases/:caseId/status` and must not treat the `201` as meaning a grade exists. If grading later fails, the case stays stored and its status becomes `"error"`.
 
 Errors: `400 image_required`, `400 invalid_image_type`, `400 invalid_json` (malformed `questionnaireData`/`captureMetadata`), `404 patient_not_found` (unknown patient and no demographics supplied), `413 image_too_large` (limit 25 MB).
 
 ### `GET /api/v1/cases/:caseId/status`
 Response `200`: `{ "caseId": "string", "status": "processing" | "graded" | "error" }`
+
+`"processing"` covers both *waiting for a worker* and *being graded*. That is deliberate: from outside they are the same fact — the answer is not ready, keep polling — and a fourth enum value would expose an internal distinction no client can act on. Both `"graded"` and `"error"` are terminal; nothing leaves either state without a new submission.
+
+### Chunked / resumable upload — `POST|GET /api/v1/cases/:captureRef/chunks…`  *(Task 8.2)*
+
+For images too large to transfer in one request on a poor link. Small images should keep using `POST /api/v1/cases`; chunking a 400 KB file spends extra round trips to save nothing, and round trips are the costly part on these links. The PHC sync manager switches over above `SYNC_CHUNK_THRESHOLD_BYTES` (default 2 MB).
+
+`:captureRef` is the **PHC's own capture id** (`PHC001-lz3k9f-a2x9`), not a central UUID and not a server-issued token. A client that crashes mid-upload re-derives the session key from its own database row, so no resume state has to survive the crash. It must match `^[A-Za-z0-9_-]{1,64}$`.
+
+**`POST /api/v1/cases/:captureRef/chunks/init`** — body is `application/json`: the same case fields as `POST /api/v1/cases` (`patientId`, `capturedAt`, `questionnaireData`, …) plus `totalChunks`, `totalBytes`, `sha256` (hex SHA-256 of the **whole** image), `filename`.
+Response `201`: `{ captureRef, totalChunks, received: [int], missing: [int], resumed: bool, alreadyIngested: bool }`.
+Calling it again with identical parameters **resumes**: chunks already held are kept and reported in `received`. Calling it with different parameters discards the old chunks, because they belong to a different file.
+
+**`GET /api/v1/cases/:captureRef/chunks`** — Response `200`: `{ captureRef, totalChunks, totalBytes, sha256, received, missing, complete, caseId, createdAt }`. This is the resume primitive: ask what the server has, send only `missing`. `404 session_not_found` if there is no session.
+
+**`POST /api/v1/cases/:captureRef/chunks/:index`** — `multipart/form-data` with the bytes in a `chunk` field and the chunk's own hex SHA-256 in a `sha256` field (or the `X-Chunk-Sha256` header). Response `200`: `{ index, bytes, sha256, received, totalChunks, missing }`.
+Re-sending a chunk the server already holds is a **success**, not a conflict — after a dropped connection a client cannot know whether its last chunk arrived.
+
+**`POST /api/v1/cases/:captureRef/chunks/complete`** — assembles in index order, verifies length and the whole-file SHA-256, ingests, and queues grading.
+Response `201`: `{ caseId, receivedAt, duplicate: false }` — the same shape as `POST /api/v1/cases`, so the two paths are interchangeable.
+Response `200`: `{ caseId, receivedAt, duplicate: true }` when the session was already completed. **Completion is idempotent**: a client that never saw the first response gets the original `caseId` back rather than creating a second case for one scan.
+
+Errors: `400 invalid_capture_ref`, `400 invalid_field`, `400 invalid_image_type`, `400 empty_chunk`, `404 session_not_found`, `409 already_ingested` (a chunk sent after completion), `409 incomplete_upload` (completing with chunks missing — the body lists which), `413 chunk_too_large`, `413 image_too_large`, `422 chunk_checksum_mismatch` (resend that chunk), `422 checksum_mismatch` (the assembled whole is wrong; the session is discarded, start again), `422 size_mismatch`.
+
+**Why two levels of checksum.** Reassembling an image from pieces that crossed a flaky link creates a failure single-shot upload does not have: a file that is the right length, decodes as a valid JPEG, and is subtly wrong — which would then be graded and reported to a clinician with nothing to indicate a problem. Per-chunk hashes catch damage at the chunk instead of after the whole transfer; the whole-file hash catches a *set* of individually-valid chunks that assemble wrong (a stale chunk from an earlier attempt). Nothing is ingested that cannot be shown to be exactly what the PHC captured.
 
 ### `GET /api/v1/ophthalmologist/queue`
 Response `200`: array of
