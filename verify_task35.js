@@ -177,8 +177,12 @@ async function main() {
     });
     const confirmBody = await confirmRes.json();
     check('200 on confirm', confirmRes.status === 200, JSON.stringify(confirmBody));
-    check('returns { reviewId }',
-      Object.keys(confirmBody).join(',') === 'reviewId', Object.keys(confirmBody).join(','));
+    // Task 3.6 extended this response to carry the referral outcome, and
+    // api-contracts.md records it: { reviewId, referralId, smsStatus }.
+    check('returns { reviewId, referralId, smsStatus }',
+      Object.keys(confirmBody).sort().join(',') === 'referralId,reviewId,smsStatus',
+      Object.keys(confirmBody).join(','));
+    check('reviewId is present', !!confirmBody.reviewId);
 
     // ── POST review: override ──────────────────────────────────────────────
     const overrideRes = await fetch(`${BASE}/api/v1/cases/${target}/review`, {

@@ -87,9 +87,28 @@ function toMatlabStr(p) {
 }
 
 // ── Conformal tier (temporary placeholder — Task 6.2 replaces this) ───────────
-function confidenceToTier(conf) {
-  if (conf > 0.9) return 'A';
-  if (conf >= 0.6) return 'B';
+/**
+ * assignTier(confidence, branchAgreement)
+ *
+ * @param {number} confidence      calibrated max probability
+ * @param {boolean|null} branchAgreement  true, false, or null when Branch B
+ *        has not run. NULL IS NOT FALSE — see below.
+ *
+ * BRANCH DISAGREEMENT OVERRIDES CONFIDENCE ENTIRELY (Task 5.2, design doc
+ * §1.11). When the CNN and the rule engine reach different grades, the case
+ * goes to full manual review no matter how confident either branch was — a
+ * confident disagreement is MORE alarming than an unconfident one, not less,
+ * because it means two independent methods are both sure and incompatible.
+ *
+ * null means Branch B has not run yet, which today is the normal case: the rule
+ * engine needs lesion counts from Phase 4 segmentation. Treating null as
+ * disagreement would force every case to Tier C and drown the review queue in
+ * cases nothing has actually flagged.
+ */
+function assignTier(confidence, branchAgreement) {
+  if (branchAgreement === false) return 'C';
+  if (confidence > 0.9)  return 'A';
+  if (confidence >= 0.6) return 'B';
   return 'C';
 }
 
@@ -138,24 +157,41 @@ async function processCase(caseId) {
 
   const { grade, confidenceScore } = mlResult;
   const referable = grade >= 2;
-  const tier      = confidenceToTier(confidenceScore);
+
+  // Branch B (Task 5.1) grades from lesion QUADRANT COUNTS, which come from
+  // Phase 4 segmentation. That is not built, so no counts exist and the rule
+  // engine cannot run — both stay null rather than being guessed at.
+  //
+  // TO ACTIVATE, once Tasks 4.2/4.3 land: have the MATLAB chain return
+  // lesionCounts and nvSuspicionScore, then
+  //   ruleEngineGrade = mlResult.ruleEngineGrade;
+  //   branchAgreement = mlResult.branchAgreement;
+  // Nothing else here changes — the columns, the tier override and the writes
+  // below are already wired for it.
+  const ruleEngineGrade = mlResult.ruleEngineGrade ?? null;
+  const branchAgreement = mlResult.branchAgreement ?? null;
+
+  const tier = assignTier(confidenceScore, branchAgreement);
 
   // ── Step 3: INSERT INTO grading_results ────────────────────────────────────
-  // dr_grade_rule_engine, branch_agreement, uncertainty_score stay NULL
-  // (Phases 4–6 fill them in without schema changes).
+  // uncertainty_score stays NULL until Phase 6 (MC-Dropout).
   await pool.query(`
     INSERT INTO grading_results
       (case_id, dr_grade_cnn, referable, confidence_score,
-       conformal_tier, model_version, graded_at)
-    VALUES ($1, $2, $3, $4, $5, $6, NOW())
+       conformal_tier, model_version, graded_at,
+       dr_grade_rule_engine, branch_agreement)
+    VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8)
     ON CONFLICT (case_id) DO UPDATE SET
-      dr_grade_cnn     = EXCLUDED.dr_grade_cnn,
-      referable        = EXCLUDED.referable,
-      confidence_score = EXCLUDED.confidence_score,
-      conformal_tier   = EXCLUDED.conformal_tier,
-      model_version    = EXCLUDED.model_version,
-      graded_at        = NOW()
-  `, [caseId, grade, referable, confidenceScore, tier, MODEL_VERSION]);
+      dr_grade_cnn         = EXCLUDED.dr_grade_cnn,
+      referable            = EXCLUDED.referable,
+      confidence_score     = EXCLUDED.confidence_score,
+      conformal_tier       = EXCLUDED.conformal_tier,
+      model_version        = EXCLUDED.model_version,
+      graded_at            = NOW(),
+      dr_grade_rule_engine = EXCLUDED.dr_grade_rule_engine,
+      branch_agreement     = EXCLUDED.branch_agreement
+  `, [caseId, grade, referable, confidenceScore, tier, MODEL_VERSION,
+      ruleEngineGrade, branchAgreement]);
 
   // ── Step 4: INSERT INTO explainability_outputs ─────────────────────────────
   // vessel_mask_path, lesion_red_path, lesion_bright_path stay NULL (Phase 3).
@@ -227,4 +263,4 @@ function buildMatlabExpr(imagePath, gradcamPath) {
   ].join(' ');
 }
 
-module.exports = { processCase };
+module.exports = { processCase, assignTier };

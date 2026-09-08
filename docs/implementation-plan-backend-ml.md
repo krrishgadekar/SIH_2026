@@ -138,7 +138,7 @@ this audit.*
 | **3.** ICDR 0–4 grading | 2.2–2.4 | ⚠️ architecture only; model is an untrained stub |
 | **3.** >90% sens / >85% spec, referable | **9.1** | ❌ no harness existed to measure it |
 | **4.** Grad-CAM | 2.6 | ✅ built (meaningless until a real model lands) |
-| **4.** Lesion-level evidence vs clinical criteria | 5.1, 7.1 | ⬜ needs Phase 4 |
+| **4.** Lesion-level evidence vs clinical criteria | 5.1, 7.1 | ⚠️ rule engine built + 33 unit tests; needs Phase 4 lesion counts to run |
 | **4.** Calibrated confidence | 2.5, 6.2 | ⚠️ math verified, T=1 placeholder |
 | **4.** Automated annotated reports | **7.3** | ❌ column existed, nothing wrote to it |
 | **4.** <30 s ophthalmologist validation | **9.4** | ❌ never measured |
