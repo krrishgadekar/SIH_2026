@@ -51,6 +51,8 @@ const EXPLAINABILITY_DIR= path.join(ML_ROOT, 'explainability');
 // applyCalibrationProfile, which live here — without this on the path the
 // whole pipeline dies at preprocessing with 'Unrecognized function'.
 const CAMERA_CAL_DIR    = path.join(ML_ROOT, 'cameraCalibration');
+// Task 7.3. generateEvidenceReport needs fundusQuadrants, which lives here.
+const SEGMENTATION_DIR  = path.join(ML_ROOT, 'segmentation');
 const MODELS_DIR        = path.join(ML_ROOT, 'models');
 
 const MODEL_VERSION     = 'branchA_v1';
@@ -173,7 +175,7 @@ async function processCase(caseId) {
 
   const cameraDeviceId = caseRow.camera_device_id || '';
 
-  const expr = buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId);
+  const expr = buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId, caseId);
   let raw;
   try {
     raw = await spawnMatlabBatch(expr);
@@ -242,11 +244,19 @@ async function processCase(caseId) {
   // ── Step 4: INSERT INTO explainability_outputs ─────────────────────────────
   // vessel_mask_path, lesion_red_path, lesion_bright_path stay NULL (Phase 3).
   await pool.query(`
-    INSERT INTO explainability_outputs (case_id, gradcam_path)
-    VALUES ($1, $2)
+    INSERT INTO explainability_outputs (case_id, gradcam_path, evidence_summary_text)
+    VALUES ($1, $2, $3)
     ON CONFLICT (case_id) DO UPDATE SET
-      gradcam_path = EXCLUDED.gradcam_path
-  `, [caseId, gradcamPath]);
+      gradcam_path          = EXCLUDED.gradcam_path,
+      evidence_summary_text = EXCLUDED.evidence_summary_text
+  `, [caseId, gradcamPath, mlResult.evidenceSummaryText ?? null]);
+
+  // lesion_attention_consistency_score stays NULL on purpose (Task 7.1).
+  // lesionAttentionConsistency is built and unit-tested, but it needs a lesion
+  // MASK, and Tasks 4.2/4.3 produce none. Passing it an empty mask would return
+  // NaN by design; writing a number here from anything else would be inventing
+  // one. It activates the day the segmenter lands, with no change to this file
+  // beyond adding the call.
 
   // ── Step 5: mark case as graded ────────────────────────────────────────────
   await pool.query(
@@ -261,7 +271,7 @@ async function processCase(caseId) {
 }
 
 // ── MATLAB expression builder ──────────────────────────────────────────────────
-function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId) {
+function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId, caseIdForReport) {
   const p  = toMatlabStr;
   const preDir   = p(PREPROCESSING_DIR);
   const gradDir  = p(GRADING_DIR);
@@ -319,7 +329,24 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId) 
     `netData = load('${modDir}/branchA_v1.mat', 'net');`,
     `gradCam(netData.net, preprocessed, gradeIdx1, '${gcPath}');`,
 
+    // ── Task 7.3: the evidence report
+    // Runs inside THIS MATLAB call rather than a second spawn. A separate
+    // invocation would double the cost of the slowest step in the pipeline to
+    // format a sentence, and the interpreter is already up with the paths added.
+    //
+    // No lesion counts exist yet (Tasks 4.2/4.3 are not built), so
+    // generateEvidenceReport is given none and returns text that SAYS
+    // segmentation has not been run. That is the intended behaviour, not a
+    // placeholder: it never invents "0 microaneurysms", because zero-measured
+    // and not-measured are different clinical claims. The moment the segmenter
+    // lands, populate evidenceInputs here and the sentence becomes the real
+    // lesion-level report with nothing else changing.
+    `addpath('${p(SEGMENTATION_DIR)}');`,
+    `evidenceInputs = struct();`,
+    `[evidenceText, ~, ~] = generateEvidenceReport('${toMatlabStr(caseIdForReport)}', evidenceInputs);`,
+
     // ── Output JSON
+    `out.evidenceSummaryText = evidenceText;`,
     `out.grade = calibGrade;`,
     `out.confidenceScore = double(confidenceScore);`,
     `out.calibratedProbs = calibratedProbs;`,

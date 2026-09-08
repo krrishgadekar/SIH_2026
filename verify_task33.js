@@ -85,9 +85,17 @@ const MUST_BE_NULL = [
   ['drGradeRuleEngine',               'Phase 5 rule engine'],
   ['branchAgreement',                 'Phase 5 rule engine'],
   ['uncertaintyScore',                'Phase 6 MC-Dropout'],
-  ['lesionAttentionConsistencyScore', 'Phase 7 safeguards'],
-  ['evidenceSummaryText',             'Phase 7 report'],
+  // Task 7.1 is BUILT and unit-tested, but the consistency score needs a lesion
+  // MASK from Tasks 4.2/4.3. Until the segmenter exists there is nothing to
+  // score against, so this stays null rather than carrying an invented number.
+  ['lesionAttentionConsistencyScore', 'Task 7.1 -- needs lesion masks (4.2/4.3)'],
 ];
+
+// Task 7.3 SHIPPED, so evidenceSummaryText is no longer null. With no lesion
+// counts the report says segmentation has not been run -- which is a more
+// useful thing for a clinician to read than a blank field, and is the
+// behaviour Task 7.3 specifies. It must never claim zero lesions.
+const MUST_BE_NONEMPTY_STRING = ['evidenceSummaryText'];
 
 // Fields Branch A must actually populate.
 const MUST_BE_SET = ['drGradeCnn', 'confidenceScore', 'conformalTier',
@@ -226,6 +234,27 @@ async function main() {
     for (const [k, phase] of MUST_BE_NULL) {
       check(`${k} key is present (not dropped as undefined) [${phase}]`, presentKeys.has(k));
       check(`${k} is exactly null`, detail[k] === null, JSON.stringify(detail[k]));
+    }
+
+    // ── Task 7.3: the evidence report now populates this ─────────────────
+    if (!SKIP_GRADING) {
+      console.log('\n--- Task 7.3: evidenceSummaryText ---');
+      for (const k of MUST_BE_NONEMPTY_STRING) {
+        check(`${k} key is present`, presentKeys.has(k));
+        check(`${k} is a non-empty string, not null`,
+          typeof detail[k] === 'string' && detail[k].length > 0,
+          JSON.stringify(detail[k]));
+      }
+      // The critical negative: with no segmenter it must say so, and must NOT
+      // report zero lesions. Zero-measured and not-measured are different
+      // clinical claims and only one of them is true today.
+      const evidence = detail.evidenceSummaryText || '';
+      check('says segmentation has not been run (no lesion counts exist yet)',
+        evidence.includes('has not been run'), evidence);
+      check('does NOT claim zero microaneurysms',
+        !/\b0 microaneurysm/.test(evidence) && !evidence.includes('No microaneurysms'),
+        evidence);
+      console.log(`        "${evidence}"`);
     }
 
     console.log('\n--- Pass-through and history ---');
