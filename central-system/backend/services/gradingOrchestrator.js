@@ -47,6 +47,10 @@ const PREPROCESSING_DIR = path.join(ML_ROOT, 'preprocessing');
 const GRADING_DIR       = path.join(ML_ROOT, 'grading');
 const CALIBRATION_DIR   = path.join(ML_ROOT, 'calibration');
 const EXPLAINABILITY_DIR= path.join(ML_ROOT, 'explainability');
+// Task 6.3. preprocessForBranchA calls classifyCameraFamily and
+// applyCalibrationProfile, which live here — without this on the path the
+// whole pipeline dies at preprocessing with 'Unrecognized function'.
+const CAMERA_CAL_DIR    = path.join(ML_ROOT, 'cameraCalibration');
 const MODELS_DIR        = path.join(ML_ROOT, 'models');
 
 const MODEL_VERSION     = 'branchA_v1';
@@ -167,7 +171,9 @@ async function processCase(caseId) {
   // side treats as "no scores" and falls back to the default chain.
   const qualityScores = caseRow.quality_scores || null;
 
-  const expr = buildMatlabExpr(imagePath, gradcamPath, qualityScores);
+  const cameraDeviceId = caseRow.camera_device_id || '';
+
+  const expr = buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId);
   let raw;
   try {
     raw = await spawnMatlabBatch(expr);
@@ -202,6 +208,15 @@ async function processCase(caseId) {
   const ruleEngineGrade = mlResult.ruleEngineGrade ?? null;
   const branchAgreement = mlResult.branchAgreement ?? null;
 
+  // Task 6.3. A reported-vs-detected disagreement is logged rather than
+  // suppressed: it can mean an unusual capture, a mislabelled device, or a
+  // camera swapped without the config being updated. It never changes the
+  // grading — it is a signal for a human, not an input to the model.
+  if (mlResult.cameraMismatch) {
+    console.warn(`[gradingOrchestrator] case ${caseId}: camera family mismatch — `
+      + `reported '${cameraDeviceId}', image looks like '${mlResult.cameraFamily}'`);
+  }
+
   const tier = assignTier(confidenceScore, branchAgreement);
 
   // ── Step 3: INSERT INTO grading_results ────────────────────────────────────
@@ -235,7 +250,8 @@ async function processCase(caseId) {
 
   // ── Step 5: mark case as graded ────────────────────────────────────────────
   await pool.query(
-    `UPDATE cases SET status = 'graded' WHERE case_id = $1`, [caseId]);
+    `UPDATE cases SET status = 'graded', camera_family_detected = $2
+     WHERE case_id = $1`, [caseId, mlResult.cameraFamily ?? null]);
 
   console.log(`[gradingOrchestrator] case ${caseId}: grade=${grade}, `
     + `confidence=${confidenceScore.toFixed(4)}, tier=${tier}, `
@@ -245,12 +261,13 @@ async function processCase(caseId) {
 }
 
 // ── MATLAB expression builder ──────────────────────────────────────────────────
-function buildMatlabExpr(imagePath, gradcamPath, qualityScores) {
+function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId) {
   const p  = toMatlabStr;
   const preDir   = p(PREPROCESSING_DIR);
   const gradDir  = p(GRADING_DIR);
   const calDir   = p(CALIBRATION_DIR);
   const expDir   = p(EXPLAINABILITY_DIR);
+  const camDir   = p(CAMERA_CAL_DIR);
   const modDir   = p(MODELS_DIR);
   const imgPath  = p(imagePath);
   const gcPath   = p(gradcamPath);
@@ -267,6 +284,7 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores) {
     `addpath('${gradDir}');`,
     `addpath('${calDir}');`,
     `addpath('${expDir}');`,
+    `addpath('${camDir}');`,
 
     // ── Preprocessing
     // preprocessForBranchA is THE chain — benGrahamCrop -> denoiseRetinal ->
@@ -281,7 +299,12 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores) {
     // illumination are folded into adaptiveEnhance.
     `img = imread('${imgPath}');`,
     `qualityScores = ${matlabStructLiteral(qualityScores)};`,
-    `preprocessed = preprocessForBranchA(img, qualityScores);`,
+    // The worker-reported device is passed in only for the CROSS-CHECK, never
+    // to steer classification: the pixels are what the model actually sees, so
+    // image evidence wins and a disagreement is reported rather than resolved
+    // in favour of the paperwork (Task 6.3, design doc §9.4).
+    `ppOpts = struct('reportedDeviceId', '${toMatlabStr(cameraDeviceId || '')}');`,
+    `[preprocessed, ppSteps] = preprocessForBranchA(img, qualityScores, ppOpts);`,
 
     // ── CNN classification (loads net via persistent var in classifyBranchA)
     `cnnResult = classifyBranchA(preprocessed);`,
@@ -301,6 +324,8 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores) {
     `out.confidenceScore = double(confidenceScore);`,
     `out.calibratedProbs = calibratedProbs;`,
     `out.gradcamPath = '${gcPath}';`,
+    `out.cameraFamily = ppSteps.cameraFamily;`,
+    `out.cameraMismatch = ~isempty(ppSteps.cameraDetail) && ppSteps.cameraDetail.mismatch;`,
     `disp(jsonencode(out));`,
   ].join(' ');
 }

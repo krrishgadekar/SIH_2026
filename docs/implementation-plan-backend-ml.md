@@ -145,7 +145,7 @@ this audit.*
 | **5.** Simulink workflow simulation | **3.8** | ⬜ moved up from 8.4; blocked on Task 0.0 |
 | *Expected solution:* outperforms any single technique | **9.2** | ❌ nothing built to compare against |
 | *Expected solution:* validation vs published benchmarks | 9.1, 9.3 | ❌ not started |
-| *Tools:* Computer Vision, Medical Imaging toolboxes | **4.6** | ❌ zero usage; both licensed, not installed |
+| *Tools:* Computer Vision, Medical Imaging toolboxes | **4.6** | ⚠️ installed; Computer Vision now used in Phase 4 overlays, Medical Imaging still unused |
 
 **Bold** task numbers were added or moved by this audit. They were named
 requirements with nowhere to land — the kind of gap that stays invisible until

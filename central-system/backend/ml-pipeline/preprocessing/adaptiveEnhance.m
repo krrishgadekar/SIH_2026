@@ -70,7 +70,7 @@ illum  = getdef(qualityScores, 'illuminationScore', 1.0);
 glare  = getdef(qualityScores, 'glareScore',        0.0);
 
 applied = struct('glareAttenuation', false, 'sharpening', false, ...
-                 'clipLimit', 0.01, 'reason', {{}});
+                 'clipLimit', getdef(opts, 'baseClipLimit', 0.01), 'reason', {{}});
 
 work = img;
 
@@ -103,9 +103,15 @@ end
 % A dim image has its detail compressed into a narrow band and needs more
 % aggressive local equalisation to recover it; a well-exposed one does not, and
 % over-equalising it manufactures texture that is not there.
-clipLimit = 0.01;
+% The BASE clip limit comes from the camera family's calibration profile
+% (Task 6.3) when one was supplied, and the illumination score then modulates
+% it. Two independent effects compose rather than one overwriting the other: a
+% portable camera needs more equalisation than a desktop one as a baseline, and
+% a dim image of either needs more still.
+baseClip  = getdef(opts, 'baseClipLimit', 0.01);
+clipLimit = baseClip;
 if illum < illumTh
-    clipLimit = min(0.04, 0.01 + (illumTh - illum) * 0.06);
+    clipLimit = min(0.04, baseClip + (illumTh - illum) * 0.06);
     applied.reason{end+1} = sprintf('illuminationScore %.3f < %.2f: CLAHE clip %.3f', ...
                                     illum, illumTh, clipLimit);
 end
