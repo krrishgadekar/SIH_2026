@@ -241,7 +241,23 @@ Request:
 }
 ```
 `decision` ∈ `"confirm" | "override"`. `overrideReasonCategory` is `null` when `decision` is `"confirm"`, otherwise one of: `"artifact_misread" | "lesion_missed" | "wrong_severity" | "image_quality_issue"`. `overrideReasonText` is optional free text, `null` if not provided.
-Response `200`: `{ "reviewId": "string" }`
+Response `200`: `{ "reviewId": "string", "referralId": "string|null", "smsStatus": "string|null" }`
+
+`referralId` is non-null when this decision raised a referral. `smsStatus` is deliberately a string rather than a boolean, because the interesting states are not "sent / not sent":
+
+| `smsStatus` | meaning |
+|---|---|
+| `sent` | delivered to Twilio, `providerMessageId` recorded |
+| `not_configured` | Twilio credentials absent — **nothing was sent** |
+| `dry_run` | `SMS_DRY_RUN=1`; message composed and logged, not sent |
+| `failed` | Twilio rejected it; the referral still stands |
+| `not_referable` | grade < 2, so no referral and no message (design doc §8.1) |
+| `already_sent` | this case was referred by an earlier review; not re-sent |
+| `override_without_grade` | see `correctedGrade` below |
+| `no_review_on_record` | refused — no human decision exists for this case |
+
+**Optional request field `correctedGrade` (integer 0–4), added 2026-09-08.** On `"confirm"` the model's grade stands and referability follows from it. On `"override"` the ophthalmologist has said the model was wrong — but this contract has no field for *what the grade actually is*, so the system cannot tell whether the case is still referable. Without `correctedGrade` an override returns `override_without_grade` and **no SMS is sent**: telling a patient to seek care for a finding the reviewer may have just ruled out is worse than sending nothing, since the admin referral tracker still shows the case either way. Supply it whenever the decision is an override.
+
 Errors: `400 invalid_field` (bad `decision`; a category supplied on a `confirm`; a category missing or invalid on an `override`), `404 case_not_found`.
 
 An `"override"` also writes a `corrections` row in the same transaction — that pairing of "the model was wrong" with "and here is why" is the training signal the continual-learning loop consumes, so a review whose correction failed to record would be lost from retraining with nothing downstream noticing.

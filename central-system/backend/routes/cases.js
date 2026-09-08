@@ -34,6 +34,7 @@ const multer  = require('multer');
 
 const ingestion = require('../services/ingestionService');
 const { processCase } = require('../services/gradingOrchestrator');
+const { handleConfirmedReferral } = require('../services/referralNotificationService');
 const pool = require('../db/pgClient');
 
 const router = express.Router();
@@ -193,11 +194,35 @@ router.post('/:caseId/review', async (req, res, next) => {
 
     await client.query('COMMIT');
 
-    // TASK 3.6 HOOK: on a referable outcome this is where
-    // referralNotificationService.handleConfirmedReferral(caseId) is called —
-    // create the referral row and send the patient SMS. Deliberately not wired
-    // yet: an SMS is irreversible and must not fire from an unverified path.
-    res.json({ reviewId });
+    // ── Task 3.6: referral + patient SMS ──────────────────────────────────
+    // AFTER the commit, never inside the transaction. An SMS cannot be rolled
+    // back, so it must not be sent from a transaction that might still abort —
+    // that would tell a patient to seek care for a review that was never
+    // recorded.
+    //
+    // Failures here do NOT fail the request. The review is already committed
+    // and is the clinical record; returning 500 would tell the ophthalmologist
+    // their decision was lost when it was not, and they would enter it twice.
+    let referral = null;
+    try {
+      referral = await handleConfirmedReferral(caseId, {
+        // Only meaningful on an override — see the note in the service. The
+        // contract has no field for it yet; accepted here when supplied.
+        correctedGrade: Number.isInteger(req.body?.correctedGrade)
+          ? req.body.correctedGrade : undefined,
+      });
+    } catch (err) {
+      console.error(`[cases] referral handling failed for ${caseId}:`, err.message);
+    }
+
+    // referralId is surfaced so the reviewer's UI can confirm a referral was
+    // raised; smsStatus is deliberately explicit rather than a boolean, because
+    // "not configured" and "failed" are very different from "not referable".
+    res.json({
+      reviewId,
+      referralId: referral?.referralId ?? null,
+      smsStatus:  referral?.sms?.status ?? null,
+    });
   } catch (err) {
     await client.query('ROLLBACK');
     next(err);

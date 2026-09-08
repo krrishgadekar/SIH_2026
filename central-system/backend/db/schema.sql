@@ -248,6 +248,23 @@ CREATE TABLE IF NOT EXISTS users (
 ALTER TABLE cases     ADD COLUMN IF NOT EXISTS captured_at   TIMESTAMPTZ;
 ALTER TABLE phc_sites ADD COLUMN IF NOT EXISTS pending_count INTEGER NOT NULL DEFAULT 0;
 
+-- notifications: a row must record what ACTUALLY happened, not merely that a
+-- send was attempted. Without a status, a row inserted when Twilio is not
+-- configured -- or when the send failed -- is indistinguishable from a
+-- delivered message, and the system would report having told a patient to seek
+-- care when it never did. For a referral pathway that is the worst possible
+-- kind of wrong record.
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS status              TEXT;
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS provider_message_id TEXT;
+ALTER TABLE notifications ADD COLUMN IF NOT EXISTS error_detail        TEXT;
+
+-- One referral per case. A case can be reviewed more than once (a confirm
+-- followed later by an override, say), and without this a second review would
+-- create a second referral and send the patient a second SMS about the same
+-- screening. Enforced in the database rather than only in code, because the
+-- cost of getting it wrong is a real message to a real patient.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_referrals_case ON referrals(case_id);
+
 -- -----------------------------------------------------------------------------
 -- Indexes for the query patterns api-contracts.md's endpoints actually use
 -- -----------------------------------------------------------------------------
