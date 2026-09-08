@@ -8,32 +8,129 @@ export const mockPatients = [
   { patientId: 'PHC001-lz3k9j-e1v7', name: 'Kavita Joshi', age: 49, contactNumber: '+919834567890', registeredAt: '2026-09-06T09:50:00.000Z' },
 ];
 
-export const mockCaptureResults = {
+export const mockAiPredictions = {
   pass: {
-    captureId: 'PHC001-lz4a2b-c7f1',
-    patientId: 'PHC001-lz3k9f-a2x9',
-    qualityStatus: 'pass',
-    qualityReason: null,
-    retakeCount: 0,
-    capturedAt: '2026-09-06T09:05:00.000Z',
-  },
-  retake: {
-    captureId: 'PHC001-lz4a2c-d8g2',
-    patientId: 'PHC001-lz3k9g-b4y2',
-    qualityStatus: 'retake',
-    qualityReason: 'blur',
-    retakeCount: 1,
-    capturedAt: '2026-09-06T09:15:00.000Z',
+    status: "success",
+    processedAt: new Date().toISOString(),
+    model: {
+      version: "netrasetu-efficientnetb0-v1",
+      name: "tf_efficientnet_b0.ns_jft_in1k",
+      imageSize: 384
+    },
+    input: {
+      filename: "fundus_capture_01.png",
+      contentType: "image/png",
+      originalHeight: 1200,
+      originalWidth: 1600
+    },
+    imageQuality: {
+      status: "good",
+      qualityScore: 0.91,
+      issues: [],
+      metrics: {
+        focusScore: 0.94,
+        illuminationScore: 0.88,
+        contrastScore: 0.86,
+        retinalCoverageScore: 0.98,
+        glarePenalty: 0.01
+      }
+    },
+    severity: {
+      level: 1,
+      label: "Mild NPDR",
+      code: "mild_npdr"
+    },
+    confidence: {
+      score: 0.924
+    },
+    enhancement: {
+      applied: true,
+      steps: [
+        "retinal_roi_crop",
+        "illumination_normalization",
+        "clahe",
+        "mild_denoising"
+      ]
+    }
   },
   borderline: {
-    captureId: 'PHC001-lz4a2d-e9h3',
-    patientId: 'PHC001-lz3k9h-c6z5',
-    qualityStatus: 'borderline',
-    qualityReason: 'low_illumination',
-    retakeCount: 0,
-    capturedAt: '2026-09-06T09:25:00.000Z',
+    status: "success",
+    processedAt: new Date().toISOString(),
+    model: {
+      version: "netrasetu-efficientnetb0-v1",
+      name: "tf_efficientnet_b0.ns_jft_in1k",
+      imageSize: 384
+    },
+    input: {
+      filename: "fundus_capture_02.png",
+      contentType: "image/png",
+      originalHeight: 1000,
+      originalWidth: 1504
+    },
+    imageQuality: {
+      status: "borderline",
+      qualityScore: 0.58,
+      issues: ["blur", "low_illumination"],
+      metrics: {
+        focusScore: 0.42,
+        illuminationScore: 0.54,
+        contrastScore: 0.65,
+        retinalCoverageScore: 0.90,
+        glarePenalty: 0.05
+      }
+    },
+    severity: {
+      level: 2,
+      label: "Moderate NPDR",
+      code: "moderate_npdr"
+    },
+    confidence: {
+      score: 0.781
+    },
+    enhancement: {
+      applied: true,
+      steps: [
+        "retinal_roi_crop",
+        "illumination_normalization",
+        "clahe"
+      ]
+    }
   },
+  retake: {
+    status: "success",
+    processedAt: new Date().toISOString(),
+    model: {
+      version: "netrasetu-efficientnetb0-v1",
+      name: "tf_efficientnet_b0.ns_jft_in1k",
+      imageSize: 384
+    },
+    input: {
+      filename: "fundus_capture_03.png",
+      contentType: "image/png",
+      originalHeight: 1000,
+      originalWidth: 1504
+    },
+    imageQuality: {
+      status: "poor",
+      qualityScore: 0.28,
+      issues: ["blur", "motion_artifact"],
+      metrics: {
+        focusScore: 0.18,
+        illuminationScore: 0.32,
+        contrastScore: 0.35,
+        retinalCoverageScore: 0.62,
+        glarePenalty: 0.22
+      }
+    },
+    severity: null,
+    confidence: null,
+    enhancement: {
+      applied: false,
+      steps: []
+    }
+  }
 };
+
 
 export const qualityReasonMessages = {
   blur: 'Image is blurry — please stabilize the camera and retake',

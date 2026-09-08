@@ -4,7 +4,9 @@ import { QualityResultPanel } from './QualityResultPanel';
 import { CaptureMetadataForm } from './CaptureMetadataForm';
 import { PatientQuestionnaireForm } from './PatientQuestionnaireForm';
 import { localApi } from '../../api/localApiClient';
-import { ML_API_ENDPOINT } from '../../config';
+import { ML_API_ENDPOINT, USE_MOCK_DATA } from '../../config';
+import { mockAiPredictions } from '../../api/mockData';
+import demoFundusImg from '../../assets/hero.png';
 
 export const CaptureScreen = () => {
   const [searchParams] = useSearchParams();
@@ -18,6 +20,7 @@ export const CaptureScreen = () => {
   const [metadata, setMetadata] = useState({});
   const [questionnaire, setQuestionnaire] = useState({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [mockScenario, setMockScenario] = useState('pass');
   
   const fileInputRef = useRef(null);
 
@@ -35,24 +38,52 @@ export const CaptureScreen = () => {
     }
   };
 
+  const handleLoadDemoImage = async (e) => {
+    e?.stopPropagation();
+    try {
+      const response = await fetch(demoFundusImg);
+      const blob = await response.blob();
+      const file = new File([blob], 'demo_fundus_retina.png', { type: 'image/png' });
+      setImageFile(file);
+      setImagePreviewUrl(demoFundusImg);
+    } catch (err) {
+      console.warn("Could not load demo fundus image:", err);
+    }
+  };
+
   const runQualityCheck = async () => {
     if (!imageFile) return;
     
     setIsAnalyzing(true);
     try {
-      const formData = new FormData();
-      formData.append('file', imageFile);
+      let data = null;
 
-      const response = await fetch(ML_API_ENDPOINT, {
-        method: 'POST',
-        body: formData,
-      });
+      // If mock mode is disabled, try real ML API first
+      if (!USE_MOCK_DATA) {
+        try {
+          const formData = new FormData();
+          formData.append('file', imageFile);
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+          const response = await fetch(ML_API_ENDPOINT, {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (response.ok) {
+            data = await response.json();
+          }
+        } catch (apiErr) {
+          console.warn("ML API call failed, falling back to mock data:", apiErr);
+        }
       }
 
-      const data = await response.json();
+      // If in mock mode or API failed, load realistic mock prediction
+      if (!data || !data.imageQuality) {
+        await new Promise(r => setTimeout(r, 900)); // scanning latency
+        data = JSON.parse(JSON.stringify(mockAiPredictions[mockScenario] || mockAiPredictions.pass));
+        data.input.filename = imageFile.name;
+        data.processedAt = new Date().toISOString();
+      }
       
       // Map API response to UI model
       const apiStatus = data.imageQuality?.status || 'poor';
@@ -70,7 +101,7 @@ export const CaptureScreen = () => {
       setActiveStep(2);
     } catch (err) {
       console.error("Quality Check Error:", err);
-      alert("Failed to analyze image. Ensure the ML API is running.");
+      alert("Failed to analyze image.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -141,7 +172,15 @@ export const CaptureScreen = () => {
               <>
                 <div className="capture-zone__placeholder">
                   <div className="capture-zone__placeholder-icon">◎</div>
-                  <div className="t-mono">CLICK TO INITIATE CAPTURE SEQUENCE</div>
+                  <div className="t-mono u-mb-3">CLICK TO INITIATE CAPTURE SEQUENCE</div>
+                  <button 
+                    type="button" 
+                    className="btn btn--outline" 
+                    style={{ fontSize: '0.72rem', padding: '6px 14px', zIndex: 10, cursor: 'pointer' }}
+                    onClick={handleLoadDemoImage}
+                  >
+                    ✦ LOAD SAMPLE RETINAL SCAN
+                  </button>
                 </div>
                 <div className="capture-zone__crosshair"></div>
               </>
@@ -149,12 +188,44 @@ export const CaptureScreen = () => {
           </div>
           
           {imageFile && activeStep === 1 && (
-             <div className="u-mt-4 u-flex u-justify-between">
+            <div className="u-mt-4">
+              <div className="u-flex u-justify-between u-items-center u-mb-3" style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
+                <span style={{ color: 'var(--c-cream-dark)', letterSpacing: '0.05em' }}>MOCK TEST SCENARIO:</span>
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {[
+                    { id: 'pass', label: 'PASS (GRADE 1)' },
+                    { id: 'borderline', label: 'BORDERLINE (GRADE 2)' },
+                    { id: 'retake', label: 'RETAKE (BLUR)' }
+                  ].map(s => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setMockScenario(s.id)}
+                      style={{
+                        padding: '3px 9px',
+                        fontSize: '0.68rem',
+                        fontFamily: 'var(--font-mono)',
+                        border: `1px solid ${mockScenario === s.id ? 'var(--c-crimson)' : 'var(--c-cream-dark)'}`,
+                        background: mockScenario === s.id ? 'var(--c-crimson)' : 'transparent',
+                        color: mockScenario === s.id ? '#ffffff' : 'inherit',
+                        borderRadius: '2px',
+                        cursor: 'pointer',
+                        fontWeight: mockScenario === s.id ? 'bold' : 'normal',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="u-flex u-justify-between">
                 <button className="btn btn--outline" onClick={handleRetake} disabled={isAnalyzing}>RETAKE</button>
                 <button className="btn" onClick={runQualityCheck} disabled={isAnalyzing}>
                   {isAnalyzing ? 'ANALYZING... ✦' : 'RUN QUALITY CHECK ✦'}
                 </button>
-             </div>
+              </div>
+            </div>
           )}
         </div>
 

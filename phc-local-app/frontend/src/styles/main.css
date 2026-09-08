@@ -22,8 +22,8 @@ ul, ol { list-style: none; }
   --c-crimson-dim:   #6E1414;
   --c-black:         #1A1008;
   --c-black-pure:    #000000;
-  --c-surface:       #1A1008;
-  --c-surface-alt:   #241A0E;
+  --c-surface:       #FAF6EF;
+  --c-surface-alt:   #F0E4D0;
   --c-cream:         #F5EDE0;
   --c-cream-light:   #FAF6EF;
   --c-cream-dark:    #E8DCC8;
@@ -1362,7 +1362,7 @@ body {
 .stepper {
   display: flex;
   border: var(--border-accent);
-  background: var(--c-surface);
+  background: var(--c-cream-dark);
 }
 
 .stepper__step {
@@ -1375,7 +1375,7 @@ body {
   text-transform: uppercase;
   text-align: center;
   border-right: var(--border);
-  color: rgba(245, 237, 224, 0.35);
+  color: var(--c-text-muted);
   transition: all var(--duration) var(--ease-out);
   position: relative;
 }
@@ -1407,7 +1407,8 @@ body {
   position: relative;
   overflow: hidden;
   transition: all var(--duration) var(--ease-out);
-  background: var(--c-surface);
+  background: #0f0a06;
+  color: var(--c-cream);
 }
 
 .capture-zone:hover {
@@ -1459,6 +1460,7 @@ body {
 
 .capture-zone__placeholder {
   text-align: center;
+  color: var(--c-cream-dark);
 }
 
 .capture-zone__placeholder-icon {
