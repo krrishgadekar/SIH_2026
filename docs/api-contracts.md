@@ -19,6 +19,8 @@
 Kept because this file is the tie-breaker: when it changes, the code and both
 plans have to be re-checked against it, and a silent edit makes that impossible.
 
+**2026-09-09 — Task 7.3.** `evidenceSummaryText` is no longer `null`: it is always a non-empty string now that the report generator exists. Until lesion segmentation ships it states that segmentation has not been run rather than reporting zero lesions. `lesionAttentionConsistencyScore` stays `null` — Task 7.1 is built and tested but needs a lesion mask to score against.
+
 **2026-09-09 — Tasks 8.2 and 8.3.** One behaviour change and one new endpoint group.
 
 - **Breaking for any client that assumed it:** `POST /api/v1/cases` no longer grades before responding. Grading is queued (Task 8.3), so the case is **always** `"processing"` when the `201` returns. A client that read the case immediately after posting and expected a grade now gets nulls. Poll `GET /api/v1/cases/:caseId/status` — which is what that endpoint was always for. The request itself went from tens of seconds to milliseconds.
@@ -252,7 +254,13 @@ Response `200`:
   "priorAssessments": [ { "caseId": "prev-case-id", "gradedAt": "2026-06-01T10:00:00.000Z", "drGradeCnn": 1 } ]
 }
 ```
-Every ML-derived field (`lesionCounts`, `nvSuspicionScore`, `evidenceSummaryText`, `drGradeRuleEngine`, `branchAgreement`, `uncertaintyScore`, `lesionAttentionConsistencyScore`) is `null` until its backing module ships — the frontend renders "not yet available" for `null`, never crashes on it and never shows a zero/empty value as if it were a real result.
+Every ML-derived field (`lesionCounts`, `nvSuspicionScore`, `drGradeRuleEngine`, `branchAgreement`, `uncertaintyScore`, `lesionAttentionConsistencyScore`) is `null` until its backing module ships — the frontend renders "not yet available" for `null`, never crashes on it and never shows a zero/empty value as if it were a real result.
+
+**`evidenceSummaryText` is the exception, since Task 7.3 shipped: it is always a non-empty string.** Lesion segmentation (Tasks 4.2/4.3) does not exist yet, so today it reads:
+
+> "Lesion segmentation has not been run for this case, so no lesion-level evidence is available. The grade shown is from the image classifier alone and has not been cross-checked against ICDR lesion criteria."
+
+That is deliberate and is not a placeholder. It never says "0 microaneurysms" — zero-measured and not-measured are different clinical claims, and a clinician reading this field needs to know which one they are looking at. The example above shows the shape once lesion counts exist. The text is templated from stored counts, never generated prose, and the criterion it names comes from the same rule engine that produced `drGradeRuleEngine`, not from a second copy of the ICDR rules.
 
 **The key must be present and its value `null`.** Not absent, not `undefined`. This is not pedantry: `JSON.stringify` silently drops `undefined` values, so a handler that returns `undefined` emits a response with the key missing entirely. A missing `lesionCounts` renders as blank; a `0` reads as a measured finding of no lesions. On a clinical screen those are three different claims and only one of them is true. Server-side tests must assert key **presence** separately from value.
 

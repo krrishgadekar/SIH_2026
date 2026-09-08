@@ -548,7 +548,23 @@ If everything above this line works end to end — capture → local quality gat
 
 ## Phase 7 — Explainability Safeguards & Continual Learning
 
-**Task 7.1 — Grad-CAM safeguards**
+**Task 7.1 — Grad-CAM safeguards** — DONE (2026-09-09), inactive pending 4.2/4.3
+- Both files had been 0-byte stubs since Task 0.
+- `lesionAttentionConsistency.m` reports the score WITH its chance level (the
+  lesion area fraction) and an enrichment ratio, and computes the flag itself.
+  A bare overlap fraction is not interpretable: "70% of attention on lesions"
+  is excellent at 5% lesion area and worthless at 70%, where noise scores the
+  same. No lesions gives NaN, never 0 — a grade-0 eye correctly has none.
+- `counterfactualOcclusionTest.m` removes the lesion and re-runs Branch A; no
+  confidence drop means the grade did not rest on the lesions. Inpaints from
+  surrounding retina by default, because a black fill is out-of-distribution
+  and its drop measures the artefact, so that version passes for a broken
+  model. Offline only — it doubles the cost of the slowest pipeline step.
+- **Not wired into the orchestrator.** Both need a lesion MASK, so
+  `lesion_attention_consistency_score` stays NULL until Tasks 4.2/4.3 land.
+- Verified by `testPhase7Explainability.m` (57 checks).
+
+**Task 7.1 (original spec)**
 - Files: `central-system/backend/ml-pipeline/explainability/lesionAttentionConsistency.m`, `counterfactualOcclusionTest.m`
 - Build: `lesionAttentionConsistency.m` computes overlap between Grad-CAM's heatmap energy and the lesion masks (Tasks 4.2/4.3) — a simple IoU-style score, restricted to the retinal ROI. `counterfactualOcclusionTest.m` masks the top lesion region and reruns Branch A, checking the predicted probability actually drops — run this offline during validation, not per-request in production.
 - Connects to: consistency score gets stored in `explainability_outputs.lesion_attention_consistency_score` and shown on the ophthalmologist's case detail screen.
@@ -558,7 +574,26 @@ If everything above this line works end to end — capture → local quality gat
 - Build: a scheduled job (cron-style) that checks the `corrections` table for new entries since the last run, and once a threshold is hit, kicks off a retraining pass (a MATLAB script variant of `trainBranchAClassifier.m` that fine-tunes from the current checkpoint using original data + weighted corrections), evaluates the result against the held-out validation set, and only writes a new `model_versions` row with `promoted = true` if it doesn't regress on sensitivity/specificity/kappa.
 - Connects to: reads `corrections`, writes `model_versions`, and — if promoted — updates which `.mat` file `branchA_cnnClassifier.m` loads.
 
-**Task 7.3 — Automated annotated report** *(added 2026-09-08 — was missing)*
+**Task 7.3 — Automated annotated report** — DONE (2026-09-09)
+- File: `central-system/backend/ml-pipeline/explainability/generateEvidenceReport.m`,
+  plus `segmentation/fundusQuadrants.m` for the quadrant convention.
+- **Live end to end**: runs inside the existing MATLAB round-trip in
+  `gradingOrchestrator.js`, writes `explainability_outputs.evidence_summary_text`,
+  and is returned by `GET /api/v1/cases/:caseId`. Verified against a real
+  MATLAB run in `verify_task33.js`.
+- Templated from counts, never generated prose. The ICDR criterion is not
+  restated — it calls `ruleEngineGrade` (5.1) and prints that branch's own
+  criterion and limitation, so there is no second copy of the rule text to
+  drift from the one that decides the grade.
+- With no lesion counts (4.2/4.3 unbuilt) it says segmentation has not been
+  run rather than printing "0 microaneurysms". api-contracts.md updated:
+  `evidenceSummaryText` is no longer a null-until-shipped field.
+- `fundusQuadrants.m` dissolves the laterality gap `opticDiscFovea.m` flagged:
+  no left/right-eye field exists anywhere, and none is needed, because the
+  fovea is temporal to the disc in both eyes. Two real bugs were caught by its
+  tests — see the commit.
+
+**Task 7.3 (original spec)** *(added 2026-09-08 — was missing)*
 - File: `central-system/backend/ml-pipeline/explainability/generateEvidenceReport.m`
 - **Why this exists:** PS requirement 4 asks for "**automated annotated
   reports**" alongside Grad-CAM and calibrated confidence. Nothing in the

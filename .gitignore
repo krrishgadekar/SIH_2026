@@ -113,3 +113,8 @@ dist/
 build/
 .next/
 out/
+
+# Task verification scripts — developer tooling, run locally, not part of the
+# deliverable. Kept on disk (and in git history up to 95222e9) so each task can
+# still be re-verified; simply not carried in the repo.
+verify_task*.js
