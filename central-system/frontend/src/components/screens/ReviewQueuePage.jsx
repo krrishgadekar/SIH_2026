@@ -3,6 +3,35 @@ import { useNavigate } from 'react-router-dom';
 import { centralApi } from '../../api/centralApiClient';
 import { drGradeLabels } from '../../api/mockData';
 
+const SortHeader = ({ label, sortKey, currentSort, onRequestSort, width }) => {
+  const active = currentSort.key === sortKey;
+  const direction = currentSort.direction;
+  
+  return (
+    <th onClick={() => onRequestSort(sortKey)} style={{ cursor: 'pointer', userSelect: 'none', width: width, transition: 'background 0.2s' }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+        {label}
+        <svg 
+          width="16" height="16" viewBox="0 0 24 24" 
+          fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+          style={{ 
+            marginLeft: '6px', 
+            opacity: active ? 1 : 0.3,
+            transition: 'opacity 0.2s',
+          }}
+        >
+          <g style={{ opacity: active && direction === 'asc' ? 1 : (active ? 0.3 : 0.7) }}>
+            <path d="M8 18V6M4 10l4-4 4 4" />
+          </g>
+          <g style={{ opacity: active && direction === 'desc' ? 1 : (active ? 0.3 : 0.7) }}>
+            <path d="M16 6v12M12 14l4 4 4-4" />
+          </g>
+        </svg>
+      </div>
+    </th>
+  );
+};
+
 const TierBadge = ({ tier }) => {
   const cls = tier === 'C' ? 'badge badge--tier-c' : 'badge badge--tier-b';
   return <span className={cls}>TIER {tier}</span>;
@@ -25,6 +54,7 @@ export const ReviewQueuePage = () => {
   const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, tier-c, tier-b, disagreement
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -40,6 +70,47 @@ export const ReviewQueuePage = () => {
     if (filter === 'disagreement') return item.branchAgreement === false;
     return true;
   });
+
+  const sortedQueue = React.useMemo(() => {
+    let sortableItems = [...filteredQueue];
+    if (sortConfig.key !== null) {
+      sortableItems.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+
+        if (sortConfig.key === 'drGradeCnn' || sortConfig.key === 'drGradeRuleEngine') {
+            aValue = aValue !== null ? aValue : -1;
+            bValue = bValue !== null ? bValue : -1;
+        } else if (sortConfig.key === 'branchAgreement') {
+            aValue = aValue === true ? 2 : aValue === false ? 1 : 0;
+            bValue = bValue === true ? 2 : bValue === false ? 1 : 0;
+        } else if (sortConfig.key === 'confidenceScore') {
+            aValue = aValue || 0;
+            bValue = bValue || 0;
+        } else if (typeof aValue === 'string') {
+            aValue = aValue.toLowerCase();
+            bValue = (bValue || '').toLowerCase();
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [filteredQueue, sortConfig]);
+
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
 
   const tierCCount = queue.filter(q => q.conformalTier === 'C').length;
   const tierBCount = queue.filter(q => q.conformalTier === 'B').length;
@@ -94,19 +165,19 @@ export const ReviewQueuePage = () => {
         <table className="table">
           <thead>
             <tr>
-              <th style={{ width: '40px' }}>#</th>
+              <SortHeader width="40px" label="#" sortKey="priorityRank" currentSort={sortConfig} onRequestSort={requestSort} />
               <th>PATIENT REF</th>
               <th>PHC</th>
-              <th>TIER</th>
-              <th>CNN GRADE</th>
-              <th>RULE ENGINE</th>
-              <th>AGREEMENT</th>
-              <th>CONFIDENCE</th>
+              <SortHeader label="TIER" sortKey="conformalTier" currentSort={sortConfig} onRequestSort={requestSort} />
+              <SortHeader label="CNN GRADE" sortKey="drGradeCnn" currentSort={sortConfig} onRequestSort={requestSort} />
+              <SortHeader label="RULE ENGINE" sortKey="drGradeRuleEngine" currentSort={sortConfig} onRequestSort={requestSort} />
+              <SortHeader label="AGREEMENT" sortKey="branchAgreement" currentSort={sortConfig} onRequestSort={requestSort} />
+              <SortHeader label="CONFIDENCE" sortKey="confidenceScore" currentSort={sortConfig} onRequestSort={requestSort} />
               <th>CAPTURED</th>
             </tr>
           </thead>
           <tbody>
-            {filteredQueue.map((item, idx) => (
+            {sortedQueue.map((item, idx) => (
               <tr
                 key={item.caseId}
                 className="clickable"
@@ -162,7 +233,7 @@ export const ReviewQueuePage = () => {
         </table>
       </div>
 
-      {filteredQueue.length === 0 && (
+      {sortedQueue.length === 0 && (
         <div className="u-text-center u-p-6" style={{ border: 'var(--border)', borderTop: 'none' }}>
           <p className="t-mono" style={{ opacity: 0.4 }}>NO CASES MATCH FILTER</p>
         </div>
