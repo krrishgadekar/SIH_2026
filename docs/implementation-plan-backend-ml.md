@@ -597,7 +597,17 @@ build everything and still not be able to *state* what it achieved — and the
 headline claims are all numbers, not features. `evaluateMetrics.m` was in the
 directory structure from Task 0 and has been empty the whole time.
 
-**Task 9.1 — Evaluation harness**
+**Task 9.1 — Evaluation harness** — ✅ DONE (2026-09-09)
+- Files: `evaluateMetrics.m` (harness), `computeDrMetrics.m` (the metric maths,
+  split out so it is pure and testable with no model), `testEvaluateMetrics.m`
+  (86 checks, all passing).
+- The metric arithmetic is verified against an 8-case confusion matrix whose
+  sensitivity, specificity, kappa (0.84375) and ECE (0.2875) were worked out by
+  hand and written into the test *before* the code was run against them.
+- **No accuracy number exists yet.** The harness is correct; it has never been
+  pointed at a trained model, because Branch A is still the stub and no grading
+  dataset (APTOS/IDRiD/Messidor-2) is downloaded. Nothing in this repo currently
+  supports quoting a sensitivity figure for the system.
 - File: `central-system/backend/ml-pipeline/training/evaluateMetrics.m`
 - Build: `function metrics = evaluateMetrics(net, testImds, opts)` reporting, on
   the held-out test split (never the calibration fold):
