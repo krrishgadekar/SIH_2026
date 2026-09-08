@@ -29,6 +29,13 @@ export const LoginScreen = ({ onLogin }) => {
   const [error, setError] = useState('');
 
   const handleSelect = (roleId) => {
+    if (roleId === 'admin') {
+      setIsTransitioning(true);
+      setTimeout(() => {
+        onLogin('admin', 'Admin');
+      }, 800);
+      return;
+    }
     setSelectedRole(roleId);
     setAuthStep('credentials');
     setError('');

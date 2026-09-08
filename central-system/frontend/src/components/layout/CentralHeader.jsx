@@ -33,7 +33,6 @@ export const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) 
     ? [
         { to: '/ophth/queue', label: 'REVIEW QUEUE' },
         { to: '/ophth/timeline', label: 'PATIENT TIMELINE' },
-        { to: '/ophth/field-ops', label: 'FIELD OPS' },
         { to: '/ophth/health', label: 'PROGRAM HEALTH' },
       ]
     : [
@@ -78,28 +77,32 @@ export const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) 
           <span style={{ fontSize: '12px', opacity: 0.8 }}>⚙</span>
         </button>
 
-        <span style={{ color: 'var(--c-crimson)', opacity: 0.3 }}>|</span>
+        {isOphth && (
+          <>
+            <span style={{ color: 'var(--c-crimson)', opacity: 0.3 }}>|</span>
 
-        <button 
-          className="app-header__profile" 
-          onClick={() => {
-            setEditProfile(userProfile || { username: '', fullName: '', phone: '', location: '' });
-            setShowProfileModal(true);
-          }}
-          style={{ 
-            background: 'none', 
-            border: 'none', 
-            color: 'var(--text-h)', 
-            cursor: 'pointer', 
-            fontFamily: 'var(--font-mono)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-        >
-          <span className="t-label" style={{ opacity: 0.5 }}>{userProfile?.fullName || 'PG'}</span>
-          <span style={{ fontSize: '10px', opacity: 0.8 }}>✎</span>
-        </button>
+            <button 
+              className="app-header__profile" 
+              onClick={() => {
+                setEditProfile(userProfile || { username: '', fullName: '', phone: '', location: '' });
+                setShowProfileModal(true);
+              }}
+              style={{ 
+                background: 'none', 
+                border: 'none', 
+                color: 'var(--text-h)', 
+                cursor: 'pointer', 
+                fontFamily: 'var(--font-mono)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <span className="t-label" style={{ opacity: 0.5 }}>{userProfile?.fullName || 'PG'}</span>
+              <span style={{ fontSize: '10px', opacity: 0.8 }}>✎</span>
+            </button>
+          </>
+        )}
 
         <span style={{ color: 'var(--c-crimson)', opacity: 0.3 }}>|</span>
 

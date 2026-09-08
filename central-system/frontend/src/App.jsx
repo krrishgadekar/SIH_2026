@@ -8,7 +8,6 @@ import { DashboardPage } from './components/screens/DashboardPage';
 import { ReferralTrackerPage } from './components/screens/ReferralTrackerPage';
 import { PhcHealthPage } from './components/screens/PhcHealthPage';
 import { PatientTimelinePage } from './components/screens/PatientTimelinePage';
-import { FieldOpsPage } from './components/screens/FieldOpsPage';
 import { ProgramHealthPage } from './components/screens/ProgramHealthPage';
 
 const RoleRouter = () => {
@@ -48,7 +47,6 @@ const RoleRouter = () => {
         <Route path="queue" element={<ReviewQueuePage />} />
         <Route path="case/:caseId" element={<CaseDetailPage />} />
         <Route path="timeline" element={<PatientTimelinePage />} />
-        <Route path="field-ops" element={<FieldOpsPage />} />
         <Route path="health" element={<ProgramHealthPage />} />
       </Route>
 
