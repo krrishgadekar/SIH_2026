@@ -37,19 +37,24 @@ outPath = fullfile(modelsDir, 'branchA_v1.mat');
 % NumClasses=5 replaces the final learnable (FC) layer with a randomly
 % initialised 5-output one — exactly the architecture shape the real trained
 % model will have (see models/README.md).
-%   Weights="none" builds the ResNet-50 ARCHITECTURE with randomly initialised
-%   weights throughout, and — unlike the pretrained form — does not require the
-%   "Deep Learning Toolbox Model for ResNet-50 Network" support package, which
-%   is not installed on this machine.  For a throwaway stub this is strictly
-%   better: the whole point is that the weights are meaningless, and the layer
-%   graph (which is what classifyBranchA/gradCam actually exercise) is identical.
+%   PRETRAINED backbone with a fresh random 5-class head — not Weights="none".
 %
-%   NOTE FOR WHOEVER TRAINS THE REAL MODEL: Task 2.2/2.3 transfer learning DOES
-%   need the pretrained support package.  Install it via the Add-On Explorer
-%   ("Deep Learning Toolbox Model for ResNet-50 Network") before training —
-%   training from random init on ~4k images will not reach the target metrics.
-fprintf('Loading imagePretrainedNetwork("resnet50", Weights="none", NumClasses=5)...\n');
-net = imagePretrainedNetwork("resnet50", Weights="none", NumClasses=5);
+%   An earlier version used Weights="none" because the ResNet-50 support package
+%   was not installed. That produced a network whose BATCH-NORM STATISTICS were
+%   also random, and the consequence was not cosmetic: activations compounded
+%   through 50 layers and the softmax saturated, returning ~[1 0 0 0 0] on every
+%   image. Confidence 1.0 means conformal tier 'A', and Tier A AUTO-CLEARS —
+%   so the stub silently sent every case straight past the ophthalmologist, and
+%   the review queue (which excludes Tier A) always looked empty.
+%
+%   A pretrained backbone has learned BN statistics, so activations stay in a
+%   sane range and the head produces a spread of confidences instead of a pinned
+%   one. The predictions are STILL MEANINGLESS — the classifier head is random
+%   and untrained — but the downstream pipeline now exercises a realistic
+%   distribution of tiers, which is what makes the queue, the ranking and the
+%   referral path testable at all before the real model arrives.
+fprintf('Loading imagePretrainedNetwork("resnet50", NumClasses=5)...\n');
+net = imagePretrainedNetwork("resnet50", NumClasses=5);
 
 fprintf('Network type: %s\n', class(net));
 fprintf('Last 4 layers:\n');
