@@ -236,6 +236,13 @@ async function main() {
     console.log(`\n===== ${failures === 0 ? 'Task 3.2 DoD met' : `${failures} FAILURE(S)`} =====\n`);
     if (failures > 0) process.exitCode = 1;
   } finally {
+    // closeAllConnections() BEFORE close(). Node's fetch (undici) keeps sockets
+    // alive, and server.close() only stops NEW connections -- it waits
+    // indefinitely for existing keep-alive sockets to drain. Without this the
+    // script prints its full results and then hangs forever, leaving an
+    // orphaned process holding the port. That looks like a test still running
+    // long after it has actually passed.
+    server.closeAllConnections();
     server.close();
   }
 }

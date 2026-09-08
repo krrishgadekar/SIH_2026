@@ -117,3 +117,6 @@ simulink-model/simulation-results.csv
 # Case media written by ingestionService.js / gradingOrchestrator.js (patient images)
 central-system/backend/media/
 central-system/backend/explainability-outputs/
+
+# Simulink build/cache artefacts
+simulink-model/slprj/
