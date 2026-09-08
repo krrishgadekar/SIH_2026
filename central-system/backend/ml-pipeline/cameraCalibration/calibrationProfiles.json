@@ -1,0 +1,111 @@
+{
+  "_readme": [
+    "Camera-family calibration profile bank (Task 6.3, design doc §6.3).",
+    "",
+    "WHAT THIS IS FOR. Different fundus cameras produce systematically different",
+    "images: different vignetting, colour balance, resolution and aspect ratio. A",
+    "model trained mostly on one camera degrades on another -- the domain",
+    "generalization gap, and the single biggest threat to this system working",
+    "outside the lab. The PS names portable-camera image quality as a concern; this",
+    "is the answer to it.",
+    "",
+    "THE THRESHOLDS BELOW ARE HAND-BUILT AND UNVALIDATED. They were chosen from",
+    "the optics of each camera class, not fitted to data, because there is no",
+    "multi-camera dataset here to fit them to. Design doc §6.3 calls for exactly",
+    "this -- a heuristic, not a trained classifier -- given how little multi-camera",
+    "data will realistically be available. Treat every boundary as a starting",
+    "point and re-derive them the moment real multi-camera images exist. Do not",
+    "quote a classification accuracy for this; none has been measured.",
+    "",
+    "deviceAssociations maps the worker-reported cameraDeviceId to the family we",
+    "EXPECT that device to produce. A mismatch between reported and detected is",
+    "not an error to suppress -- it is itself a useful signal that something",
+    "unusual happened during capture (design doc §9.4).",
+    "",
+    "FEATURE STRENGTH IS NOT EQUAL, and the ranges reflect that. Every feature",
+    "holds a veto, so a range that is too tight on a WEAK feature rejects images",
+    "the strong features had already identified correctly.",
+    "",
+    "  vignetteSharpness  STRONGEST. A property of the optics themselves, which",
+    "                     neither the operator nor the eye can change.",
+    "  aspectRatio        Strong. Fixed by the sensor and the manufacturer's crop.",
+    "  redGreenRatio      Moderate. Sensor and illuminant, but fundus pigmentation",
+    "                     varies between patients and pushes it around.",
+    "  retinalCoverage    WEAKEST. Mostly operator framing, not optics -- a",
+    "                     handheld camera aimed carefully fills the frame as fully",
+    "                     as a tabletop one. Its range is deliberately wide; a",
+    "                     tight one sent a correctly-identified portable image to",
+    "                     'unknown' purely on how well it happened to be framed."
+  ],
+
+  "defaultFamily": "unknown",
+
+  "families": {
+    "desktop_tabletop": {
+      "description": "Classic tabletop fundus camera. Large circular FOV filling most of a roughly 4:3 frame, crisp vignette edge from well-defined optics, neutral colour balance.",
+      "match": {
+        "aspectRatio":      [1.15, 1.60],
+        "retinalCoverage":  [0.55, 0.95],
+        "vignetteSharpness":[0.66, 1.00],
+        "redGreenRatio":    [1.20, 2.60]
+      },
+      "profile": {
+        "claheClipLimit":     0.010,
+        "illuminationTarget": 128,
+        "whiteBalanceGains":  [1.00, 1.00, 1.00],
+        "vignetteCorrection": 0.0
+      }
+    },
+
+    "portable_handheld": {
+      "description": "Handheld portable fundus camera. Smaller FOV, softer vignette edge from simpler optics, often a warmer cast and stronger corner falloff.",
+      "match": {
+        "aspectRatio":      [1.15, 1.80],
+        "retinalCoverage":  [0.20, 0.92],
+        "vignetteSharpness":[0.15, 0.62],
+        "redGreenRatio":    [1.30, 3.20]
+      },
+      "profile": {
+        "claheClipLimit":     0.016,
+        "illuminationTarget": 128,
+        "whiteBalanceGains":  [0.94, 1.00, 1.08],
+        "vignetteCorrection": 0.35
+      }
+    },
+
+    "smartphone_adapter": {
+      "description": "Phone sensor behind a lens adapter. Tall or wide phone aspect ratio, small retinal circle in a large frame, soft edge, aggressive in-camera processing.",
+      "match": {
+        "aspectRatio":      [0.40, 1.15],
+        "retinalCoverage":  [0.10, 0.55],
+        "vignetteSharpness":[0.20, 0.72],
+        "redGreenRatio":    [1.10, 3.50]
+      },
+      "profile": {
+        "claheClipLimit":     0.020,
+        "illuminationTarget": 132,
+        "whiteBalanceGains":  [0.92, 1.00, 1.12],
+        "vignetteCorrection": 0.50
+      }
+    },
+
+    "unknown": {
+      "description": "No family matched. Falls back to the neutral profile -- deliberately identical to doing nothing, so an unrecognised camera is never made WORSE by a guessed correction.",
+      "match": {},
+      "profile": {
+        "claheClipLimit":     0.010,
+        "illuminationTarget": 128,
+        "whiteBalanceGains":  [1.00, 1.00, 1.00],
+        "vignetteCorrection": 0.0
+      }
+    }
+  },
+
+  "deviceAssociations": {
+    "forus_3nethra_v2":   "portable_handheld",
+    "remidio_fop":        "smartphone_adapter",
+    "topcon_trc_nw400":   "desktop_tabletop",
+    "zeiss_visucam":      "desktop_tabletop",
+    "unknown":            null
+  }
+}
