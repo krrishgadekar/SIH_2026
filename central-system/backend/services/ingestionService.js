@@ -119,7 +119,7 @@ async function ensurePatientReference(client, patientId) {
 async function ingestCase(fields) {
   const {
     patientId, phcId, captureIdRef, cameraDeviceId, imageFile,
-    patientName, patientAge, patientContactNumber, capturedAt,
+    patientName, patientAge, patientContactNumber, capturedAt, pendingCount,
   } = fields;
 
   if (!patientId) throw badRequest('patient_id_required', 'patientId is required.');
@@ -206,6 +206,23 @@ async function ingestCase(fields) {
 
     await client.query('UPDATE cases SET image_path = $1 WHERE case_id = $2',
       [imagePath, caseId]);
+
+    // Record the PHC's own view of its queue. pending_count cannot be computed
+    // here -- the sync queue lives in that site's local SQLite and this server
+    // has no visibility into it -- so the number is whatever the PHC last
+    // reported, true only as of last_sync_at. Both columns are written together
+    // for exactly that reason: read apart, pending_count is misleading, because
+    // the site whose backlog is really growing is the offline one whose number
+    // is frozen (api-contracts.md, GET /phc/:phcId/sync-status).
+    if (phcId) {
+      await client.query(`
+        UPDATE phc_sites
+        SET last_sync_at = now(),
+            pending_count = COALESCE($2, pending_count)
+        WHERE phc_id = $1
+      `, [phcId, pendingCount === undefined || pendingCount === null || pendingCount === ''
+                 ? null : parseInt(pendingCount, 10)]);
+    }
 
     await client.query('COMMIT');
 

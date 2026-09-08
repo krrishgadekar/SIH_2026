@@ -42,6 +42,14 @@ app.use('/sync',     syncRouter);
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
+// Offline-first: the sync manager drains the queue opportunistically in the
+// background. Started only when this file is run as a server, never on a bare
+// require -- otherwise importing the app in a test would silently start
+// uploading real captures to whatever CENTRAL_URL happens to point at.
+if (require.main === module && process.env.SYNC_DISABLED !== '1') {
+  require('./services/syncManager').start();
+}
+
 // ── Error handling ───────────────────────────────────────────────────────────
 // api-contracts.md: every non-2xx body is { error, message } -- never a bare
 // string, never an HTML error page. The frontend switches on .error and only
