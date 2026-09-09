@@ -1,11 +1,53 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { localApi } from '../../api/localApiClient';
+import { mockAiPredictions } from '../../api/mockData';
+import { DiagnosticResultModal } from './DiagnosticResultModal';
+
+const PIPELINE_CONFIG = {
+  captured: {
+    stage: 1,
+    label: 'CAPTURED',
+    badgeClass: 'stage-badge--captured',
+    actionText: 'WAITING (QA)',
+    actionDisabled: true,
+  },
+  quality_passed: {
+    stage: 2,
+    label: 'QUALITY PASS',
+    badgeClass: 'stage-badge--pass',
+    actionText: 'WAITING (SYNC)',
+    actionDisabled: true,
+  },
+  result_pending: {
+    stage: 3,
+    label: 'AI PENDING',
+    badgeClass: 'stage-badge--pending',
+    actionText: 'AI PROCESSING...',
+    actionDisabled: true,
+  },
+  synced: {
+    stage: 4,
+    label: 'SYNCED, AWAITING AI',
+    badgeClass: 'stage-badge--synced',
+    actionText: 'WAITING FOR AI',
+    actionDisabled: true,
+  },
+  result_delivered: {
+    stage: 5,
+    label: 'RESULT READY',
+    badgeClass: 'stage-badge--ready',
+    actionText: 'VIEW RESULT →',
+    actionDisabled: false,
+  },
+};
 
 export const LocalQueueTable = () => {
   const { t } = useTranslation();
   const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchQueue = async () => {
@@ -21,48 +63,81 @@ export const LocalQueueTable = () => {
     fetchQueue();
   }, []);
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'quality_passed':
-        return <span className="badge badge--neutral">{t('queue.statusPass')}</span>;
-      case 'synced':
-        return <span className="badge badge--neutral" style={{ color: '#4D90FE', borderColor: '#4D90FE'}}>{t('queue.statusSynced')}</span>;
-      case 'result_pending':
-        return <span className="badge badge--warning">{t('queue.statusPending')}</span>;
-      case 'result_delivered':
-        return <span className="badge badge--pass">{t('queue.statusReady')}</span>;
-      case 'captured':
-      default:
-        return <span className="badge" style={{ borderColor: 'rgba(230,26,60,0.3)', color: 'rgba(230,26,60,0.5)' }}>{t('queue.statusCaptured')}</span>;
-    }
+  // Handle ESC key for modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isModalOpen) {
+        setIsModalOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen]);
+
+  const handleOpenResult = (item, e) => {
+    e?.stopPropagation();
+    setSelectedItem(item);
+    setIsModalOpen(true);
+  };
+
+  const renderStageIndicator = (status) => {
+    const config = PIPELINE_CONFIG[status] || PIPELINE_CONFIG.captured;
+    const stageNum = config.stage;
+
+    return (
+      <div className="stage-indicator">
+        <div className="stage-dots" aria-label={`Stage ${stageNum} of 5: ${config.label}`}>
+          {[1, 2, 3, 4, 5].map((dot) => {
+            let dotType = 'empty';
+            if (dot < stageNum) {
+              dotType = 'completed'; // Solid green
+            } else if (dot === stageNum) {
+              // Current stage: green if delivered/pass, amber if awaiting sync/AI
+              dotType = (stageNum === 5 || stageNum === 1 || stageNum === 2) ? 'completed' : 'active';
+            }
+            return (
+              <span
+                key={dot}
+                className={`stage-dot stage-dot--${dotType}`}
+                title={`Stage ${dot} / 5`}
+              />
+            );
+          })}
+        </div>
+        <div className={`stage-label ${config.badgeClass}`}>
+          {config.label}
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className="section">
-      <div className="u-flex u-justify-between u-items-center u-mb-6">
-        <h1 className="t-h1">{t('queue.title')}</h1>
-        <div className="t-mono" style={{ opacity: 0.6 }}>
+    <div className="section queue-section">
+      <div className="u-flex u-justify-between u-items-center u-mb-3">
+        <h1 className="t-h1 queue-title">{t('queue.title')}</h1>
+        <div className="t-mono" style={{ opacity: 0.6, fontSize: '0.85rem' }}>
           {queue.length} {t('queue.items')}
         </div>
       </div>
 
-      <div className="panel">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>{t('queue.colId')}</th>
-              <th>{t('queue.colPatient')}</th>
-              <th>{t('queue.colCaptured')}</th>
-              <th>{t('queue.colStatus')}</th>
-              <th>{t('queue.colAction')}</th>
-            </tr>
-          </thead>
+      <div className="panel queue-panel">
+        <div className="queue-table-wrapper">
+          <table className="table queue-table">
+            <thead>
+              <tr>
+                <th>{t('queue.colId')}</th>
+                <th>{t('queue.colPatient')}</th>
+                <th>{t('queue.colCaptured')}</th>
+                <th>PIPELINE STAGE</th>
+                <th>{t('queue.colAction')}</th>
+              </tr>
+            </thead>
           <tbody>
             {loading ? (
-              [1,2,3,4].map(i => (
+              [1, 2, 3, 4].map((i) => (
                 <tr key={i}>
                   <td colSpan="5">
-                    <div className="skeleton" style={{ height: '24px', width: '100%' }}></div>
+                    <div className="skeleton" style={{ height: '28px', width: '100%' }}></div>
                   </td>
                 </tr>
               ))
@@ -73,28 +148,71 @@ export const LocalQueueTable = () => {
                 </td>
               </tr>
             ) : (
-              queue.map(item => (
-                <tr key={item.captureId} className="clickable">
-                  <td><span className="t-mono" style={{ opacity: 0.8 }}>{item.captureId.split('-')[1]}</span></td>
-                  <td>
-                    <div style={{ fontWeight: 700 }}>{item.patientName}</div>
-                    <div className="t-mono" style={{ fontSize: '10px', opacity: 0.5 }}>{item.patientId}</div>
-                  </td>
-                  <td>{new Date(item.capturedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td>
-                  <td>{getStatusBadge(item.status)}</td>
-                  <td>
-                    {item.status === 'result_delivered' ? (
-                      <button className="btn btn--outline" style={{ padding: '4px 8px', fontSize: '10px' }}>{t('queue.btnView')}</button>
-                    ) : (
-                      <span className="t-mono" style={{ fontSize: '10px', opacity: 0.3 }}>{t('queue.txtWaiting')}</span>
-                    )}
-                  </td>
-                </tr>
-              ))
+              queue.map((item) => {
+                const config = PIPELINE_CONFIG[item.status] || PIPELINE_CONFIG.captured;
+                const isReady = item.status === 'result_delivered';
+
+                return (
+                  <tr 
+                    key={item.captureId} 
+                    className={isReady ? "clickable queue-row--ready" : ""}
+                    onClick={isReady ? (e) => handleOpenResult(item, e) : undefined}
+                  >
+                    <td>
+                      <span className="t-mono" style={{ opacity: 0.8, fontWeight: 600 }}>
+                        {item.captureId.split('-')[1] || item.captureId}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 700, fontSize: '14px' }}>{item.patientName}</div>
+                      <div className="t-mono" style={{ fontSize: '11px', opacity: 0.5 }}>{item.patientId}</div>
+                    </td>
+                    <td>
+                      <span className="t-mono" style={{ fontSize: '13px' }}>
+                        {new Date(item.capturedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </td>
+                    <td>
+                      {renderStageIndicator(item.status)}
+                    </td>
+                    <td>
+                      {config.actionDisabled ? (
+                        <button
+                          type="button"
+                          disabled
+                          className="btn-action-col btn-action-col--disabled"
+                          title={`Pipeline stage: ${config.label}`}
+                        >
+                          {config.actionText}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn-action-col btn-action-col--active"
+                          onClick={(e) => handleOpenResult(item, e)}
+                        >
+                          {config.actionText}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
+        </div>
       </div>
+
+      {/* Interactive Screening Result Modal */}
+      <DiagnosticResultModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        item={selectedItem}
+        prediction={selectedItem?.prediction || mockAiPredictions.pass}
+        imageUrl={selectedItem?.imagePreviewUrl || selectedItem?.imageUrl}
+      />
     </div>
   );
 };
+
