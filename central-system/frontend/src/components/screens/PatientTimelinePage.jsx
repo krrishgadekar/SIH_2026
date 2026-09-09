@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { InfoBanner } from '../shared/InfoBanner';
 
 // Inline SVG retinal fundus component — severity controls how many lesion markers appear
@@ -154,8 +155,14 @@ const mockPatientData = {
 };
 
 const ReferralTracker = ({ status }) => {
-  const steps = ['Referred', 'Contacted', 'Scheduled', 'Seen'];
-  const currentIndex = steps.indexOf(status);
+  const { t } = useTranslation();
+  const steps = [
+    t('central.timeline.steps.referred', 'REFERRED'), 
+    t('central.timeline.steps.contacted', 'CONTACTED'), 
+    t('central.timeline.steps.scheduled', 'SCHEDULED'), 
+    t('central.timeline.steps.seen', 'SEEN')
+  ];
+  const currentIndex = steps.findIndex(s => s.toLowerCase() === status.toLowerCase());
 
   return (
     <div className="u-flex u-items-center u-gap-2 u-mt-2">
@@ -185,6 +192,7 @@ const ReferralTracker = ({ status }) => {
 };
 
 export const PatientTimelinePage = () => {
+  const { t } = useTranslation();
   const [diffView, setDiffView] = useState(false);
   const patient = mockPatientData;
 
@@ -229,10 +237,10 @@ export const PatientTimelinePage = () => {
     <div className="section">
       <div className="u-flex u-justify-between u-items-center u-mb-6">
         <div>
-          <p className="section__subtitle">OPHTHALMOLOGIST INTERFACE</p>
-          <h1 className="section__title" style={{ marginBottom: 'var(--sp-2)' }}>PATIENT TIMELINE</h1>
+          <p className="section__subtitle">{t('central.timeline.subtitle', 'OPHTHALMOLOGIST INTERFACE')}</p>
+          <h1 className="section__title" style={{ marginBottom: 'var(--sp-2)' }}>{t('central.timeline.title', 'PATIENT TIMELINE')}</h1>
           <div className="t-mono" style={{ opacity: 0.8 }}>
-            REF: {patient.id} • {patient.name} ({patient.age}Y)
+            {t('central.timeline.ref', 'REF:')} {patient.id} • {patient.name} ({patient.age}Y)
           </div>
         </div>
         <button 
@@ -240,13 +248,13 @@ export const PatientTimelinePage = () => {
           onClick={() => setDiffView(!diffView)}
           style={diffView ? { boxShadow: '3px 3px 0px #000' } : {}}
         >
-          {diffView ? '◆ DIFF VIEW ON' : 'ENABLE DIFF VIEW'}
+          {diffView ? t('central.timeline.disableDiff', '◆ DIFF VIEW ON') : t('central.timeline.enableDiff', 'ENABLE DIFF VIEW')}
         </button>
       </div>
 
       <InfoBanner 
-        title="PATIENT HISTORY & COMPARISON" 
-        text="Review the longitudinal visit history for this patient. Enable Diff View to automatically highlight changes in lesion evidence between adjacent visits. Track the referral progress loop across different nodes." 
+        title={t('central.timeline.banner.title', 'PATIENT HISTORY & COMPARISON')}
+        text={t('central.timeline.banner.text', 'Review the longitudinal visit history for this patient. Enable Diff View to automatically highlight changes in lesion evidence between adjacent visits. Track the referral progress loop across different nodes.')}
       />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-6)' }}>
@@ -277,7 +285,7 @@ export const PatientTimelinePage = () => {
                   fontWeight: 700,
                   letterSpacing: '0.5px',
                 }}>
-                  LATEST VISIT
+                  {t('central.timeline.latestVisit', 'LATEST VISIT')}
                 </div>
               )}
 
@@ -295,7 +303,7 @@ export const PatientTimelinePage = () => {
                   </div>
                   <div>
                     <div className="t-mono u-mb-1" style={{ opacity: 0.5, fontSize: 'var(--fs-tiny)' }}>
-                      VISIT ID: {visit.id} • {visit.date}
+                      {t('central.timeline.visitId', 'VISIT ID')}: {visit.id} • {visit.date}
                     </div>
                     <div className="t-h3 u-mb-2" style={{ fontWeight: 800 }}>{visit.grade}</div>
                     <div className={`badge ${visit.status.includes('OVERRIDDEN') ? 'badge--warning' : 'badge--pass'}`}>
@@ -303,7 +311,7 @@ export const PatientTimelinePage = () => {
                     </div>
                     
                     <div className="u-mt-4">
-                      <div className="t-mono u-mb-1" style={{ fontSize: '10px', opacity: 0.5, letterSpacing: '1px' }}>REFERRAL STATUS</div>
+                      <div className="t-mono u-mb-1" style={{ fontSize: '10px', opacity: 0.5, letterSpacing: '1px' }}>{t('central.timeline.referralStatus', 'REFERRAL STATUS')}</div>
                       <ReferralTracker status={visit.referralStatus} />
                     </div>
                   </div>
@@ -311,7 +319,7 @@ export const PatientTimelinePage = () => {
               </div>
 
               <div style={{ marginTop: 'var(--sp-4)', borderTop: '1px solid var(--c-border)', paddingTop: 'var(--sp-4)' }}>
-                <div className="t-label u-mb-2">LESION EVIDENCE {diffView && previousVisit ? '(VS PREVIOUS)' : ''}</div>
+                <div className="t-label u-mb-2">{t('central.timeline.lesionEvidence', 'LESION EVIDENCE')} {diffView && previousVisit ? t('central.timeline.vsPrevious', '(VS PREVIOUS)') : ''}</div>
                 {renderLesions(visit.lesions, previousVisit?.lesions)}
               </div>
             </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { centralApi } from '../../api/centralApiClient';
 import { drGradeLabels } from '../../api/mockData';
 import { InfoBanner } from '../shared/InfoBanner';
@@ -52,6 +53,7 @@ const ConfidenceBar = ({ value }) => {
 };
 
 export const ReviewQueuePage = () => {
+  const { t } = useTranslation();
   const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, tier-c, tier-b, disagreement
@@ -176,20 +178,20 @@ export const ReviewQueuePage = () => {
     <div className="section">
       <div className="u-flex u-items-center u-justify-between u-mb-6">
         <div>
-          <p className="section__subtitle">OPHTHALMOLOGIST INTERFACE</p>
-          <h1 className="section__title" style={{ marginBottom: 0 }}>REVIEW QUEUE</h1>
+          <p className="section__subtitle">{t('central.queue.subtitle', 'OPHTHALMOLOGIST INTERFACE')}</p>
+          <h1 className="section__title" style={{ marginBottom: 0 }}>{t('central.queue.title', 'REVIEW QUEUE')}</h1>
         </div>
         <div className="u-flex u-items-center u-gap-3">
-          <span className="badge badge--neutral">{queue.length} TOTAL</span>
-          <span className="badge badge--tier-c">{tierCCount} TIER C</span>
-          <span className="badge badge--tier-b">{tierBCount} TIER B</span>
-          {disagreeCount > 0 && <span className="badge badge--fail">⚠ {disagreeCount} MISMATCH</span>}
+          <span className="badge badge--neutral">{queue.length} {t('central.queue.stats.total', 'TOTAL')}</span>
+          <span className="badge badge--tier-c">{tierCCount} {t('central.queue.stats.tierC', 'TIER C')}</span>
+          <span className="badge badge--tier-b">{tierBCount} {t('central.queue.stats.tierB', 'TIER B')}</span>
+          {disagreeCount > 0 && <span className="badge badge--fail">⚠ {disagreeCount} {t('central.queue.stats.mismatch', 'MISMATCH')}</span>}
         </div>
       </div>
 
       <InfoBanner 
-        title="QUEUE PRIORITIZATION" 
-        text="Cases are automatically sorted by urgency. Tier C cases and branch disagreements are floated to the top, followed by lowest confidence scores. Spot-check Tier B cases appear last." 
+        title={t('central.queue.banner.title', 'QUEUE PRIORITIZATION')}
+        text={t('central.queue.banner.text', 'Cases are automatically sorted by urgency. Tier C cases and branch disagreements are floated to the top, followed by lowest confidence scores. Spot-check Tier B cases appear last.')}
       />
 
       {/* Search & Multi-Filter Bar (matching ReferralTrackerPage) */}
@@ -200,7 +202,7 @@ export const ReviewQueuePage = () => {
             <input
               type="text"
               className="input"
-              placeholder="🔍 Search Patient Ref, Case ID, or PHC..."
+              placeholder={t('central.queue.search.placeholder', '🔍 Search Patient Ref, Case ID, or PHC...')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{ height: '38px', fontSize: 'var(--fs-tiny)' }}
@@ -215,7 +217,7 @@ export const ReviewQueuePage = () => {
               onChange={(e) => setPhcFilter(e.target.value)}
               style={{ height: '38px', fontSize: 'var(--fs-tiny)' }}
             >
-              <option value="all">ALL PHCs</option>
+              <option value="all">{t('central.queue.search.allPhcs', 'ALL PHCs')}</option>
               {phcOptions.map(p => (
                 <option key={p} value={p}>{p}</option>
               ))}
@@ -230,7 +232,7 @@ export const ReviewQueuePage = () => {
               onChange={(e) => setGradeFilter(e.target.value)}
               style={{ height: '38px', fontSize: 'var(--fs-tiny)' }}
             >
-              <option value="all">ALL GRADES</option>
+              <option value="all">{t('central.queue.search.allGrades', 'ALL GRADES')}</option>
               <option value="4">Grade 4 (PDR)</option>
               <option value="3">Grade 3 (Severe)</option>
               <option value="2">Grade 2 (Moderate)</option>
@@ -257,7 +259,7 @@ export const ReviewQueuePage = () => {
             onClick={() => setFilter(filter === 'disagreement' ? 'all' : 'disagreement')}
             title="Filter to branch mismatch cases"
           >
-            ⚠ MISMATCH ({disagreeCount})
+            {t('central.queue.search.mismatchChip', '⚠ MISMATCH')} ({disagreeCount})
           </button>
 
           {/* Reset Filters */}
@@ -268,7 +270,7 @@ export const ReviewQueuePage = () => {
               onClick={handleResetFilters}
               title="Reset all active search and filters"
             >
-              RESET (✕)
+              {t('central.queue.search.reset', 'RESET (✕)')}
             </button>
           )}
         </div>
@@ -277,10 +279,10 @@ export const ReviewQueuePage = () => {
       {/* Filter Bar */}
       <div className="queue-filter-bar u-mb-4">
         {[
-          { id: 'all', label: 'ALL CASES' },
-          { id: 'tier-c', label: 'TIER C — FULL REVIEW' },
-          { id: 'tier-b', label: 'TIER B — SPOT CHECK' },
-          { id: 'disagreement', label: '⚠ BRANCH MISMATCH' },
+          { id: 'all', label: t('central.queue.filters.all', 'ALL CASES') },
+          { id: 'tier-c', label: t('central.queue.filters.tierC', 'TIER C — FULL REVIEW') },
+          { id: 'tier-b', label: t('central.queue.filters.tierB', 'TIER B — SPOT CHECK') },
+          { id: 'disagreement', label: t('central.queue.filters.mismatch', '⚠ BRANCH MISMATCH') },
         ].map(f => (
           <button
             key={f.id}
@@ -297,15 +299,15 @@ export const ReviewQueuePage = () => {
         <table className="table">
           <thead>
             <tr>
-              <SortHeader width="40px" label="#" sortKey="priorityRank" currentSort={sortConfig} onRequestSort={requestSort} />
-              <th>PATIENT REF</th>
-              <th>PHC</th>
-              <SortHeader label="TIER" sortKey="conformalTier" currentSort={sortConfig} onRequestSort={requestSort} />
-              <SortHeader label="CNN GRADE" sortKey="drGradeCnn" currentSort={sortConfig} onRequestSort={requestSort} />
-              <SortHeader label="RULE ENGINE" sortKey="drGradeRuleEngine" currentSort={sortConfig} onRequestSort={requestSort} />
-              <SortHeader label="AGREEMENT" sortKey="branchAgreement" currentSort={sortConfig} onRequestSort={requestSort} />
-              <SortHeader label="CONFIDENCE" sortKey="confidenceScore" currentSort={sortConfig} onRequestSort={requestSort} />
-              <th>CAPTURED</th>
+              <SortHeader width="40px" label={t('central.queue.table.colPriority', '#')} sortKey="priorityRank" currentSort={sortConfig} onRequestSort={requestSort} />
+              <th>{t('central.queue.table.colPatientRef', 'PATIENT REF')}</th>
+              <th>{t('central.queue.table.colPhc', 'PHC')}</th>
+              <SortHeader label={t('central.queue.table.colTier', 'TIER')} sortKey="conformalTier" currentSort={sortConfig} onRequestSort={requestSort} />
+              <SortHeader label={t('central.queue.table.colCnnGrade', 'CNN GRADE')} sortKey="drGradeCnn" currentSort={sortConfig} onRequestSort={requestSort} />
+              <SortHeader label={t('central.queue.table.colRuleEngine', 'RULE ENGINE')} sortKey="drGradeRuleEngine" currentSort={sortConfig} onRequestSort={requestSort} />
+              <SortHeader label={t('central.queue.table.colAgreement', 'AGREEMENT')} sortKey="branchAgreement" currentSort={sortConfig} onRequestSort={requestSort} />
+              <SortHeader label={t('central.queue.table.colConfidence', 'CONFIDENCE')} sortKey="confidenceScore" currentSort={sortConfig} onRequestSort={requestSort} />
+              <th>{t('central.queue.table.colCaptured', 'CAPTURED')}</th>
             </tr>
           </thead>
           <tbody>
@@ -324,7 +326,7 @@ export const ReviewQueuePage = () => {
                 <td><TierBadge tier={item.conformalTier} /></td>
                 <td>
                   <span className="t-mono" style={{ fontWeight: 700 }}>
-                    Grade {item.drGradeCnn}
+                    {t('central.queue.table.grade', 'Grade')} {item.drGradeCnn}
                   </span>
                   <br />
                   <span className="t-label" style={{ opacity: 0.5 }}>
@@ -335,7 +337,7 @@ export const ReviewQueuePage = () => {
                   {item.drGradeRuleEngine !== null ? (
                     <>
                       <span className="t-mono" style={{ fontWeight: 700 }}>
-                        Grade {item.drGradeRuleEngine}
+                        {t('central.queue.table.grade', 'Grade')} {item.drGradeRuleEngine}
                       </span>
                       <br />
                       <span className="t-label" style={{ opacity: 0.5 }}>
@@ -343,16 +345,16 @@ export const ReviewQueuePage = () => {
                       </span>
                     </>
                   ) : (
-                    <span className="t-mono" style={{ opacity: 0.3 }}>NOT YET AVAILABLE</span>
+                    <span className="t-mono" style={{ opacity: 0.3 }}>{t('central.queue.table.notAvailable', 'NOT YET AVAILABLE')}</span>
                   )}
                 </td>
                 <td>
                   {item.branchAgreement === null ? (
-                    <span className="t-mono" style={{ opacity: 0.3 }}>N/A</span>
+                    <span className="t-mono" style={{ opacity: 0.3 }}>{t('central.queue.table.na', 'N/A')}</span>
                   ) : item.branchAgreement ? (
-                    <span className="badge badge--pass">✓ AGREE</span>
+                    <span className="badge badge--pass">{t('central.queue.table.agree', '✓ AGREE')}</span>
                   ) : (
-                    <span className="badge badge--fail">⚠ DISAGREE</span>
+                    <span className="badge badge--fail">{t('central.queue.table.disagree', '⚠ DISAGREE')}</span>
                   )}
                 </td>
                 <td><ConfidenceBar value={item.confidenceScore} /></td>
@@ -367,7 +369,7 @@ export const ReviewQueuePage = () => {
 
       {sortedQueue.length === 0 && (
         <div className="u-text-center u-p-6" style={{ border: 'var(--border)', borderTop: 'none' }}>
-          <p className="t-mono" style={{ opacity: 0.4 }}>NO CASES MATCH FILTER</p>
+          <p className="t-mono" style={{ opacity: 0.4 }}>{t('central.queue.empty', 'NO CASES MATCH FILTER')}</p>
         </div>
       )}
     </div>
