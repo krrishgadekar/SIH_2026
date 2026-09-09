@@ -145,7 +145,7 @@ this audit.*
 | **5.** Simulink workflow simulation | **3.8** | ⬜ moved up from 8.4; blocked on Task 0.0 |
 | *Expected solution:* outperforms any single technique | **9.2** | ❌ nothing built to compare against |
 | *Expected solution:* validation vs published benchmarks | 9.1, 9.3 | ❌ not started |
-| *Tools:* Computer Vision, Medical Imaging toolboxes | **4.6** | ⚠️ installed; Computer Vision now used in Phase 4 overlays, Medical Imaging still unused |
+| *Tools:* Computer Vision, Medical Imaging toolboxes | **4.6** | ✅ both genuinely used — CV for the annotated overlays, Medical Imaging for DICOM fundus input (`readFundusImage.m`) |
 
 **Bold** task numbers were added or moved by this audit. They were named
 requirements with nowhere to land — the kind of gap that stays invisible until
@@ -166,6 +166,12 @@ problem statement names as required tools are **licensed but not installed**:
 | Medical Imaging Toolbox | ❌ | ✅ | Phase 4 segmentation |
 | Statistics and Machine Learning Toolbox | ❌ | ✅ | Task 6.2 conformal quantiles |
 | Deep Learning Toolbox Model for ResNet-50 | ❌ | n/a | Tasks 2.2/2.3 transfer learning |
+| **MATLAB Compiler** | ✅ *(installed 2026-09-09)* | ✅ | Task 8.1 — done; exe built and verified |
+
+*(MATLAB Compiler added 2026-09-09 while doing Task 8.1: `license('test','Compiler')`
+returns 1 and `exist('mcc','file')` returns 0 — the same licensed-but-absent
+pattern as the rest. Install with
+`mpm install --release=R2026a --products=MATLAB_Compiler`.)*
 
 `licensed = 1, installed = 0` for all five — this is a **download, not a
 procurement problem**. Install via the MATLAB installer / Add-On Explorer.
@@ -490,7 +496,37 @@ If everything above this line works end to end — capture → local quality gat
 - Build: classical CV first pass (`imfindcircles` for the bright, roughly-circular optic disc region), refined by a small regression CNN fine-tuned on IDRiD's 516-image localization subset for sub-pixel-accurate centers. Fovea estimated from its typical position relative to the optic disc plus the vessel arcade geometry.
 - Connects to: gives the quadrant-mapping axis that Tasks 4.2 and 4.3 need.
 
-**Task 4.6 — Put the two unused named toolboxes to genuine work** *(added 2026-09-08)*
+**Task 4.6 — Put the two unused named toolboxes to genuine work** — DONE (2026-09-09)
+- **Computer Vision Toolbox: already genuine, nothing added.** Used in
+  `generateEvidenceReport.m` (`insertObjectAnnotation`, `insertShape` for the
+  Task 7.3 annotated lesion overlay) and `verifyPhase4.m` (`labeloverlay`).
+  Both are the right tool for drawing annotations onto a clinical image.
+- **Medical Imaging Toolbox: was entirely unused; now used for DICOM.**
+  New `preprocessing/readFundusImage.m` — `isdicom` / `medicalImage` /
+  `dicominfo`. Three reasons it is not decorative:
+  1. Desktop fundus cameras (Topcon, Zeiss, Canon) export DICOM under the
+     Ophthalmic Photography IOD. **The pipeline could not read those files at
+     all**, so a PHC with a clinical-grade camera could not have submitted an
+     image.
+  2. DICOM names the device that took the photograph — better evidence than the
+     worker's dropdown, recorded for the Task 6.3 cross-check.
+  3. It carries `ImageLaterality`, the exact field Task 7.3 found missing.
+- Wired into `gradingOrchestrator`'s MATLAB chain in place of `imread`;
+  `.dcm` added to the central allowed extensions.
+- **Honestly incomplete:** the PHC quality gate still uses `imread`, so a DICOM
+  cannot yet complete the capture→sync path end to end. Wiring it there puts a
+  Medical Imaging dependency inside the Task 8.1 compiled bundle — a licensing
+  and bundle-size decision, not a coding one. Nothing consumes `.laterality`
+  yet either; no column was added under cover of this task.
+- The DICOM device is deliberately **not** substituted for `reportedDeviceId`:
+  `classifyCameraFamily` matches against known device keys, so a free-text
+  vendor string would match nothing and silently turn the Task 6.3 mismatch
+  check into a no-op.
+- Verified: `testReadFundusImage.m`, 21 checks, against a DICOM the test writes
+  with real ophthalmic tags. Not a vendor file — those carry private tags and
+  unusual layouts only real samples expose.
+
+**Task 4.6 (original spec)** *(added 2026-09-08)*
 - **Why this exists:** the PS names six tools. **Computer Vision Toolbox** and
   **Medical Imaging Toolbox** currently have *zero* usage anywhere in the
   codebase. Judges do check the tool list, and Phase 4 is the natural and
@@ -657,7 +693,35 @@ directory structure from Task 0 and has been empty the whole time.
   the `model_versions` validation columns. Those columns are the continual-
   learning promotion gate (§6.11), so this task is what makes that gate real.
 
-**Task 9.2 — Integrated pipeline vs single-technique baseline**
+**Task 9.2 — Integrated pipeline vs single-technique baseline** — DONE (2026-09-09), never run on real predictions
+- Files: `compareToBaseline.m`, `testCompareToBaseline.m` (34 checks).
+- **The thing this task is really about:** the integrated pipeline DEFERS
+  disagreements to a human. Branch A alone defers nothing. Comparing their
+  accuracies directly flatters the integrated system automatically — deferring
+  is how you raise accuracy without improving anything, and a pipeline
+  answering only the easiest 30% would post a spectacular number while being
+  useless.
+- So the report always carries coverage, and the headline is a **matched-
+  coverage** comparison: Branch A forced to defer its own least-confident cases
+  until coverage matches, then re-scored. That is the baseline at its best, not
+  a straw man. If the integrated pipeline wins only at unmatched coverage, the
+  summary says deferral did the work, not the second branch.
+- Also reports **disagreement lift** = P(Branch A wrong | branches disagree) /
+  P(Branch A wrong), measurable on any labelled split with no review capacity
+  needed. That is the dual-branch design's actual claim and is stronger
+  evidence than the accuracy delta: a lift near 1 means the flag fires at
+  random and costs reviewer time for nothing.
+- Verdicts rest on **non-overlapping confidence intervals**, never point
+  estimates, and a loss is checked before a win so a mixed result cannot have
+  its good half quoted.
+- Two bugs the tests caught: the verdict originally checked only sensitivity
+  for a loss, so an arm that collapsed on specificity (0.50 vs 1.00, intervals
+  far apart) was reported as "no difference"; and the first loss fixture failed
+  to distinguish the two arms at all.
+- **No comparative claim is supported today** — Branch A is a stub and no
+  lesion counts exist, so this has never seen real predictions.
+
+**Task 9.2 (original spec)**
 - File: `central-system/backend/ml-pipeline/training/compareToBaseline.m`
 - **Why this exists:** the PS's expected solution asks for "validation against
   published benchmarks showing **the integrated pipeline outperforms any single
@@ -708,8 +772,40 @@ directory structure from Task 0 and has been empty the whole time.
 
 ## Phase 8 — Deployment Hardening
 
-**Task 8.1 — MATLAB Compiler packaging for the local quality gate**
-- Build: package `qualityGateMain.m` as a standalone executable via MATLAB Compiler + MATLAB Runtime, so the PHC machine doesn't need a MATLAB license. Swap `qualityGateClient.js` (Task 1.3) from calling the Engine API to shelling out to the compiled executable.
+**Task 8.1 — MATLAB Compiler packaging** — DONE (2026-09-09), **BUILT AND VERIFIED**
+- Files: `qualityGateCli.m` (the mcc entry point), `qualityGateAssetPath.m`,
+  `buildQualityGateExe.m`, dual-backend `qualityGateClient.js`.
+- **Built and run.** MATLAB Compiler 26.1 was installed and `qualityGate.exe`
+  (1.37 MB) produced. It returns byte-identical scores to a direct MATLAB call
+  (`focusScore 0.80108660159872658`), and Node drives it end to end through
+  `qualityGateClient` with `QUALITY_GATE_EXE` set.
+- **Still unproven, and it is the part that matters for deployment:** the exe
+  has never run on a machine *without* MATLAB. Here it borrows
+  `mclmcrrt26_1.dll` from the full install via a wrapper `.cmd`. That does
+  genuinely verify the CTF bundling — the exe reads `cameraPresets.json` out of
+  the archive — but the **MATLAB Runtime R2026a is a separate ~GB install that
+  has not been done anywhere**, and it is what each PHC actually needs.
+- **Measured, correcting an earlier claim.** Warm, same image:
+  `matlab -batch` **~9.1 s** vs the exe **~4.6 s** — about 2x, saving ~4.5 s per
+  capture. Earlier comments in three files claimed "~50 ms"; that was asserted,
+  never measured, and wrong by two orders of magnitude. The Runtime still
+  initialises on every invocation because every call is a fresh process. The
+  licence saving, not the speed, is the real reason to do this.
+- `-R -nojvm` was tried and **measured slower** (~6.5 s vs ~4.4 s) and dropped;
+  `-R -nodisplay` is Linux-only and printed a stderr warning on every call.
+- `QUALITY_GATE_EXE=<path>` switches Node to the compiled backend; unset, or
+  pointing at a missing file, it falls back to `matlab -batch` with a warning.
+  Both paths share one parser, because the exe emits the identical JSON.
+- Two packaging traps handled: `mfilename('fullpath')` resolves into the CTF
+  archive when deployed, so `cameraPresets.json` is found via
+  `qualityGateAssetPath`; and `mcc` cannot trace a `fileread` dependency, so
+  the JSON is bundled with `-a`.
+- Side benefit worth naming: arguments now cross as **argv rather than being
+  interpolated into a MATLAB expression**, so a filename containing a quote is
+  inert instead of executable.
+- Verified: `verify_task81.js` (Node↔exe contract, compiled backend stood in
+  by a stub) and `testQualityGateDeploy.m` (17 checks). Neither is evidence the
+  compiled binary works.
 
 **Task 8.2 — Chunked/resumable sync upload** — DONE (2026-09-09)
 - Files: `central-system/backend/services/chunkedUploadService.js`, four routes in

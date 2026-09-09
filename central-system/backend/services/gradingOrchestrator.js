@@ -307,12 +307,26 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId, 
     // This replaced `illuminationNormalize(claheEnhance(benGrahamCrop(...)))`,
     // which is now wrong in two ways: it skips denoising, and CLAHE plus
     // illumination are folded into adaptiveEnhance.
-    `img = imread('${imgPath}');`,
+    // Task 4.6: readFundusImage instead of imread, so a DICOM from a
+    // clinical-grade camera is readable at all. Desktop fundus cameras export
+    // the Ophthalmic Photography IOD, not JPEG; until now such a file could
+    // not have been graded. Ordinary images take the identical imread path.
+    `[img, imgMeta] = readFundusImage('${imgPath}');`,
     `qualityScores = ${matlabStructLiteral(qualityScores)};`,
     // The worker-reported device is passed in only for the CROSS-CHECK, never
     // to steer classification: the pixels are what the model actually sees, so
     // image evidence wins and a disagreement is reported rather than resolved
     // in favour of the paperwork (Task 6.3, design doc §9.4).
+    // Task 4.6 note: a DICOM file names the device that took the photograph,
+    // which is better evidence than the worker's dropdown. It is deliberately
+    // NOT substituted for reportedDeviceId here. classifyCameraFamily matches
+    // that value against a table of known device keys, and a free-text DICOM
+    // string ("Topcon TRC-NW400") matches nothing — so substituting it would
+    // silently SUPPRESS the Task 6.3 mismatch check rather than improve it,
+    // turning a working cross-check into a no-op with no error anywhere.
+    // Mapping manufacturer strings onto camera families needs real DICOM
+    // samples from the cameras in question; until then the device is recorded
+    // as evidence rather than acted on.
     `ppOpts = struct('reportedDeviceId', '${toMatlabStr(cameraDeviceId || '')}');`,
     `[preprocessed, ppSteps] = preprocessForBranchA(img, qualityScores, ppOpts);`,
 
@@ -351,6 +365,11 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId, 
     `out.confidenceScore = double(confidenceScore);`,
     `out.calibratedProbs = calibratedProbs;`,
     `out.gradcamPath = '${gcPath}';`,
+    // Task 4.6: recorded so a DICOM submission is traceable to the device and
+    // eye the camera itself reported, rather than only to what a worker typed.
+    `out.sourceFormat = imgMeta.format;`,
+    `out.dicomDeviceModel = imgMeta.deviceModel;`,
+    `out.imageLaterality = imgMeta.laterality;`,
     `out.cameraFamily = ppSteps.cameraFamily;`,
     `out.cameraMismatch = ~isempty(ppSteps.cameraDetail) && ppSteps.cameraDetail.mismatch;`,
     `disp(jsonencode(out));`,

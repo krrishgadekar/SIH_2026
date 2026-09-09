@@ -118,3 +118,24 @@ out/
 # deliverable. Kept on disk (and in git history up to 95222e9) so each task can
 # still be re-verified; simply not carried in the repo.
 verify_task*.js
+
+# MATLAB Compiler build output (Task 8.1). Rebuildable with
+# buildQualityGateExe.m; a 1.4 MB binary plus generated logs does not belong
+# in the repo, and the .cmd wrapper is machine-specific (it hardcodes the
+# local MATLAB Runtime path).
+phc-local-app/backend/quality-gate-matlab/dist/
+
+# Traced copy of Branch A for MATLAB import (Task: PyTorch converter test).
+# Rebuildable in seconds with traceModel1ForMatlab.py, and a 16 MB binary that
+# duplicates weights already tracked in branchA_v1.pt.
+central-system/backend/ml-pipeline/models/Model1/branchA_v1_traced.pt
+
+# Model1 prediction CSVs — a bridge from the shipped .npy files into MATLAB,
+# regenerated in seconds by exportModel1Predictions.py. The .npy originals are
+# the source of truth and are tracked.
+central-system/backend/ml-pipeline/models/Model1/*.csv
+
+# PyTorch->MATLAB import experiment artifacts (traced models, probe tensors).
+# All regenerable; the traced .pt files duplicate weights already tracked.
+central-system/backend/ml-pipeline/models/Model1/*_traced*.pt
+central-system/backend/ml-pipeline/models/Model1/probe_*.csv

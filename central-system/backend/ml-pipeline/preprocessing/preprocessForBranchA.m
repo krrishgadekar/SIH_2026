@@ -11,8 +11,9 @@ function [outImg, steps] = preprocessForBranchA(img, qualityScores, opts)
 %                     are available (training images, or a case that synced
 %                     before scores were transmitted).
 %     opts - optional struct:
-%              .targetSize     512
-%              .denoiseMethod  'anisotropic' | 'nlm' | 'none'
+%              .recipe         'model1' (default) | 'legacy'
+%              .targetSize     384 under 'model1', 512 under 'legacy'
+%              .denoiseMethod  'anisotropic' | 'nlm' | 'none'  ('legacy' only)
 %
 %   Outputs:
 %     outImg - targetSize x targetSize x 3 uint8, ready for the network.
@@ -35,7 +36,40 @@ function [outImg, steps] = preprocessForBranchA(img, qualityScores, opts)
 %   anywhere, and do not call the individual functions directly for anything
 %   that feeds Branch A.
 %
-%   ── ORDER, AND WHY EACH STEP IS WHERE IT IS ────────────────────────────────
+%   ══ 2026-09-09: THE CHAIN CHANGED, AND THIS IS WHY ═════════════════════════
+%   Branch A arrived as a trained PyTorch model (Model1, EfficientNet-B0), and
+%   it was trained on a PYTHON chain — ben_graham.py then clahe_enhance.py —
+%   not on this one. The skew the section above warns about had actually
+%   happened.
+%
+%   Measured on datasets/2.jpg (comparePreprocessingRecipes.m):
+%       output size      512x512 here vs 384x384 there — the network's input
+%       mean difference  20.6 grey levels (8.1% of range)
+%       worst 5% of px   57 grey levels
+%       SSIM             0.824
+%   Global brightness and contrast matched almost exactly while local structure
+%   did not — and local structure is where microaneurysms live.
+%
+%   So the DEFAULT recipe is now 'model1': preprocessModel1.m, a port of the
+%   training code. The rule this file has always stated is unchanged; what
+%   changed is WHICH chain both sides agree on. Whoever trains next updates
+%   preprocessModel1.m and this default in the same commit.
+%
+%   ── WHAT 'model1' GIVES UP, STATED PLAINLY ─────────────────────────────────
+%   Denoising (2.1b) and adaptive enhancement (2.8) no longer touch the Branch A
+%   input, and the camera calibration profile is computed but not applied to its
+%   pixels. Those are PS requirement 1 items, so this is a real reduction in
+%   what the graded image goes through.
+%
+%   It is still correct. The model never saw those steps, so applying them makes
+%   it perform WORSE, not better — a nicer-looking image is not a better input
+%   to a network trained without it. All three remain live under recipe
+%   'legacy' for the Phase 4 segmentation path, where the models are ours and we
+%   control both sides. Camera classification still runs either way, because the
+%   reported-vs-detected mismatch check (Task 6.3) is metadata, not a pixel
+%   transform.
+%
+%   ── 'legacy' ORDER, AND WHY EACH STEP IS WHERE IT IS ───────────────────────
 %     1. benGrahamCrop      crop to the retinal disc, resize, boost local
 %                           contrast. First, because everything downstream
 %                           assumes a consistent frame and scale.
@@ -92,12 +126,37 @@ else
     cameraFamily = 'disabled';
 end
 
-cropped  = benGrahamCrop(calibrated, targetSize);
-denoised = denoiseRetinal(cropped, denoiseMethod);
-[outImg, applied] = adaptiveEnhance(denoised, qualityScores, ...
-                                    struct('baseClipLimit', baseClip));
+% ── 1. The chain itself ────────────────────────────────────────────────────
+% DEFAULT IS 'model1': the exact recipe Branch A was trained on. See the
+% train/serve note in the header. 'legacy' keeps the richer chain for the
+% Phase 4 segmentation path, where we own both sides.
+recipe = getdef(opts, 'recipe', 'model1');
+
+switch recipe
+    case 'model1'
+        % Note what is NOT passed: `calibrated`. The camera profile was applied
+        % above for its metadata and mismatch check, but the PIXELS handed to
+        % Branch A are the raw image put through the training recipe, because
+        % that is what the model saw. Feeding it the calibrated image would
+        % reintroduce exactly the divergence this change removes.
+        [outImg, m1] = preprocessModel1(img, opts);
+        applied = m1;
+        targetSize = m1.targetSize;
+        denoiseMethod = 'none (not in the training recipe)';
+
+    case 'legacy'
+        cropped  = benGrahamCrop(calibrated, targetSize);
+        denoised = denoiseRetinal(cropped, denoiseMethod);
+        [outImg, applied] = adaptiveEnhance(denoised, qualityScores, ...
+                                            struct('baseClipLimit', baseClip));
+
+    otherwise
+        error('preprocessForBranchA:badRecipe', ...
+              'recipe must be ''model1'' or ''legacy'', got ''%s''.', recipe);
+end
 
 steps = struct( ...
+    'recipe',        recipe, ...
     'targetSize',    targetSize, ...
     'denoiseMethod', denoiseMethod, ...
     'hadQualityScores', ~isempty(qualityScores) && isstruct(qualityScores) ...
