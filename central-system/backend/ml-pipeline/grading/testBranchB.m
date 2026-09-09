@@ -19,10 +19,15 @@ fprintf('\n===== Branch B rule engine (Task 5.1) =====\n');
 n = 0; f = 0;
 
 % ── One case per grade, as the DoD requires ─────────────────────────────────
+% Counts here are what the SEGMENTER produces, not what a clinician would
+% count. The thresholds were recalibrated against real inference output on
+% 2026-09-09 (see ruleEngineGrade's header), so cases that used to need 20+
+% lesions per quadrant now need 3 — and cases with one or two detections are
+% now noise rather than grade 1.
 [n,f] = t(n, f, 'grade 0: no lesions at all', ...
     ruleEngineGrade([0 0 0 0], [0 0 0 0], 0.0), 0);
 
-[n,f] = t(n, f, 'grade 1: microaneurysms only, few', ...
+[n,f] = t(n, f, 'grade 1: red lesions above the noise floor, few', ...
     ruleEngineGrade([2 1 0 0], [0 0 0 0], 0.0), 1);
 
 [n,f] = t(n, f, 'grade 2: red lesions WITH bright lesions', ...
@@ -31,11 +36,57 @@ n = 0; f = 0;
 [n,f] = t(n, f, 'grade 2: >5 red lesions, no bright', ...
     ruleEngineGrade([4 3 1 0], [0 0 0 0], 0.1), 2);
 
-[n,f] = t(n, f, 'grade 3: 4-2-1(a), >20 red in ALL four quadrants', ...
-    ruleEngineGrade([25 30 22 40], [5 0 0 0], 0.2), 3);
+[n,f] = t(n, f, 'grade 3: 4-2-1(a) structure, >=3 red in ALL four quadrants', ...
+    ruleEngineGrade([4 3 5 3], [5 0 0 0], 0.2), 3);
 
-[n,f] = t(n, f, 'grade 4: NV suspicion above threshold', ...
-    ruleEngineGrade([10 10 10 10], [2 2 0 0], 0.75), 4);
+% Grade 4 is CAPPED by default. The criterion still fires and is still
+% reported; what changes is that the branch does not emit the label.
+[n,f] = t(n, f, 'grade 4: NV suspicion fires but is CAPPED to 3 by default', ...
+    ruleEngineGrade([10 10 10 10], [2 2 0 0], 0.75), 3);
+[n,f] = t(n, f, 'grade 4: emitted when the cap is explicitly lifted', ...
+    ruleEngineGrade([10 10 10 10], [2 2 0 0], 0.75, struct('maxGrade', 4)), 4);
+
+[~, evCap] = ruleEngineGrade([10 10 10 10], [2 2 0 0], 0.75);
+[n,f] = tt(n, f, 'the cap is RECORDED, not silent', ...
+    isequal(evCap.cappedFrom, 4) && contains(evCap.limitation, 'CAPPED'), ...
+    evCap.limitation);
+[~, evNoCap] = ruleEngineGrade([4 3 5 3], [0 0 0 0], 0.1);
+[n,f] = tt(n, f, 'an uncapped grade records cappedFrom as empty', ...
+    isempty(evNoCap.cappedFrom), 'grade 3 was not capped');
+
+% ── The recalibrated thresholds, asserted directly ──────────────────────────
+% These are the constants Tanuj measured. They are asserted so a future edit
+% that quietly restores the clinical numbers fails loudly rather than making
+% grade 3 unreachable again.
+fprintf('\n--- recalibrated noise floor (redFloor = 3) ---\n');
+
+[n,f] = t(n, f, '2 red detections are NOISE -> grade 0, not 1', ...
+    ruleEngineGrade([2 0 0 0], [0 0 0 0], 0), 0);
+[n,f] = t(n, f, '3 red detections clear the floor -> grade 1', ...
+    ruleEngineGrade([3 0 0 0], [0 0 0 0], 0), 1);
+
+% Sub-floor red lesions do not become referable just because a bright lesion
+% appeared alongside them: the grade-2 rule needs red lesions that are real.
+[n,f] = t(n, f, 'sub-floor red + a bright lesion is still 0, not 2', ...
+    ruleEngineGrade([2 0 0 0], [1 0 0 0], 0), 0);
+
+[~, evSub] = ruleEngineGrade([2 0 0 0], [0 0 0 0], 0);
+[n,f] = tt(n, f, 'a sub-floor case SAYS the detector fired', ...
+    contains(evSub.criterion, 'below the noise floor'), evSub.criterion);
+
+fprintf('\n--- recalibrated severe-NPDR threshold (grade3QuadMin = 3) ---\n');
+
+[n,f] = t(n, f, 'exactly 3 in all four quadrants -> severe (rule is >=)', ...
+    ruleEngineGrade([3 3 3 3], [0 0 0 0], 0), 3);
+[n,f] = t(n, f, 'three quadrants at 3, one at 2 -> NOT severe', ...
+    ruleEngineGrade([3 3 3 2], [0 0 0 0], 0), 2);
+[n,f] = t(n, f, 'many lesions in only three quadrants -> NOT severe', ...
+    ruleEngineGrade([9 9 9 0], [0 0 0 0], 0), 2);
+
+% The old threshold was unreachable on real data. This asserts the failure mode
+% it caused: under the literature's >20 rule, a genuinely severe eye graded 2.
+[n,f] = t(n, f, 'the OLD >20 threshold would have called this severe eye 2', ...
+    ruleEngineGrade([4 3 5 3], [0 0 0 0], 0, struct('grade3QuadMin', 21)), 2);
 
 % ── Boundaries, where off-by-one errors actually live ───────────────────────
 fprintf('\n--- boundaries ---\n');
@@ -45,21 +96,18 @@ fprintf('\n--- boundaries ---\n');
 [n,f] = t(n, f, 'exactly 6 red, no bright -> 2', ...
     ruleEngineGrade([6 0 0 0], [0 0 0 0], 0), 2);
 
-[n,f] = t(n, f, 'NV exactly at 0.6 -> NOT 4 (rule is strictly >)', ...
-    ruleEngineGrade([1 0 0 0], [0 0 0 0], 0.6), 1);
-[n,f] = t(n, f, 'NV just above 0.6 -> 4', ...
-    ruleEngineGrade([1 0 0 0], [0 0 0 0], 0.601), 4);
-
-[n,f] = t(n, f, '>20 in only THREE quadrants -> not severe', ...
-    ruleEngineGrade([25 30 22 5], [0 0 0 0], 0), 2);
-[n,f] = t(n, f, 'exactly 20 in all four -> not severe (rule is >20)', ...
-    ruleEngineGrade([20 20 20 20], [0 0 0 0], 0), 2);
+[n,f] = t(n, f, 'NV exactly at 0.6 -> criterion does NOT fire (rule is strictly >)', ...
+    ruleEngineGrade([3 0 0 0], [0 0 0 0], 0.6), 1);
+[n,f] = t(n, f, 'NV just above 0.6 -> fires, then caps to 3', ...
+    ruleEngineGrade([3 0 0 0], [0 0 0 0], 0.601), 3);
 
 % ── Precedence: a higher criterion must win ─────────────────────────────────
 fprintf('\n--- precedence ---\n');
 
-[n,f] = t(n, f, 'NV outranks severe haemorrhages', ...
-    ruleEngineGrade([25 25 25 25], [9 9 9 9], 0.9), 4);
+% Checked with the cap lifted, because at the default cap both criteria return
+% 3 and the test would pass without proving the ordering.
+[n,f] = t(n, f, 'NV outranks severe haemorrhages (cap lifted to see it)', ...
+    ruleEngineGrade([25 25 25 25], [9 9 9 9], 0.9, struct('maxGrade', 4)), 4);
 [n,f] = t(n, f, 'severe haemorrhages outrank moderate', ...
     ruleEngineGrade([21 21 21 21], [1 0 0 0], 0.1), 3);
 
@@ -67,15 +115,15 @@ fprintf('\n--- precedence ---\n');
 fprintf('\n--- ETDRS 4-2-1 (b) and (c), currently undetectable ---\n');
 
 [n,f] = t(n, f, 'venous beading in 2 quadrants -> 3 (when supplied)', ...
-    ruleEngineGrade([2 0 0 0], [0 0 0 0], 0, struct('venousBeadingQuadrants', 2)), 3);
+    ruleEngineGrade([3 0 0 0], [0 0 0 0], 0, struct('venousBeadingQuadrants', 2)), 3);
 [n,f] = t(n, f, 'venous beading in 1 quadrant -> not severe', ...
-    ruleEngineGrade([2 0 0 0], [0 0 0 0], 0, struct('venousBeadingQuadrants', 1)), 1);
+    ruleEngineGrade([3 0 0 0], [0 0 0 0], 0, struct('venousBeadingQuadrants', 1)), 1);
 [n,f] = t(n, f, 'IRMA in 1 quadrant -> 3 (when supplied)', ...
-    ruleEngineGrade([2 0 0 0], [0 0 0 0], 0, struct('irmaQuadrants', 1)), 3);
+    ruleEngineGrade([3 0 0 0], [0 0 0 0], 0, struct('irmaQuadrants', 1)), 3);
 
 % This is the documented under-grading, asserted so it cannot change silently.
 [n,f] = t(n, f, 'DEFAULT: beading/IRMA absent -> same case grades 1, an UNDER-CALL', ...
-    ruleEngineGrade([2 0 0 0], [0 0 0 0], 0), 1);
+    ruleEngineGrade([3 0 0 0], [0 0 0 0], 0), 1);
 
 % ── Evidence output ─────────────────────────────────────────────────────────
 fprintf('\n--- evidence traceability ---\n');
@@ -87,6 +135,19 @@ fprintf('\n--- evidence traceability ---\n');
     sprintf('red %d, bright %d', ev.redTotal, ev.brightTotal));
 [n,f] = tt(n, f, 'evidence carries the under-grading limitation', ...
     contains(ev.limitation, 'venous beading'), ev.limitation);
+[n,f] = tt(n, f, 'evidence records the thresholds it was graded under', ...
+    ev.redFloor == 3 && ev.grade3QuadMin == 3, ...
+    sprintf('redFloor %d, grade3QuadMin %d', ev.redFloor, ev.grade3QuadMin));
+% A grade-2 call resting on ONE bright lesion must say so: that constant is the
+% only unmeasured one, and it sits on the referral boundary.
+[n,f] = tt(n, f, 'a bright-driven grade 2 flags the unmeasured bright floor', ...
+    contains(ev.limitation, 'never been measured'), ev.limitation);
+
+[~, ev3] = ruleEngineGrade([4 3 5 3], [0 0 0 0], 0);
+[n,f] = tt(n, f, 'a severe call admits the count is not the clinical 20', ...
+    contains(ev3.criterion, 'recalibrated segmenter threshold'), ev3.criterion);
+[n,f] = tt(n, f, 'a severe call admits it rests on two images', ...
+    contains(ev3.limitation, 'PROVISIONAL'), ev3.limitation);
 
 [~, ev0] = ruleEngineGrade([0 0 0 0], [4 0 0 0], 0);
 [n,f] = tt(n, f, 'bright-only case is flagged, not silently graded 0', ...

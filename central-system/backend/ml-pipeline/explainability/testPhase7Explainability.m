@@ -281,11 +281,18 @@ fprintf('    "%s"\n', text6);
 nv = struct('redByQuadrant', [5 5 5 5], 'brightByQuadrant', [1 1 0 0], ...
             'nvSuspicionScore', 0.85);
 [text7, ~, det7] = generateEvidenceReport('case-verify-7', nv);
-[n,f] = tnum(n, f, 'high NV suspicion grades 4', det7.grade, 4, TOL);
+% Grade 4 is CAPPED to 3 by the rule engine: its only path to 4 is the
+% unvalidated NV suspicion heuristic, so the label is withheld and grade-4
+% detection is delegated to Branch A, where a disagreement forces review.
+% The criterion still fires and the report still carries it -- the next three
+% checks are what make that a reported limitation rather than a silent drop.
+[n,f] = tnum(n, f, 'high NV suspicion is CAPPED to 3, not graded 4', det7.grade, 3, TOL);
 [n,f] = tbool(n, f, 'the text says "possible", not confirmed', ...
     contains(text7, 'possible'));
 [n,f] = tbool(n, f, 'and carries the not-a-validated-detector caveat', ...
     contains(text7, 'NOT a validated'));
+[n,f] = tbool(n, f, 'and states that the grade was capped, so the suspicion is not lost', ...
+    contains(text7, 'CAPPED to 3'));
 fprintf('    "%s"\n', text7);
 
 % ═══ Result ════════════════════════════════════════════════════════════════
