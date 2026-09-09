@@ -49,18 +49,38 @@ function [out, steps] = preprocessModel1(img, opts)
 %   checked against them. Logits are a fingerprint — the right preprocessing
 %   reproduces them, the wrong one does not.
 %
-%       ben_graham only      mean |logit diff| 0.66   class agreement 81.2%
-%       ben_graham + CLAHE   mean |logit diff| 1.92   class agreement 43.5%
+%       ben_graham only      mean |logit diff| 0.0050   class agreement 100.0%
+%       ben_graham + CLAHE   mean |logit diff| 1.5861   class agreement  57.7%
 %
-%   So: no CLAHE. Re-run that script if the model is ever replaced.
+%   An exact reproduction. So: no CLAHE, and the serving contract is settled —
+%   ben_graham, then BGR->RGB, then ImageNet normalisation. Re-run that script
+%   if the model is ever replaced.
 %
-%   ── STILL NOT AN EXACT REPRODUCTION ────────────────────────────────────────
-%   0.66 and 81.2%% is decisively better than the alternative but is not the
-%   near-zero an exact match would give, so something ELSE still differs
-%   between this chain and training — a resize interpolation, an extra
-%   normalisation, or preprocessed images cached at train time. Unresolved and
-%   recorded rather than smoothed over. The remaining gap is small enough not
-%   to be the CLAHE-sized error, and large enough to be worth finding.
+%   ── HOW CLOSE THIS MATLAB PORT ACTUALLY IS ─────────────────────────────────
+%   Verified against the real Python output (exportReferencePreprocessing.py +
+%   verifyModel1Port.m) on datasets/2.jpg:
+%
+%       mean |difference|  2.98 grey levels (1.17%% of range)
+%       SSIM               0.9807
+%       88.6%% of pixels within 5 grey levels, max difference 241
+%
+%   Down from 20.6 for the chain this replaced. The residue is MATLAB-versus-
+%   OpenCV rather than recipe: imresize 'box' is not cv2.INTER_AREA,
+%   strel('disk',7) is not MORPH_ELLIPSE(15,15), and imgaussfilt is not
+%   cv2.GaussianBlur. The max of 241 is the tell — a one-pixel disagreement in
+%   the crop bounding box shifts the whole frame and lights up the edges.
+%
+%   ── AND THEREFORE, THE THING TO KNOW BEFORE RELYING ON THIS FILE ───────────
+%   Python reproduces the model's logits EXACTLY (0.0050). This port does not
+%   and cannot: a reimplementation across two imaging libraries will always
+%   carry a residue. If Branch A inference runs in Python — which it must
+%   anyway, since the weights are a .pt — then their preprocessing should run
+%   there too and this file is not on the critical path.
+%
+%   It stays useful for the MATLAB-side work (quality gate, segmentation,
+%   explainability) that needs the same representation, and as the executable
+%   record of what the chain is. It is not the way to feed Branch A if Python
+%   is available.
 
 if nargin < 2, opts = struct(); end
 targetSize = getdef(opts, 'targetSize', 384);
@@ -142,10 +162,10 @@ steps = struct( ...
     'kernelSize',  ksize, ...
     'claheApplied', false, ...
     'portedFrom',  'ben_graham.py (Model1 training code); CLAHE deliberately NOT applied', ...
-    'exactness',   ['chain identified by reproducing the model''s published ' ...
-                    'logits (identifyTrainingChain.py): 0.66 mean logit diff, ' ...
-                    '81.2%% class agreement. Close but not exact — something ' ...
-                    'minor still differs from training']);
+    'exactness',   ['chain confirmed exactly: Python reproduces the model''s ' ...
+                    'published logits to 0.0050 (100%% class agreement). This ' ...
+                    'MATLAB port is within 2.98 grey levels / SSIM 0.981 of the ' ...
+                    'Python, the residue being OpenCV-vs-MATLAB imaging ops']);
 end
 
 function v = getdef(s, name, dflt)

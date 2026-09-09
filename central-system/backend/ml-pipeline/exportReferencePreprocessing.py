@@ -1,7 +1,7 @@
 """
 exportReferencePreprocessing.py
 ===============================
-Run the ACTUAL training preprocessing (ben_graham.py -> clahe_enhance.py) and
+Run the ACTUAL training preprocessing (ben_graham.py) and
 write the result to disk, so the MATLAB port in preprocessModel1.m can be
 diffed against it rather than against another of my own implementations.
 
@@ -34,14 +34,19 @@ import numpy as np
 # files change, this script follows automatically -- which is the point.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from preprocessing.ben_graham import ben_graham_preprocess      # noqa: E402
-from preprocessing.clahe_enhance import clahe_enhance           # noqa: E402
 
 
 def reference_chain(bgr_image: np.ndarray, target_size: int = 384) -> np.ndarray:
-    """The exact two steps, in the exact order, that training used."""
-    x = ben_graham_preprocess(bgr_image, target_size=target_size)
-    x = clahe_enhance(x, clip_limit=2.0, tile_grid_size=(8, 8))
-    return x
+    """The chain training actually used: ben_graham ONLY.
+
+    clahe_enhance.py ships beside it and is exported from
+    preprocessing/__init__.py, but it is NOT in the chain. Confirmed twice:
+    the checkpoint's own metadata names ben_graham alone, and
+    identifyTrainingChain.py reproduces the model's published logits exactly
+    with ben_graham only (100.0% class agreement, mean logit difference
+    0.0050) and badly with CLAHE added (57.7%).
+    """
+    return ben_graham_preprocess(bgr_image, target_size=target_size)
 
 
 def main() -> int:
