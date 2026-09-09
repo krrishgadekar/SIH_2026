@@ -47,12 +47,13 @@ const RoleRouter = () => {
   const [role, setRole] = useState(() => {
     return localStorage.getItem('netra_user_role') || null;
   });
+  const [userProfile, setUserProfile] = useState(null);
   const navigate = useNavigate();
 
-  const handleLogin = (selectedRole) => {
+  const handleLogin = (selectedRole, username) => {
     localStorage.setItem('netra_user_role', selectedRole);
     setRole(selectedRole);
-    setUserProfile({ username, fullName: '', phone: '', location: '' });
+    setUserProfile({ username: username || '', fullName: '', phone: '', location: '' });
     if (selectedRole === 'ophthalmologist') {
       navigate('/ophth/queue');
     } else {

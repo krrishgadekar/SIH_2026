@@ -59,7 +59,7 @@ export const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) 
         { to: '/admin/phc-health', label: 'PHC HEALTH' },
       ];
 
-  const handleSaveProfile = (e) => {
+  const handleOfficerSaveProfile = (e) => {
     e.preventDefault();
     setEditMode(false);
     setSaveToast('Profile details updated successfully.');
@@ -80,74 +80,6 @@ export const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) 
   };
 
   return (
-    <header className="app-header">
-      <div className="app-logo">
-        Netra<span className="star">Setu</span>
-      </div>
-
-      <div style={{ overflow: 'hidden' }}>
-        <ConsoleStatus messages={isOphth ? OPTH_MESSAGES : ADMIN_MESSAGES} />
-      </div>
-
-      <nav className="app-nav">
-        {navLinks.map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            className={({ isActive }) =>
-              `app-nav__link ${isActive ? 'active' : ''}`
-            }
-          >
-            {link.label}
-          </NavLink>
-        ))}
-      </nav>
-
-      <div className="app-header__actions" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-        <button 
-          className="app-header__help" 
-          onClick={() => setShowHelpModal(true)}
-          style={{ 
-            background: 'none', border: 'none', color: 'var(--text-h)', cursor: 'pointer', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: '8px'
-          }}
-        >
-          <span className="t-label" style={{ opacity: 0.5 }}>SETTINGS</span>
-          <span style={{ fontSize: '12px', opacity: 0.8 }}>⚙</span>
-        </button>
-
-        {isOphth && (
-          <>
-            <span style={{ color: 'var(--c-crimson)', opacity: 0.3 }}>|</span>
-
-            <button 
-              className="app-header__profile" 
-              onClick={() => {
-                setEditProfile(userProfile || { username: '', fullName: '', phone: '', location: '' });
-                setShowProfileModal(true);
-              }}
-              style={{ 
-                background: 'none', 
-                border: 'none', 
-                color: 'var(--text-h)', 
-                cursor: 'pointer', 
-                fontFamily: 'var(--font-mono)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <span className="t-label" style={{ opacity: 0.5 }}>{userProfile?.fullName || 'PG'}</span>
-              <span style={{ fontSize: '10px', opacity: 0.8 }}>✎</span>
-            </button>
-          </>
-        )}
-
-        <span style={{ color: 'var(--c-crimson)', opacity: 0.3 }}>|</span>
-
-        <div className="app-header__role" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span className="t-label" style={{ opacity: 0.5 }}>
-            {isOphth ? '◉ OPHTH' : '⬡ ADMIN'}
-          </span>
     <>
       <header className="app-header">
         <div className="app-logo">
@@ -172,31 +104,76 @@ export const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) 
           ))}
         </nav>
 
-        {/* Role Badge: Untouched static badge for OPHTH, active Profile Drawer for ADMIN */}
-        <div className="app-header__role-badge">
-          {isOphth ? (
-            <span className="t-label" style={{ opacity: 0.5 }}>
-              ◉ OPHTH
-            </span>
-          ) : (
-            <button
-              className="app-header__role-btn t-label"
-              onClick={() => setShowProfileDrawer(true)}
-              title="Open District Admin Profile & Settings"
-            >
-              ⬡ ADMIN
-            </button>
-          )}
-        </div>
+        <div className="app-header__actions" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <button 
+            className="app-header__help" 
+            onClick={() => setShowHelpModal(true)}
+            style={{ 
+              background: 'none', border: 'none', color: 'var(--text-h)', cursor: 'pointer', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: '8px'
+            }}
+          >
+            <span className="t-label" style={{ opacity: 0.5 }}>SETTINGS</span>
+            <span style={{ fontSize: '12px', opacity: 0.8 }}>⚙</span>
+          </button>
 
-        <button
-          className="app-header__logout"
-          onClick={onLogout}
-          title="Switch Role / Logout"
-        >
-          <span className="t-label">✕ EXIT</span>
-        </button>
-      </div>
+          {isOphth && (
+            <>
+              <span style={{ color: 'var(--c-crimson)', opacity: 0.3 }}>|</span>
+
+              <button 
+                className="app-header__profile" 
+                onClick={() => {
+                  setEditProfile(userProfile || { username: '', fullName: '', phone: '', location: '' });
+                  setShowProfileModal(true);
+                }}
+                style={{ 
+                  background: 'none', 
+                  border: 'none', 
+                  color: 'var(--text-h)', 
+                  cursor: 'pointer', 
+                  fontFamily: 'var(--font-mono)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <span className="t-label" style={{ opacity: 0.5 }}>{userProfile?.fullName || 'PG'}</span>
+                <span style={{ fontSize: '10px', opacity: 0.8 }}>✎</span>
+              </button>
+            </>
+          )}
+
+          <span style={{ color: 'var(--c-crimson)', opacity: 0.3 }}>|</span>
+
+          {/* Role Badge: Untouched static badge for OPHTH, active Profile Drawer for ADMIN */}
+          <div className="app-header__role-badge">
+            {isOphth ? (
+              <span className="t-label" style={{ opacity: 0.5 }}>
+                ◉ OPHTH
+              </span>
+            ) : (
+              <button
+                className="app-header__role-btn t-label"
+                onClick={() => setShowProfileDrawer(true)}
+                title="Open District Admin Profile & Settings"
+              >
+                ⬡ ADMIN
+              </button>
+            )}
+          </div>
+
+          <button
+            className="app-header__logout"
+            onClick={onLogout}
+            title="Switch Role / Logout"
+            style={{ 
+              background: 'none', border: 'none', color: 'var(--text-h)', cursor: 'pointer', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: '8px'
+            }}
+          >
+            <span className="t-label">✕ EXIT</span>
+          </button>
+        </div>
+      </header>
 
       {showProfileModal && (
         <div className="modal-overlay" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -256,7 +233,10 @@ export const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) 
                   <span className="t-mono" style={{ fontSize: 'var(--fs-small)', color: 'var(--text-h)' }}>Compact Table View</span>
                 </label>
               </div>
-      </header>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Admin Profile Drawer (District Admin only) */}
       {!isOphth && showProfileDrawer && (
@@ -306,7 +286,7 @@ export const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) 
                     </div>
                   </div>
 
-                  <form onSubmit={handleSaveProfile} className="officer-form">
+                  <form onSubmit={handleOfficerSaveProfile} className="officer-form">
                     <h3 className="officer-card-title">EDIT OFFICER DETAILS</h3>
                     
                     <div className="officer-form-field">
@@ -504,6 +484,6 @@ export const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) 
           </div>
         </div>
       )}
-    </header>
+    </>
   );
 };
