@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { localApi } from '../../api/localApiClient';
 import { PHC_NAME } from '../../config';
 import { ConsoleStatus } from '../shared/ConsoleStatus';
+import { LanguageSelector } from '../shared/LanguageSelector';
 
 export const Header = () => {
+  const { t } = useTranslation();
   const [syncStatus, setSyncStatus] = useState({ online: false, pendingCount: 0 });
 
   useEffect(() => {
@@ -38,7 +41,7 @@ export const Header = () => {
     <header className="app-header">
       {/* Brand */}
       <div className="app-logo">
-        Netra<span className="star">Setu</span>
+        {t('header.title').replace('Setu', '')}<span className="star">Setu</span>
       </div>
       
       {/* Terminal Output */}
@@ -49,18 +52,20 @@ export const Header = () => {
       {/* Navigation */}
       <nav className="app-nav">
         <NavLink to="/register" className={({isActive}) => isActive ? "app-nav__link active" : "app-nav__link"}>
-          Register
+          {t('header.nav.register')}
         </NavLink>
         <NavLink to="/capture" className={({isActive}) => isActive ? "app-nav__link active" : "app-nav__link"}>
-          Capture
+          {t('header.nav.capture')}
         </NavLink>
         <NavLink to="/queue" className={({isActive}) => isActive ? "app-nav__link active" : "app-nav__link"}>
-          Queue
+          {t('header.nav.queue')}
         </NavLink>
       </nav>
       
-      {/* Contrast Toggle */}
-      <div>
+      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <LanguageSelector />
+        
+        {/* Contrast Toggle */}
         <button onClick={toggleContrast} title="Toggle Contrast Mode">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="12" cy="12" r="10" />
@@ -75,9 +80,9 @@ export const Header = () => {
           <span className="t-mono" style={{ fontSize: '10px' }}>{PHC_NAME}</span>
           <div className="sync-badge u-mt-1">
             <div className={`sync-dot ${syncStatus.online ? 'sync-dot--online' : 'sync-dot--offline'}`}></div>
-            <span>{syncStatus.online ? 'ONLINE' : 'OFFLINE'}</span>
+            <span>{syncStatus.online ? t('header.status.online') : t('header.status.offline')}</span>
             <span style={{ opacity: 0.5, marginLeft: '4px' }}>
-              ● {syncStatus.pendingCount} PENDING
+              ● {syncStatus.pendingCount} {t('header.status.pending')}
             </span>
           </div>
         </div>
