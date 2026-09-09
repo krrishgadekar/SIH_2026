@@ -1,0 +1,64 @@
+===============================================================
+  Integrated pipeline vs single-technique baselines
+  task92_real  |  52 test cases
+===============================================================
+
+COVERAGE IS PART OF EVERY NUMBER BELOW. A configuration that
+answers fewer cases will score better on the ones it answers;
+that is deferral working, not grading improving.
+
+--- Branch A CNN alone (single technique)
+    coverage 100.0% (52 of 52 answered)
+    sensitivity 0.8276  [0.6545 - 0.9240]
+    specificity 0.9130  [0.7320 - 0.9758]
+    kappa 0.8270   accuracy 0.5577
+    ECE 0.1110
+
+--- Branch B rule engine alone (single technique)
+    coverage 100.0% (52 of 52 answered)
+    sensitivity 0.9310  [0.7804 - 0.9809]
+    specificity 0.5652  [0.3681 - 0.7437]
+    kappa 0.6356   accuracy 0.5385
+    calibration: NOT REPORTED -- see note (one-hot encoding)
+
+--- Integrated: dual-branch + agreement check, deferring disagreements
+    coverage 46.2% (24 of 52 answered)
+    sensitivity 0.9286  [0.6853 - 0.9873]
+    specificity 1.0000  [0.7225 - 1.0000]
+    kappa 0.9024   accuracy 0.7500
+    ECE 0.2085
+
+--- THE HEAD-TO-HEAD: matched coverage ------------------------
+    Both configurations answer 24 cases; both defer 28.
+    Branch A defers its least-confident cases -- the strongest
+    deferral rule a single-branch system has, so this is the
+    baseline at its best, not a straw man.
+
+                     baseline          integrated        delta
+    sensitivity      0.7500            0.9286        +0.1786
+    specificity      1.0000            1.0000        +0.0000
+    kappa            0.8917            0.9024        +0.0107
+
+--- Is disagreement a useful alarm? ---------------------------
+    rule engine ran on 52 of 52 cases
+    agreement 46.2%, disagreement 53.8% (28 cases)
+    P(Branch A wrong)                  = 0.4423
+    P(Branch A wrong | branches agree) = 0.2500
+    P(Branch A wrong | disagreement)   = 0.6071
+    LIFT                               = 1.3727
+
+    Lift above 1 means disagreement concentrates real errors --
+    the actual claim of the dual-branch design, and stronger
+    evidence for it than any accuracy delta. At or below 1 the
+    second branch is spending reviewer time at random.
+
+--- VERDICT ---------------------------------------------------
+    No difference is demonstrated: the confidence intervals overlap at matched coverage. The point estimates may differ, and that difference is not distinguishable from noise at this sample size. Do not claim the integrated pipeline wins.
+    basis: overlapping 95% confidence intervals
+
+Every figure describes THIS test split. Judged on confidence
+intervals, not point estimates: two systems scored on a few
+hundred images routinely differ by a point or two with fully
+overlapping intervals, and calling that a win is how a
+comparative claim turns out to be noise.
+===============================================================
