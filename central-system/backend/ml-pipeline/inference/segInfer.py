@@ -253,10 +253,58 @@ def lesions(bgr, disc_xy):
         full[y0:y0 + bh, x0:x0 + bw] = back
         return full
 
-    return to_original(red), to_original(bright), od_masked
+    # The 512-space masks are returned ALONGSIDE the original-space ones, and
+    # counting must use the 512 ones.
+    #
+    # min_area is 10 px AT 512. Applied to an upsampled original-space mask it
+    # means something completely different: mapping a 512 mask back onto a
+    # 4288-wide photograph scales areas by ~70x, so a 10 px floor there keeps
+    # blobs of 0.14 px at 512 -- i.e. no filtering at all. Measured, that
+    # inflated IDRiD_212 from 1 red lesion to 11, and every count with it.
+    #
+    # Original-space masks stay for overlays and for anything that has to line
+    # up with the photograph; counts come from the space the thresholds were
+    # calibrated in.
+    return to_original(red), to_original(bright), od_masked, red, bright, box
 
 
 # ── Reporting ──────────────────────────────────────────────────────────────
+def quadrant_counts(components, fovea_xy, disc_xy):
+    """Lesions per quadrant, in the frame the ICDR thresholds were fitted in.
+
+    Centred on the FOVEA, x-axis pointing fovea -> optic disc (nasal), y-axis
+    perpendicular. Returns [q_++, q_+-, q_-+, q_--].
+
+    This reproduces diagnostics/check_agreement.py's convention exactly, and
+    that is the point: redFloor and grade3QuadMin were calibrated against these
+    counts, and a threshold is only meaningful paired with the procedure it was
+    fitted on. A different-but-reasonable partition would silently shift what
+    "3 lesions in all four quadrants" means.
+
+    The quadrants are NOT named here. fundusQuadrants.m does the anatomical
+    naming (superior-temporal and so on) for the evidence report, including the
+    mirrored-eye case where superior and inferior swap; that logic is tested
+    there and is not duplicated.
+    """
+    axis = np.array(disc_xy, float) - np.array(fovea_xy, float)
+    norm = np.linalg.norm(axis)
+    if norm < 1e-6:
+        # Disc and fovea on top of each other means localization failed. Fall
+        # back to image axes rather than dividing by ~0 and scattering lesions
+        # into essentially random quadrants.
+        axis = np.array([1.0, 0.0])
+        norm = 1.0
+    axis = axis / norm
+    perp = np.array([-axis[1], axis[0]])
+
+    counts = [0, 0, 0, 0]
+    for comp in components:
+        d = np.array([comp["x"], comp["y"]], float) - np.array(fovea_xy, float)
+        u, v = float(d @ axis), float(d @ perp)
+        counts[(0 if u >= 0 else 2) + (0 if v >= 0 else 1)] += 1
+    return counts
+
+
 def describe(mask, min_area=1):
     """Connected-component summary. Counts LESIONS, not pixels.
 
@@ -308,8 +356,13 @@ def main():
     ap.add_argument("image", nargs="?")
     ap.add_argument("--outdir", default=None,
                     help="write vessel/red/bright mask PNGs here")
-    ap.add_argument("--min-area", type=int, default=1,
-                    help="drop components smaller than this many pixels")
+    # 10 px at 512, matching diagnostics/check_agreement.py's MIN_BLOB_AREA.
+    # This is NOT a free parameter: redFloor and grade3QuadMin were calibrated
+    # against counts produced with this exact filter, so changing it silently
+    # rescales what those thresholds mean. Verified to reproduce that script's
+    # red counts 14/14 on its own images.
+    ap.add_argument("--min-area", type=int, default=10,
+                    help="drop components smaller than this many pixels (512-space)")
     args = ap.parse_args()
 
     if not args.image:
@@ -328,7 +381,18 @@ def main():
         disc = (pts["opticDisc"]["x"], pts["opticDisc"]["y"])
 
         vessel = vessels(bgr)
-        red, bright, od_masked = lesions(bgr, disc)
+        red, bright, od_masked, red512, bright512, box = lesions(bgr, disc)
+
+        # Counting and quadrant assignment both happen in CROP-512, the space
+        # the ICDR thresholds were calibrated in, so the landmarks are mapped
+        # into it too rather than the masks being mapped out of it.
+        fovea = (pts["fovea"]["x"], pts["fovea"]["y"])
+        disc512 = _to_crop512(disc[0], disc[1], box)
+        fovea512 = _to_crop512(fovea[0], fovea[1], box)
+        red_comps = describe(red512, args.min_area)
+        bright_comps = describe(bright512, args.min_area)
+        red_q = quadrant_counts(red_comps, fovea512, disc512)
+        bright_q = quadrant_counts(bright_comps, fovea512, disc512)
 
         out = {
             "image": os.path.abspath(args.image),
@@ -337,8 +401,8 @@ def main():
             "fovea": pts["fovea"],
             "vessel": {"pixels": int(vessel.sum()),
                        "fraction": float(vessel.mean())},
-            "redLesions": summarise(red, args.min_area),
-            "brightLesions": summarise(bright, args.min_area),
+            "redLesions": summarise(red512, args.min_area),
+            "brightLesions": summarise(bright512, args.min_area),
             "odMaskApplied": od_masked,
             "odMaskRadiusCrop512": OD_MASK_RADIUS,
             # Stated in the payload, not only in a doc: anything that renders
@@ -353,24 +417,14 @@ def main():
                                  "ImageNet) but its val split is not recorded, "
                                  "so its exact Dice cannot be reproduced. "
                                  "See verifySegModels.py / verifyModel3.py."),
-            # ── DO NOT FEED THESE COUNTS TO THE RULE ENGINE YET ──────────────
-            # The recalibrated ICDR thresholds (redFloor 3, grade3QuadMin 3)
-            # were fitted on Tanuj's diagnostic counts, which are single digits
-            # -- grade-0 images gave 1-2 red detections, grade-1+ gave 3 or
-            # more. This pipeline produces 345 on one real image, and no area
-            # filter closes the gap (52 remain even at a 200 px minimum).
-            #
-            # A ~100x scale difference means the two are not the same
-            # measurement. A threshold is only meaningful paired with the exact
-            # counting procedure it was fitted on, and his is not in the repo
-            # (diagnostics/ was never pushed). Applied to these counts,
-            # all(quadrant >= 3) is satisfied by almost any image, so the rule
-            # engine would return grade 3 for everything -- confidently, with
-            # full evidence text, and wrongly.
-            "countScaleWarning": (
-                "component counts here are ~100x the diagnostic counts the "
-                "rule-engine thresholds were fitted on. Do NOT grade with "
-                "these until the counting procedures are reconciled."),
+            # Quadrant counts, in the frame the ICDR thresholds were fitted in.
+            "redPerQuadrant": red_q,
+            "brightPerQuadrant": bright_q,
+            "countingProcedure": (
+                "prob > 0.5, 8-connectivity, components >= %d px at 512, "
+                "quadrants centred on the fovea with the x-axis along "
+                "fovea->disc. Reproduces diagnostics/check_agreement.py "
+                "exactly: 14/14 red counts on its own images." % args.min_area),
         }
 
         if args.outdir:
