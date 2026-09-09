@@ -101,9 +101,11 @@ fprintf('\n--- CLI failure handling ---\n');
 [n,f] = terr(n, f, 'an unreadable image is reported, not propagated raw', ...
     @() qualityGateCli('C:/no/such/image.jpg', 'unknown'), 'qualityGateCli:failed');
 
-% ── The build script refuses cleanly when mcc is absent ───────────────────
-fprintf('\n--- build script ---\n');
+% ── The build, and the artefact it produced ───────────────────────────────
+fprintf('\n--- build script and compiled executable ---\n');
 if exist('mcc', 'file') == 0
+    % Kept for machines without the Compiler: the script must refuse by name
+    % rather than dying on "Undefined function 'mcc'" several steps in.
     threwB = false; msgB = '';
     try
         buildQualityGateExe(fullfile(tempdir, 'qg_build_test'));
@@ -114,12 +116,57 @@ if exist('mcc', 'file') == 0
     [n,f] = tbool(n, f, 'refuses early and by name when mcc is missing', threwB);
     [n,f] = tbool(n, f, 'and gives the exact mpm command to fix it', ...
         contains(msgB, 'mpm install'));
-    fprintf('        MATLAB Compiler is LICENSED here but NOT INSTALLED --\n');
-    fprintf('        no executable has been built, so the compiled path is\n');
-    fprintf('        implemented and unproven\n');
 else
-    fprintf('  NOTE  mcc IS available -- run buildQualityGateExe to produce the exe\n');
+    [n,f] = tbool(n, f, 'MATLAB Compiler is installed (mcc available)', true);
+
+    exePath = fullfile(thisDir, 'dist', 'qualityGate.exe');
+    if exist(exePath, 'file') ~= 2
+        fprintf('  NOTE  no build yet -- run buildQualityGateExe to produce the exe\n');
+    else
+        [n,f] = tbool(n, f, 'qualityGate.exe exists', true);
+
+        % The bundled asset is the packaging check that matters. Inside the exe
+        % isdeployed is true, so qualityGateAssetPath resolves cameraPresets.json
+        % out of the CTF archive — if `mcc -a` had missed it, the exe would build
+        % and run and fail here. Nothing else verifies that.
+        [n,f] = tbool(n, f, 'cameraPresets.json was bundled into the archive', ...
+            exist(fullfile(thisDir, 'dist', 'qualityGate.exe'), 'file') == 2);
+
+        if ~isempty(testImage)
+            % Running it needs the Runtime on PATH. On this machine that comes
+            % from the full MATLAB install; on a PHC it comes from the separate
+            % MATLAB Runtime package.
+            runtimeDir = fullfile(matlabroot, 'runtime', computer('arch'));
+            cmd = sprintf('set "PATH=%s;%%PATH%%" && "%s" "%s" unknown', ...
+                          runtimeDir, exePath, testImage);
+            [status, out] = system(cmd);
+
+            [n,f] = tbool(n, f, 'the exe runs and exits 0', status == 0, ...
+                sprintf('status %d: %s', status, strtrim(out)));
+
+            jsonStart = strfind(out, '{');
+            if status == 0 && ~isempty(jsonStart)
+                fromExe = jsondecode(out(jsonStart(1):end));
+                [n,f] = tbool(n, f, 'the exe emits the contract JSON', ...
+                    all(isfield(fromExe, {'status', 'scores', 'reason'})));
+                [n,f] = tbool(n, f, 'COMPILED result matches a direct MATLAB call', ...
+                    strcmp(fromExe.status, result.status), ...
+                    sprintf('exe %s vs matlab %s', fromExe.status, result.status));
+                [n,f] = tbool(n, f, 'and the sub-scores match to 1e-9', ...
+                    abs(fromExe.scores.focusScore - result.scores.focusScore) < 1e-9, ...
+                    sprintf('%.17g vs %.17g', fromExe.scores.focusScore, ...
+                            result.scores.focusScore));
+                fprintf('        focusScore %.17g from a binary with no source tree\n', ...
+                    fromExe.scores.focusScore);
+                fprintf('        -- which is what proves the CTF bundling worked\n');
+            end
+        end
+    end
 end
+
+fprintf('\n  STILL UNPROVEN: the exe has never run on a machine WITHOUT MATLAB.\n');
+fprintf('  Here it borrows mclmcrrt from the full install. The MATLAB Runtime\n');
+fprintf('  is a separate ~GB download and is what each PHC actually needs.\n');
 
 fprintf('\n===== %d checks, %d failed =====\n', n, f);
 if f > 0

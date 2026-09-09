@@ -18,9 +18,13 @@
  *     doesn't incur the cold-start penalty.
  * TASK 8.1 — TWO BACKENDS, SELECTED AT RUNTIME.
  *   Set QUALITY_GATE_EXE to a compiled qualityGate executable and this module
- *   shells out to that instead of launching MATLAB: ~50 ms startup rather than
- *   3–8 s, and the PHC machine needs only the free MATLAB Runtime rather than
- *   a licensed MATLAB install.
+ *   shells out to that instead of launching MATLAB. The PHC machine then needs
+ *   only the free MATLAB Runtime rather than a licensed MATLAB install, which
+ *   is the main win. It is also faster, but modestly: MEASURED warm on the dev
+ *   machine, ~9.1 s per call via matlab -batch against ~4.6 s via the exe.
+ *   About 2x. An earlier version of this comment claimed ~50 ms, which was
+ *   never measured and was wrong — the Runtime still initialises on every
+ *   invocation, because every call is a fresh process.
  *
  *   Both paths are kept, deliberately. Developers here have MATLAB and no
  *   compiled build; PHCs will have the exe and no MATLAB. Making the compiled

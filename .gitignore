@@ -118,3 +118,9 @@ out/
 # deliverable. Kept on disk (and in git history up to 95222e9) so each task can
 # still be re-verified; simply not carried in the repo.
 verify_task*.js
+
+# MATLAB Compiler build output (Task 8.1). Rebuildable with
+# buildQualityGateExe.m; a 1.4 MB binary plus generated logs does not belong
+# in the repo, and the .cmd wrapper is machine-specific (it hardcodes the
+# local MATLAB Runtime path).
+phc-local-app/backend/quality-gate-matlab/dist/

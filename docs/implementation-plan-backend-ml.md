@@ -166,7 +166,7 @@ problem statement names as required tools are **licensed but not installed**:
 | Medical Imaging Toolbox | ❌ | ✅ | Phase 4 segmentation |
 | Statistics and Machine Learning Toolbox | ❌ | ✅ | Task 6.2 conformal quantiles |
 | Deep Learning Toolbox Model for ResNet-50 | ❌ | n/a | Tasks 2.2/2.3 transfer learning |
-| **MATLAB Compiler** | ❌ | ✅ | **Task 8.1** — every PHC needs a licensed MATLAB without it |
+| **MATLAB Compiler** | ✅ *(installed 2026-09-09)* | ✅ | Task 8.1 — done; exe built and verified |
 
 *(MATLAB Compiler added 2026-09-09 while doing Task 8.1: `license('test','Compiler')`
 returns 1 and `exist('mcc','file')` returns 0 — the same licensed-but-absent
@@ -772,13 +772,27 @@ directory structure from Task 0 and has been empty the whole time.
 
 ## Phase 8 — Deployment Hardening
 
-**Task 8.1 — MATLAB Compiler packaging** — CODE DONE (2026-09-09), **BUILD BLOCKED**
+**Task 8.1 — MATLAB Compiler packaging** — DONE (2026-09-09), **BUILT AND VERIFIED**
 - Files: `qualityGateCli.m` (the mcc entry point), `qualityGateAssetPath.m`,
   `buildQualityGateExe.m`, dual-backend `qualityGateClient.js`.
-- **Nothing has been compiled.** MATLAB Compiler is licensed here but not
-  installed, so `mcc` does not exist — see Task 0.0. Do not describe the
-  quality gate as MATLAB-free until an exe has been built AND run on a machine
-  that has only the MATLAB Runtime.
+- **Built and run.** MATLAB Compiler 26.1 was installed and `qualityGate.exe`
+  (1.37 MB) produced. It returns byte-identical scores to a direct MATLAB call
+  (`focusScore 0.80108660159872658`), and Node drives it end to end through
+  `qualityGateClient` with `QUALITY_GATE_EXE` set.
+- **Still unproven, and it is the part that matters for deployment:** the exe
+  has never run on a machine *without* MATLAB. Here it borrows
+  `mclmcrrt26_1.dll` from the full install via a wrapper `.cmd`. That does
+  genuinely verify the CTF bundling — the exe reads `cameraPresets.json` out of
+  the archive — but the **MATLAB Runtime R2026a is a separate ~GB install that
+  has not been done anywhere**, and it is what each PHC actually needs.
+- **Measured, correcting an earlier claim.** Warm, same image:
+  `matlab -batch` **~9.1 s** vs the exe **~4.6 s** — about 2x, saving ~4.5 s per
+  capture. Earlier comments in three files claimed "~50 ms"; that was asserted,
+  never measured, and wrong by two orders of magnitude. The Runtime still
+  initialises on every invocation because every call is a fresh process. The
+  licence saving, not the speed, is the real reason to do this.
+- `-R -nojvm` was tried and **measured slower** (~6.5 s vs ~4.4 s) and dropped;
+  `-R -nodisplay` is Linux-only and printed a stderr warning on every call.
 - `QUALITY_GATE_EXE=<path>` switches Node to the compiled backend; unset, or
   pointing at a missing file, it falls back to `matlab -batch` with a warning.
   Both paths share one parser, because the exe emits the identical JSON.

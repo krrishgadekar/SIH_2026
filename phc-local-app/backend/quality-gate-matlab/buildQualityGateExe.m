@@ -10,20 +10,25 @@ function outDir = buildQualityGateExe(outDir)
 %
 %   Task 8.1.
 %
-%   ══ BLOCKED: MATLAB COMPILER IS LICENSED BUT NOT INSTALLED ═════════════════
-%   As of 2026-09-09 on this machine:
-%       license('test','Compiler')  ->  1     (licensed)
-%       ver('compiler')             ->  empty (not installed)
-%       exist('mcc','file')         ->  0     (no mcc binary)
+%   ══ BUILT AND RUN — 2026-09-09, MATLAB Compiler 26.1 ═══════════════════════
+%   qualityGate.exe (1.37 MB) was produced and executed end to end: the exe
+%   returns byte-identical scores to a direct qualityGateMain call
+%   (focusScore 0.80108660159872658 on datasets/2.jpg), and Node drives it
+%   through qualityGateClient with QUALITY_GATE_EXE set.
 %
-%   Install it the same way Simulink was installed for Task 0.0:
+%   TWO THINGS STILL UNPROVEN, and they are the ones that matter for
+%   deployment:
 %
-%       mpm install --release=R2026a --products=MATLAB_Compiler
+%   1. It has NOT been run on a machine without MATLAB. Here it borrowed
+%      mclmcrrt26_1.dll from the full MATLAB install's runtime\win64 folder via
+%      a wrapper .cmd. That does exercise the CTF archive properly — the exe
+%      reads cameraPresets.json from ctfroot, so the -a bundling below is
+%      genuinely verified — but a clean PHC machine is a different test.
+%   2. The MATLAB Runtime R2026a has not been installed anywhere. It is a
+%      separate, free, ~gigabyte download, and it is what every PHC machine
+%      actually needs. Run `mcrinstaller` at the MATLAB prompt to locate it.
 %
-%   This script has therefore NEVER BEEN RUN. It is written against the
-%   documented mcc interface and the packaging traps are handled, but no
-%   executable has been produced or tested. Do not report the quality gate as
-%   MATLAB-free until this has actually been built and run on a clean machine.
+%   So: the packaging is real and tested; the deployment is not yet.
 %
 %   ── WHY THIS MATTERS MORE THAN IT LOOKS ────────────────────────────────────
 %   Every PHC currently needs a licensed MATLAB install to check whether a
@@ -31,10 +36,19 @@ function outDir = buildQualityGateExe(outDir)
 %   and a multi-gigabyte install on modest rural hardware, for one function.
 %   The MATLAB Runtime is free and redistributable.
 %
-%   It is also a latency fix: `matlab -batch` pays 3-8 s of interpreter startup
-%   per call, which is why qualityGateClient has a warm-up hack at all. A
-%   compiled exe starts in roughly 50 ms, so the health worker sees the retake
-%   prompt while the patient is still in the chair.
+%   It is also a latency fix, though a smaller one than it first looks.
+%   MEASURED on this machine, same image, warm:
+%
+%       matlab -batch   ~9.1 s per call
+%       compiled exe    ~4.6 s per call
+%
+%   So roughly 2x, saving about 4.5 s per capture. That is worth having — it is
+%   the difference between a health worker waiting with the patient still in the
+%   chair and waiting noticeably longer — but it is NOT the sub-second startup
+%   that "compiled" suggests. The MATLAB Runtime still has to initialise on
+%   every invocation, because every call is a fresh process. An earlier draft of
+%   this file claimed ~50 ms; that was asserted, never measured, and wrong by
+%   two orders of magnitude.
 
 if nargin < 1 || isempty(outDir)
     outDir = fullfile(fileparts(mfilename('fullpath')), 'dist');
@@ -73,13 +87,25 @@ end
 %                 cameraPresets.json. Omit it and the build succeeds, the exe
 %                 runs, and it fails at the first image with a missing-file
 %                 error — the failure qualityGateAssetPath.m documents.
-%   -R -nodisplay no figure windows on a headless PHC machine
 %   -v            verbose, so a CI log shows what was bundled
+%
+% NO -R OPTIONS, and both candidates were tried and measured rather than
+% assumed:
+%
+%   -R -nodisplay is Linux/macOS only. On Windows the Runtime prints
+%   "Unrecognized command line option: nodisplay" to stderr on EVERY
+%   invocation. Harmless — the Node client keys off the exit code, not stderr
+%   — but it is noise in a PHC's log forever, and it was in the first build.
+%
+%   -R -nojvm looked like the obvious win, since this gate does image
+%   arithmetic and JSON and needs no Java. Measured on this machine it was
+%   consistently SLOWER: ~6.5 s per call against ~4.4 s with the JVM loaded,
+%   over three runs each. Dropped on the measurement. Worth re-testing on the
+%   actual PHC hardware, where the trade may go the other way.
 args = { '-m', entryPoint, ...
          '-o', 'qualityGate', ...
          '-d', outDir, ...
          '-a', presets, ...
-         '-R', '-nodisplay', ...
          '-v' };
 
 fprintf('[buildQualityGateExe] compiling %s\n', entryPoint);
