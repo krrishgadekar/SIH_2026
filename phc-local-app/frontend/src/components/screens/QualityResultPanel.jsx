@@ -1,7 +1,9 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { qualityReasonMessages } from '../../api/mockData';
 
 export const QualityResultPanel = ({ result, onRetake, onAccept }) => {
+  const { t } = useTranslation();
   const isPass = result.qualityStatus === 'pass';
   const isRetake = result.qualityStatus === 'retake';
   const isBorderline = result.qualityStatus === 'borderline';
@@ -13,19 +15,19 @@ export const QualityResultPanel = ({ result, onRetake, onAccept }) => {
 
   if (isPass) {
     statusClass = 'qr--pass';
-    title = 'QUALITY PASS';
+    title = t('quality.passTitle');
     icon = '✓';
-    subtitle = 'Image meets diagnostic threshold';
+    subtitle = t('quality.passSub');
   } else if (isRetake) {
     statusClass = 'qr--retake';
-    title = 'RETAKE REQUIRED';
+    title = t('quality.retakeTitle');
     icon = '✕';
-    subtitle = 'Image below acceptable quality';
+    subtitle = t('quality.retakeSub');
   } else if (isBorderline) {
     statusClass = 'qr--borderline';
-    title = 'BORDERLINE QUALITY';
+    title = t('quality.borderTitle');
     icon = '⚠';
-    subtitle = 'Image may affect AI accuracy';
+    subtitle = t('quality.borderSub');
   }
 
   const qualityScore = result.qualityScore != null ? Math.round(result.qualityScore * 100) : null;
@@ -55,7 +57,7 @@ export const QualityResultPanel = ({ result, onRetake, onAccept }) => {
       {qualityScore != null && (
         <div className="qr__score-block">
           <div className="qr__score-row">
-            <span className="qr__score-label">QUALITY SCORE</span>
+            <span className="qr__score-label">{t('quality.score')}</span>
             <span className="qr__score-number">{qualityScore}<span className="qr__score-pct">%</span></span>
           </div>
           <div className="qr__bar-track">
@@ -78,10 +80,10 @@ export const QualityResultPanel = ({ result, onRetake, onAccept }) => {
       {metrics && (
         <div className="qr__metrics-grid">
           {[
-            { label: 'FOCUS', value: metrics.focusScore, icon: '◉' },
-            { label: 'ILLUMINATION', value: metrics.illuminationScore, icon: '☀' },
-            { label: 'CONTRAST', value: metrics.contrastScore, icon: '◐' },
-            { label: 'COVERAGE', value: metrics.retinalCoverageScore, icon: '⊚' },
+            { label: t('quality.metrics.focus'), value: metrics.focusScore, icon: '◉' },
+            { label: t('quality.metrics.illumination'), value: metrics.illuminationScore, icon: '☀' },
+            { label: t('quality.metrics.contrast'), value: metrics.contrastScore, icon: '◐' },
+            { label: t('quality.metrics.coverage'), value: metrics.retinalCoverageScore, icon: '⊚' },
           ].map(m => (
             <div className="qr__metric-card" key={m.label}>
               <div className="qr__metric-top">
@@ -102,7 +104,7 @@ export const QualityResultPanel = ({ result, onRetake, onAccept }) => {
       {/* ── Issues Tags ── */}
       {result.issues && result.issues.length > 0 && (
         <div className="qr__issues">
-          <span className="qr__issues-label">DETECTED ISSUES</span>
+          <span className="qr__issues-label">{t('quality.issues')}</span>
           <div className="qr__issues-tags">
             {result.issues.map((issue, i) => (
               <span className="qr__issue-chip" key={i}>
@@ -118,16 +120,16 @@ export const QualityResultPanel = ({ result, onRetake, onAccept }) => {
         <div className="qr__severity">
           <div className="qr__severity-top">
             <div>
-              <div className="qr__severity-sub">AI SEVERITY PREDICTION</div>
+              <div className="qr__severity-sub">{t('quality.severityTitle')}</div>
               <div className="qr__severity-name">{severity.label}</div>
             </div>
             <div className={`qr__grade-badge ${severity.level >= 3 ? 'qr__grade-badge--critical' : severity.level >= 2 ? 'qr__grade-badge--warning' : 'qr__grade-badge--safe'}`}>
-              GRADE {severity.level}
+              {t('quality.grade')} {severity.level}
             </div>
           </div>
           {confidence && (
             <div className="qr__confidence-row">
-              <span className="qr__confidence-label">MODEL CONFIDENCE</span>
+              <span className="qr__confidence-label">{t('quality.confidence')}</span>
               <div className="qr__bar-track qr__bar-track--sm">
                 <div className="qr__bar-fill" style={{ width: `${Math.round(confidence.score * 100)}%`, background: 'linear-gradient(90deg, var(--c-crimson-dark), var(--c-crimson))' }} />
               </div>
@@ -139,10 +141,10 @@ export const QualityResultPanel = ({ result, onRetake, onAccept }) => {
 
       {/* ── Action Bar ── */}
       <div className="qr__actions">
-        <button className="btn btn--outline" onClick={onRetake}>← RETAKE</button>
+        <button className="btn btn--outline" onClick={onRetake}>{t('quality.btnBack')}</button>
         {!isRetake && (
           <button className={`btn ${isPass ? 'btn--success' : ''}`} onClick={onAccept}>
-            ACCEPT & CONTINUE ✦
+            {t('quality.btnAccept')}
           </button>
         )}
       </div>

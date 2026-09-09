@@ -68,8 +68,16 @@ class CentralApiClient {
   async updateReferral(referralId, data) {
     if (USE_MOCK_DATA) {
       await delay(300);
-      const ref = mockData.mockReferrals.find(r => r.referralId === referralId);
-      return { ...ref, ...data, updatedAt: new Date().toISOString() };
+      const idx = mockData.mockReferrals.findIndex(r => r.referralId === referralId);
+      if (idx !== -1) {
+        mockData.mockReferrals[idx] = {
+          ...mockData.mockReferrals[idx],
+          ...data,
+          updatedAt: new Date().toISOString(),
+        };
+        return { ...mockData.mockReferrals[idx] };
+      }
+      return { referralId, ...data, updatedAt: new Date().toISOString() };
     }
     return this._fetch(`/api/v1/referrals/${referralId}`, {
       method: 'PATCH',

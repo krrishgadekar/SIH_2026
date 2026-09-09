@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { localApi } from '../../api/localApiClient';
 import { RetinalWaveCanvas } from '../shared/RetinalWaveCanvas';
 
 export const PatientRegistrationForm = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ name: '', age: '', contactNumber: '' });
   const [loading, setLoading] = useState(false);
@@ -32,29 +34,29 @@ export const PatientRegistrationForm = () => {
       <RetinalWaveCanvas />
       
       <div style={{ position: 'relative', zIndex: 1, maxWidth: '600px', margin: '0 auto', marginTop: '4rem' }}>
-        <h1 className="t-display u-text-center u-mb-6">REGISTER <br/>PATIENT</h1>
+        <h1 className="t-display u-text-center u-mb-6" dangerouslySetInnerHTML={{ __html: t('registration.title').replace(' ', '<br/>') }}></h1>
         
         <form onSubmit={handleSubmit} className="panel u-p-6">
           <div className="grid grid--2">
             <div className="panel u-p-4">
-              <label className="label">Full Name</label>
+              <label className="label">{t('registration.fullName')}</label>
               <input 
                 type="text" 
                 name="name" 
                 className="input" 
-                placeholder="e.g. Sunita Devi" 
+                placeholder={t('registration.namePlaceholder')}
                 value={formData.name}
                 onChange={handleChange}
                 required 
               />
             </div>
             <div className="panel u-p-4">
-              <label className="label">Age</label>
+              <label className="label">{t('registration.age')}</label>
               <input 
                 type="number" 
                 name="age" 
                 className="input" 
-                placeholder="e.g. 54" 
+                placeholder={t('registration.agePlaceholder')}
                 value={formData.age}
                 onChange={handleChange}
                 required 
@@ -65,12 +67,12 @@ export const PatientRegistrationForm = () => {
           </div>
           
           <div className="panel u-p-4 u-mt-0">
-            <label className="label">Contact Number (Optional)</label>
+            <label className="label">{t('registration.contact')}</label>
             <input 
               type="tel" 
               name="contactNumber" 
               className="input" 
-              placeholder="+91..." 
+              placeholder={t('registration.contactPlaceholder')}
               value={formData.contactNumber}
               onChange={handleChange}
             />
@@ -78,13 +80,13 @@ export const PatientRegistrationForm = () => {
 
           <div className="panel u-p-4 u-text-right">
             <button type="submit" className="btn btn--lg" disabled={loading}>
-              <span>{loading ? 'REGISTERING...' : 'INITIATE CAPTURE ✦'}</span>
+              <span>{loading ? t('registration.btnRegistering') : t('registration.btnInitiate')}</span>
             </button>
           </div>
         </form>
         
         <div className="u-text-center u-mt-4">
-          <p className="t-mono" style={{ opacity: 0.5 }}>SECURE OFFLINE MODULE V1.2.0</p>
+          <p className="t-mono" style={{ opacity: 0.5 }}>{t('registration.secureModule')}</p>
         </div>
       </div>
     </div>

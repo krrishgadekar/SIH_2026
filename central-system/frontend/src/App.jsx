@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, Component } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { LoginScreen } from './components/screens/LoginScreen';
 import { CentralLayout } from './components/layout/CentralLayout';
@@ -7,13 +7,53 @@ import { CaseDetailPage } from './components/screens/CaseDetailPage';
 import { DashboardPage } from './components/screens/DashboardPage';
 import { ReferralTrackerPage } from './components/screens/ReferralTrackerPage';
 import { PhcHealthPage } from './components/screens/PhcHealthPage';
+import { PatientTimelinePage } from './components/screens/PatientTimelinePage';
+import { ProgramHealthPage } from './components/screens/ProgramHealthPage';
+
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('App ErrorBoundary caught error:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '40px', maxWidth: '600px', margin: '60px auto', background: '#FFF8F0', border: '2px solid #A82222', boxShadow: '4px 4px 0px #A82222' }}>
+          <h2 style={{ color: '#A82222', margin: '0 0 16px 0', fontFamily: 'monospace' }}>APPLICATION ERROR</h2>
+          <p style={{ color: '#2C1810', fontFamily: 'monospace', fontSize: '13px' }}>{this.state.error?.message || 'An unexpected error occurred.'}</p>
+          <button
+            onClick={() => {
+              localStorage.removeItem('netra_user_role');
+              window.location.href = '/';
+            }}
+            style={{ marginTop: '20px', padding: '10px 20px', background: '#A82222', color: '#FFF', border: 'none', cursor: 'pointer', fontFamily: 'monospace', fontWeight: 700 }}
+          >
+            RETURN TO LOGIN
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const RoleRouter = () => {
-  const [role, setRole] = useState(null); // 'ophthalmologist' or 'admin'
+  const [role, setRole] = useState(() => {
+    return localStorage.getItem('netra_user_role') || null;
+  });
+  const [userProfile, setUserProfile] = useState(null);
   const navigate = useNavigate();
 
-  const handleLogin = (selectedRole) => {
+  const handleLogin = (selectedRole, username) => {
+    localStorage.setItem('netra_user_role', selectedRole);
     setRole(selectedRole);
+    setUserProfile({ username: username || '', fullName: '', phone: '', location: '' });
     if (selectedRole === 'ophthalmologist') {
       navigate('/ophth/queue');
     } else {
@@ -22,8 +62,14 @@ const RoleRouter = () => {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('netra_user_role');
     setRole(null);
+    setUserProfile(null);
     navigate('/');
+  };
+
+  const handleUpdateProfile = (newProfile) => {
+    setUserProfile(newProfile);
   };
 
   return (
@@ -32,16 +78,18 @@ const RoleRouter = () => {
       
       {/* Ophthalmologist Routes */}
       <Route path="/ophth" element={
-        role === 'ophthalmologist' ? <CentralLayout role={role} onLogout={handleLogout} /> : <Navigate to="/" replace />
+        role === 'ophthalmologist' ? <CentralLayout role={role} userProfile={userProfile} onUpdateProfile={handleUpdateProfile} onLogout={handleLogout} /> : <Navigate to="/" replace />
       }>
         <Route index element={<Navigate to="queue" replace />} />
         <Route path="queue" element={<ReviewQueuePage />} />
         <Route path="case/:caseId" element={<CaseDetailPage />} />
+        <Route path="timeline" element={<PatientTimelinePage />} />
+        <Route path="health" element={<ProgramHealthPage />} />
       </Route>
 
       {/* Admin Routes */}
       <Route path="/admin" element={
-        role === 'admin' ? <CentralLayout role={role} onLogout={handleLogout} /> : <Navigate to="/" replace />
+        role === 'admin' ? <CentralLayout role={role} userProfile={userProfile} onUpdateProfile={handleUpdateProfile} onLogout={handleLogout} /> : <Navigate to="/" replace />
       }>
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
@@ -56,9 +104,11 @@ const RoleRouter = () => {
 
 function App() {
   return (
-    <BrowserRouter>
-      <RoleRouter />
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <RoleRouter />
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 
