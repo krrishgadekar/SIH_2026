@@ -1,0 +1,118 @@
+{
+  "header": {
+    "title": "NetraSetu",
+    "nav": {
+      "register": "Register",
+      "capture": "Capture",
+      "queue": "Queue"
+    },
+    "status": {
+      "online": "ONLINE",
+      "offline": "OFFLINE",
+      "pending": "PENDING"
+    }
+  },
+  "registration": {
+    "title": "REGISTER PATIENT",
+    "fullName": "Full Name",
+    "namePlaceholder": "e.g. Sunita Devi",
+    "age": "Age",
+    "agePlaceholder": "e.g. 54",
+    "contact": "Contact Number (Optional)",
+    "contactPlaceholder": "+91...",
+    "btnRegistering": "REGISTERING...",
+    "btnInitiate": "INITIATE CAPTURE ✦",
+    "secureModule": "SECURE OFFLINE MODULE V1.2.0"
+  },
+  "capture": {
+    "title": "IMAGE CAPTURE",
+    "patient": "PATIENT:",
+    "steps": {
+      "capture": "1. CAPTURE",
+      "quality": "2. QUALITY GATE",
+      "metadata": "3. METADATA & SYNC"
+    },
+    "preview": "LIVE FEED / PREVIEW",
+    "statusCaptured": "CAPTURED",
+    "statusReady": "READY",
+    "clickToInitiate": "CLICK TO INITIATE CAPTURE SEQUENCE",
+    "loadSample": "✦ LOAD SAMPLE RETINAL SCAN",
+    "mockScenario": "MOCK TEST SCENARIO:",
+    "scenarioPass": "PASS (GRADE 1)",
+    "scenarioBorderline": "BORDERLINE (GRADE 2)",
+    "scenarioRetake": "RETAKE (BLUR)",
+    "btnRetake": "RETAKE",
+    "btnAnalyze": "RUN QUALITY CHECK ✦",
+    "btnAnalyzing": "ANALYZING... ✦",
+    "instructionsTitle": "INSTRUCTIONS",
+    "instructions": [
+      "Align patient head on chin rest.",
+      "Adjust height until pupil is centered in feed.",
+      "Ensure room lighting is sufficiently dim.",
+      "Instruct patient to focus on internal green target.",
+      "Initiate capture when focus indicator is solid."
+    ]
+  },
+  "metadata": {
+    "title": "CAPTURE METADATA",
+    "eyeScanned": "EYE SCANNED",
+    "eyeLeft": "LEFT (OS)",
+    "eyeRight": "RIGHT (OD)",
+    "cameraDevice": "CAMERA DEVICE",
+    "pupilDilation": "PUPIL DILATION ADMINISTERED",
+    "observedIssues": "OBSERVED ISSUES (OPTIONAL)"
+  },
+  "questionnaire": {
+    "title": "CLINICAL QUESTIONNAIRE",
+    "knownDiabetic": "KNOWN DIABETIC?",
+    "yearsSince": "YEARS SINCE DIAGNOSIS",
+    "yearsPlaceholder": "e.g. 5",
+    "bpHistory": "BLOOD PRESSURE HISTORY",
+    "bpOptions": {
+      "unknown": "Unknown / Not measured",
+      "normal": "Normal",
+      "high": "High (Hypertension)",
+      "low": "Low (Hypotension)"
+    },
+    "visionChanges": "RECENT VISION CHANGES? (BLURRINESS, SPOTS)"
+  },
+  "quality": {
+    "btnQue": "QUE FOR SYNC ✦",
+    "passTitle": "QUALITY PASS",
+    "passSub": "Image meets diagnostic threshold",
+    "retakeTitle": "RETAKE REQUIRED",
+    "retakeSub": "Image below acceptable quality",
+    "borderTitle": "BORDERLINE QUALITY",
+    "borderSub": "Image may affect AI accuracy",
+    "score": "QUALITY SCORE",
+    "metrics": {
+      "focus": "FOCUS",
+      "illumination": "ILLUMINATION",
+      "contrast": "CONTRAST",
+      "coverage": "COVERAGE"
+    },
+    "issues": "DETECTED ISSUES",
+    "severityTitle": "AI SEVERITY PREDICTION",
+    "grade": "GRADE",
+    "confidence": "MODEL CONFIDENCE",
+    "btnBack": "← RETAKE",
+    "btnAccept": "ACCEPT & CONTINUE ✦"
+  },
+  "queue": {
+    "title": "LOCAL QUEUE",
+    "items": "ITEMS",
+    "colId": "ID",
+    "colPatient": "PATIENT",
+    "colCaptured": "CAPTURED AT",
+    "colStatus": "STATUS",
+    "colAction": "ACTION",
+    "empty": "QUEUE EMPTY",
+    "statusPass": "QUALITY PASS",
+    "statusSynced": "SYNCED ↗",
+    "statusPending": "AI PENDING",
+    "statusReady": "RESULT READY ✓",
+    "statusCaptured": "CAPTURED",
+    "btnView": "VIEW RESULT",
+    "txtWaiting": "WAITING..."
+  }
+}
