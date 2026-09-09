@@ -50,31 +50,8 @@ def ben_graham_preprocess(image: np.ndarray, target_size: int = 384) -> np.ndarr
     # ------------------------------------------------------------------ #
     # Step 1: Detect the retinal circle and crop to it                    #
     # ------------------------------------------------------------------ #
-    # Work on the green channel — highest contrast for fundus images.
-    gray = image[:, :, 1]
-
-    # Threshold: any pixel brighter than 7 is considered "inside the retina".
-    _, mask = cv2.threshold(gray, 7, 255, cv2.THRESH_BINARY)
-
-    # Morphological closing to fill gaps, then find the bounding box.
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    if contours:
-        # Use the largest contour — the retinal disc boundary.
-        largest = max(contours, key=cv2.contourArea)
-        x, y, w, h = cv2.boundingRect(largest)
-        # Ensure we stay within image bounds.
-        x = max(0, x)
-        y = max(0, y)
-        w = min(w, image.shape[1] - x)
-        h = min(h, image.shape[0] - y)
-        cropped = image[y : y + h, x : x + w]
-    else:
-        # Fallback: use the full image if no contour found.
-        cropped = image
+    x, y, w, h = retinal_crop_box(image)
+    cropped = image[y : y + h, x : x + w]
 
     # Guard against degenerate crops.
     if cropped.size == 0:
@@ -100,3 +77,53 @@ def ben_graham_preprocess(image: np.ndarray, target_size: int = 384) -> np.ndarr
     enhanced = cv2.addWeighted(resized, 4, blurred, -4, 128)
 
     return enhanced
+
+
+def retinal_crop_box(image: np.ndarray):
+    """The bounding box of the retinal circle, as (x, y, w, h).
+
+    This is step 1 of ben_graham_preprocess, factored out because several
+    callers need the GEOMETRY of the crop, not the cropped pixels:
+
+      - The Grad-CAM overlay redoes crop+resize without the contrast step, so
+        the heatmap aligns to a recognisable retina rather than a
+        contrast-stretched one.
+      - The lesion models (M4, M5) run in this cropped space, while the
+        localization model (M3) runs on a plain squished resize of the ORIGINAL
+        image. Mapping the optic disc from one space into the other requires
+        this box. Without it, M4's optic-disc masking -- which the model does
+        not apply itself, the caller must -- would blank out the wrong region.
+
+    It is factored out rather than reimplemented because it had already been
+    copied once, and a second definition of "inside the retina" drifting from
+    this one would move lesion coordinates silently: the masks would still look
+    plausible and would be assigned to the wrong quadrants, which is exactly
+    the input the ICDR rule engine grades on.
+
+    Returns the full image's box when no contour is found.
+    """
+    # Work on the green channel — highest contrast for fundus images.
+    gray = image[:, :, 1]
+
+    # Threshold: any pixel brighter than 7 is considered "inside the retina".
+    _, mask = cv2.threshold(gray, 7, 255, cv2.THRESH_BINARY)
+
+    # Morphological closing to fill gaps, then find the bounding box.
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if not contours:
+        # Fallback: the full image if no contour found.
+        return 0, 0, image.shape[1], image.shape[0]
+
+    # Use the largest contour — the retinal disc boundary.
+    largest = max(contours, key=cv2.contourArea)
+    x, y, w, h = cv2.boundingRect(largest)
+    # Ensure we stay within image bounds.
+    x = max(0, x)
+    y = max(0, y)
+    w = min(w, image.shape[1] - x)
+    h = min(h, image.shape[0] - y)
+    return x, y, w, h
