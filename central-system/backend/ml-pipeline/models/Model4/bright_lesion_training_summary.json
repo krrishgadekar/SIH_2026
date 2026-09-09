@@ -1,0 +1,12 @@
+{
+  "best_epoch": 13,
+  "best_val_dice": 0.5831056841876934,
+  "total_epochs": 28,
+  "training_seconds": 241.7934012413025,
+  "od_mask_radius": 58,
+  "train_images": 43,
+  "val_images": 11,
+  "patch_size": 256,
+  "batch_size": 8,
+  "learning_rate": 0.0005
+}
