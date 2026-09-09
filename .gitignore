@@ -124,3 +124,8 @@ verify_task*.js
 # in the repo, and the .cmd wrapper is machine-specific (it hardcodes the
 # local MATLAB Runtime path).
 phc-local-app/backend/quality-gate-matlab/dist/
+
+# Traced copy of Branch A for MATLAB import (Task: PyTorch converter test).
+# Rebuildable in seconds with traceModel1ForMatlab.py, and a 16 MB binary that
+# duplicates weights already tracked in branchA_v1.pt.
+central-system/backend/ml-pipeline/models/Model1/branchA_v1_traced.pt
