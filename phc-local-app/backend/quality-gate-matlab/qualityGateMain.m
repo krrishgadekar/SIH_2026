@@ -114,12 +114,31 @@ elseif focus.score < preset.focusThreshold
     result.status = 'retake';
     result.reason = 'blur';
 
-elseif glareMotionOcclusion.occlusionScore > 0.20
-    % Threshold calibrated after real-image testing (updated from spec's 0.3):
-    % Normal fundus image scores 0.14 (black camera border pixels).
-    % Threshold 0.20 gives a 0.06 margin above the normal baseline while
-    % still triggering on a ~20% black eyelash bar (score ≈ 0.34),
-    % which also keeps FOV coverage above 0.5 (coveragePercent ≈ 0.69).
+elseif glareMotionOcclusion.occlusionScore > 0.18
+    % Recalibrated together with the occlusion METRIC, which changed — see the
+    % long note in assessGlareMotionOcclusion.m. The old score measured dark
+    % border-touching area over the whole frame, so it was dominated by how much
+    % black surround a camera leaves: 0.14 on datasets/2.jpg, 0.31 on IDRiD,
+    % both perfectly good images. The old 0.20 threshold sat between those two,
+    % so it rejected 46 of 52 clean research-grade photographs as
+    % 'eyelash_occlusion' once the focus threshold stopped masking it.
+    %
+    % The score is now dark area INSIDE the retinal disc over disc area, which
+    % is framing-invariant. Measured on the same 52 images plus synthetic bars:
+    %
+    %   clean IDRiD (n=52)  median 0.0064   max 0.1345
+    %   datasets/2.jpg      0.0093           (was 0.14 — same image, same eye)
+    %   dark bar across the retina:  2% 0.037   5% 0.071   10% 0.128
+    %                               20% 0.238  30% 0.345
+    %
+    % 0.18 passes all 52 clean images with 0.045 of margin above the worst, and
+    % still triggers on the ~20% eyelash bar the original spec targeted. It sits
+    % in the overlap region between a clean outlier (0.1345) and a 10% bar
+    % (0.128), so occlusions below roughly 14% of the disc are tolerated —
+    % deliberately, because the alternative is rejecting good captures.
+    %
+    % n = 52 from one camera, and the bars are synthetic. Re-fit on real
+    % occluded captures before deployment.
     result.status = 'retake';
     result.reason = 'eyelash_occlusion';
 

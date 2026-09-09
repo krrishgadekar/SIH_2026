@@ -95,20 +95,26 @@ MATLAB_SCRIPT = """
 addpath('{gate}');
 d = dir(fullfile('{outdir}', '*.jpg'));
 fid = fopen('{csv}', 'w');
-fprintf(fid, 'file,variant,status,reason,focus,illum\\n');
+fprintf(fid, 'file,variant,status,reason,focus,illum,occl,glare,motion,fov\\n');
 for i = 1:numel(d)
     p = fullfile(d(i).folder, d(i).name);
     try
         r = qualityGateMain(p, '{camera}');
         rs = r.reason; if isempty(rs), rs = '-'; end
         v = 'clean'; if contains(d(i).name, '_B_'), v = 'jpeg10'; end
-        fprintf(fid, '%s,%s,%s,%s,%.6f,%.6f\\n', d(i).name, v, r.status, rs, ...
-                r.scores.focusScore, r.scores.illuminationScore);
+        sc = r.scores;
+        fprintf(fid, '%s,%s,%s,%s,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f\\n', ...
+                d(i).name, v, r.status, rs, sc.focusScore, sc.illuminationScore, ...
+                gf(sc,'occlusionScore'), gf(sc,'glareScore'), ...
+                gf(sc,'motionScore'), gf(sc,'fovScore'));
     catch ME
-        fprintf(fid, '%s,err,err,%s,NaN,NaN\\n', d(i).name, ME.message);
+        fprintf(fid, '%s,err,err,%s,NaN,NaN,NaN,NaN,NaN,NaN\\n', d(i).name, ME.message);
     end
 end
 fclose(fid);
+function v = gf(s, f)
+if isfield(s, f), v = s.(f); else, v = NaN; end
+end
 """
 
 

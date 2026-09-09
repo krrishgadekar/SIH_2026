@@ -4,10 +4,13 @@
   "clean": {
     "n": 52,
     "status": {
-      "retake": 52
+      "borderline": 40,
+      "retake": 6,
+      "pass": 6
     },
     "reason": {
-      "blur": 51,
+      "-": 46,
+      "blur": 5,
       "low_illumination": 1
     },
     "focusMin": 0.067362,

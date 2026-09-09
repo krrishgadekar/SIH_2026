@@ -152,10 +152,32 @@ else
                 [n,f] = tbool(n, f, 'COMPILED result matches a direct MATLAB call', ...
                     strcmp(fromExe.status, result.status), ...
                     sprintf('exe %s vs matlab %s', fromExe.status, result.status));
-                [n,f] = tbool(n, f, 'and the sub-scores match to 1e-9', ...
-                    abs(fromExe.scores.focusScore - result.scores.focusScore) < 1e-9, ...
-                    sprintf('%.17g vs %.17g', fromExe.scores.focusScore, ...
-                            result.scores.focusScore));
+                % EVERY sub-score, not just focusScore.
+                %
+                % This check used to compare focusScore alone, and that made it
+                % blind to the failure it exists to catch: a STALE EXECUTABLE.
+                % The CTF archive freezes the .m sources at build time, so
+                % editing a metric and not rebuilding leaves the exe computing
+                % the old answer while MATLAB computes the new one. When the
+                % occlusion metric was rewritten, this suite still passed 22/22
+                % against an exe carrying the previous implementation — because
+                % focusScore was untouched and the status happened to agree on
+                % the one test image.
+                %
+                % Comparing all of them means a forgotten rebuild fails loudly
+                % here rather than shipping a PHC a binary that disagrees with
+                % the code in the repo.
+                scoreNames = fieldnames(result.scores);
+                worst = 0; worstName = '';
+                for si = 1:numel(scoreNames)
+                    nm = scoreNames{si};
+                    if ~isfield(fromExe.scores, nm), continue; end
+                    d = abs(fromExe.scores.(nm) - result.scores.(nm));
+                    if d > worst, worst = d; worstName = nm; end
+                end
+                [n,f] = tbool(n, f, 'and EVERY sub-score matches to 1e-9 (catches a stale exe)', ...
+                    worst < 1e-9, ...
+                    sprintf('largest disagreement: %s by %.17g', worstName, worst));
                 fprintf('        focusScore %.17g from a binary with no source tree\n', ...
                     fromExe.scores.focusScore);
                 fprintf('        -- which is what proves the CTF bundling worked\n');
