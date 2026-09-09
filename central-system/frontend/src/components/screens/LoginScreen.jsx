@@ -1,29 +1,31 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { RetinalWaveCanvas } from '../shared/RetinalWaveCanvas';
 
-const ROLES = [
-  {
-    id: 'ophthalmologist',
-    title: 'OPHTHALMOLOGIST',
-    subtitle: 'Case Review & Diagnosis',
-    description: 'Review AI-graded retinal scans, confirm or override diagnoses, and manage the review queue.',
-    icon: '◉',
-    stats: '6 cases pending',
-  },
-  {
-    id: 'admin',
-    title: 'DISTRICT ADMIN',
-    subtitle: 'Analytics & Oversight',
-    description: 'Monitor PHC performance, track referrals, view screening analytics, and manage district-wide operations.',
-    icon: '⬡',
-    stats: '42 cases today',
-  },
-];
-
 export const LoginScreen = ({ onLogin }) => {
+  const { t } = useTranslation();
   const [hoveredRole, setHoveredRole] = useState(null);
   const [selectedRole, setSelectedRole] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+
+  const ROLES = [
+    {
+      id: 'ophthalmologist',
+      title: t('central.login.roles.ophthalmologist.title', 'OPHTHALMOLOGIST'),
+      subtitle: t('central.login.roles.ophthalmologist.subtitle', 'Case Review & Diagnosis'),
+      description: t('central.login.roles.ophthalmologist.desc', 'Review AI-graded retinal scans, confirm or override diagnoses, and manage the review queue.'),
+      icon: '◉',
+      stats: `6 ${t('central.login.roles.ophthalmologist.stats', 'cases pending')}`,
+    },
+    {
+      id: 'admin',
+      title: t('central.login.roles.admin.title', 'DISTRICT ADMIN'),
+      subtitle: t('central.login.roles.admin.subtitle', 'Analytics & Oversight'),
+      description: t('central.login.roles.admin.desc', 'Monitor PHC performance, track referrals, view screening analytics, and manage district-wide operations.'),
+      icon: '⬡',
+      stats: `42 ${t('central.login.roles.admin.stats', 'cases today')}`,
+    },
+  ];
 
   // Auth screen state — shared between both roles
   const [activeAuthRole, setActiveAuthRole] = useState(null); // 'admin' | 'ophthalmologist' | null
@@ -58,7 +60,7 @@ export const LoginScreen = ({ onLogin }) => {
   const handleAdminSubmit = (e) => {
     e.preventDefault();
     if (!adminUsername.trim() || !adminPassword.trim()) {
-      setAdminError('Please enter both username and password.');
+      setAdminError(t('central.login.auth.errorEmpty', 'Please enter both username and password.'));
       return;
     }
 
@@ -73,7 +75,7 @@ export const LoginScreen = ({ onLogin }) => {
         setIsTransitioning(true);
         setTimeout(() => onLogin('admin', adminUsername), 400);
       } else {
-        setAdminError('INVALID CREDENTIALS. USE DEMO: admin / admin123');
+        setAdminError(t('central.login.auth.errorInvalid', 'INVALID CREDENTIALS. USE DEMO: {{user}} / {{pass}}', { user: 'admin', pass: 'admin123' }));
         setAdminLoading(false);
       }
     }, 400);
@@ -82,7 +84,7 @@ export const LoginScreen = ({ onLogin }) => {
   const handleOphthSubmit = (e) => {
     e.preventDefault();
     if (!ophthUsername.trim() || !ophthPassword.trim()) {
-      setOphthError('Please enter both username and password.');
+      setOphthError(t('central.login.auth.errorEmpty', 'Please enter both username and password.'));
       return;
     }
 
@@ -97,7 +99,7 @@ export const LoginScreen = ({ onLogin }) => {
         setIsTransitioning(true);
         setTimeout(() => onLogin('ophthalmologist', ophthUsername), 400);
       } else {
-        setOphthError('INVALID CREDENTIALS. USE DEMO: doctor / doctor123');
+        setOphthError(t('central.login.auth.errorInvalid', 'INVALID CREDENTIALS. USE DEMO: {{user}} / {{pass}}', { user: 'doctor', pass: 'doctor123' }));
         setOphthLoading(false);
       }
     }, 400);
@@ -106,7 +108,7 @@ export const LoginScreen = ({ onLogin }) => {
   // Render the auth form for a given role
   const renderAuthCard = (role) => {
     const isAdmin = role === 'admin';
-    const roleLabel = isAdmin ? 'DISTRICT ADMIN' : 'OPHTHALMOLOGIST';
+    const roleLabel = isAdmin ? t('central.login.roles.admin.title', 'DISTRICT ADMIN') : t('central.login.roles.ophthalmologist.title', 'OPHTHALMOLOGIST');
     const username = isAdmin ? adminUsername : ophthUsername;
     const setUsername = isAdmin ? setAdminUsername : setOphthUsername;
     const password = isAdmin ? adminPassword : ophthPassword;
@@ -121,14 +123,14 @@ export const LoginScreen = ({ onLogin }) => {
       <div className={`login-auth-container ${isTransitioning ? 'login-auth-container--exit' : ''}`}>
         <div className="login-auth-topbar">
           <span style={{ fontWeight: 600 }}>
-            AUTHENTICATING AS: {roleLabel}
+            {t('central.login.auth.authenticatingAs', 'AUTHENTICATING AS: {{role}}', { role: roleLabel })}
           </span>
           <button
             type="button"
             className="login-auth-back-btn"
             onClick={handleBackToRoles}
           >
-            ← BACK
+            {t('central.login.auth.back', '← BACK')}
           </button>
         </div>
 
@@ -142,7 +144,7 @@ export const LoginScreen = ({ onLogin }) => {
             )}
 
             <div className="login-auth-field">
-              <label className="login-auth-label">USERNAME</label>
+              <label className="login-auth-label">{t('central.login.auth.username', 'USERNAME')}</label>
               <input
                 type="text"
                 className="login-auth-input"
@@ -155,7 +157,7 @@ export const LoginScreen = ({ onLogin }) => {
             </div>
 
             <div className="login-auth-field">
-              <label className="login-auth-label">PASSWORD</label>
+              <label className="login-auth-label">{t('central.login.auth.password', 'PASSWORD')}</label>
               <input
                 type="password"
                 className="login-auth-input"
@@ -171,11 +173,11 @@ export const LoginScreen = ({ onLogin }) => {
               className="login-auth-submit"
               disabled={loading}
             >
-              {loading ? 'AUTHENTICATING...' : 'INITIATE SESSION ✦'}
+              {loading ? t('central.login.auth.authenticating', 'AUTHENTICATING...') : t('central.login.auth.initiate', 'INITIATE SESSION ✦')}
             </button>
 
             <div className="login-auth-hint">
-              DEMO CREDENTIALS: <span style={{ fontWeight: 700, color: 'var(--c-crimson)' }}>{demoUser}</span> / <span style={{ fontWeight: 700, color: 'var(--c-crimson)' }}>{demoPass}</span>
+              {t('central.login.auth.demo', 'DEMO CREDENTIALS:')} <span style={{ fontWeight: 700, color: 'var(--c-crimson)' }}>{demoUser}</span> / <span style={{ fontWeight: 700, color: 'var(--c-crimson)' }}>{demoPass}</span>
             </div>
           </form>
         </div>
@@ -207,13 +209,18 @@ export const LoginScreen = ({ onLogin }) => {
           </div>
           
           <h1 className="t-display" style={{ textAlign: 'center', marginBottom: 'var(--sp-2)', fontSize: '2.4rem' }}>
-            RETINAL<span className="login-hero__star">✦</span>DIAGNOSTICS
+            {t('central.login.title', 'RETINAL✦DIAGNOSTICS').split('✦').map((part, i) => (
+              <React.Fragment key={i}>
+                {part}
+                {i === 0 && <span className="login-hero__star">✦</span>}
+              </React.Fragment>
+            ))}
           </h1>
           <p className="t-mono" style={{ textAlign: 'center', opacity: 0.7, fontSize: 'var(--fs-small)', marginBottom: 'var(--sp-1)' }}>
-            EXPLAINABLE AI FOR DIABETIC RETINOPATHY
+            {t('central.login.subtitle', 'EXPLAINABLE AI FOR DIABETIC RETINOPATHY')}
           </p>
           <p className="t-label" style={{ textAlign: 'center', opacity: 0.5 }}>
-            NETRA SETU PLATFORM v1.0
+            {t('central.login.version', 'NETRA SETU PLATFORM v1.0')}
           </p>
         </div>
 
@@ -223,7 +230,7 @@ export const LoginScreen = ({ onLogin }) => {
         ) : (
           <div className="login-roles">
             <p className="t-label" style={{ textAlign: 'center', marginBottom: 'var(--sp-6)', opacity: 0.6 }}>
-              SELECT YOUR ROLE TO PROCEED
+              {t('central.login.selectRole', 'SELECT YOUR ROLE TO PROCEED')}
             </p>
             
             <div className="login-roles__grid">
