@@ -54,8 +54,12 @@ ML_ROOT = os.path.dirname(HERE)
 sys.path.insert(0, ML_ROOT)
 
 MODEL_DIR = os.path.join(ML_ROOT, "models")
-CKPT_PATH = os.path.join(MODEL_DIR, "Model1", "branchA_v1.pt")
 CALIB_PATH = os.path.join(MODEL_DIR, "calibration_v1.json")
+
+# The checkpoint is resolved by FILENAME, not by a fixed path. The weights are
+# not in git and the folder layout under models/ is not stable -- see
+# modelPaths.py. A hardcoded path here broke once already when a teammate's
+# commit removed the file.
 
 # Cached across calls within one process. Loading EfficientNet-B0 and its
 # weights costs a second or so; a long-lived worker should pay that once.
@@ -97,10 +101,13 @@ def load_model():
     import torch.nn as nn
     import timm
 
-    if not os.path.exists(CKPT_PATH):
-        _fail(f"no model at {CKPT_PATH}")
+    from modelPaths import resolve, CheckpointMissing
+    try:
+        ckpt_path = resolve("classifier")
+    except CheckpointMissing as exc:
+        _fail(str(exc))
 
-    ckpt = torch.load(CKPT_PATH, map_location="cpu", weights_only=False)
+    ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
 
     class DRClassifier(nn.Module):
         """Rebuilt from the checkpoint's own `arch` string:
