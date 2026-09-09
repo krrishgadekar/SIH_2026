@@ -46,7 +46,11 @@ function result = qualityGateMain(imagePath, cameraDeviceId)
 img = imread(imagePath);
 
 % ── Step 2: load camera preset ────────────────────────────────────────────
-presetsPath = fullfile(fileparts(mfilename('fullpath')), 'cameraPresets.json');
+% Task 8.1: resolved via qualityGateAssetPath so this works both under MATLAB
+% and inside a compiled executable. mfilename('fullpath') points into the CTF
+% archive when deployed, so the previous direct fullfile() call would fail at
+% the first capture on a PHC machine with no MATLAB.
+presetsPath = qualityGateAssetPath('cameraPresets.json');
 presets = jsondecode(fileread(presetsPath));
 preset  = getPresetOrDefault(presets, cameraDeviceId);
 

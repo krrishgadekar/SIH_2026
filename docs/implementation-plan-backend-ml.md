@@ -166,6 +166,12 @@ problem statement names as required tools are **licensed but not installed**:
 | Medical Imaging Toolbox | ❌ | ✅ | Phase 4 segmentation |
 | Statistics and Machine Learning Toolbox | ❌ | ✅ | Task 6.2 conformal quantiles |
 | Deep Learning Toolbox Model for ResNet-50 | ❌ | n/a | Tasks 2.2/2.3 transfer learning |
+| **MATLAB Compiler** | ❌ | ✅ | **Task 8.1** — every PHC needs a licensed MATLAB without it |
+
+*(MATLAB Compiler added 2026-09-09 while doing Task 8.1: `license('test','Compiler')`
+returns 1 and `exist('mcc','file')` returns 0 — the same licensed-but-absent
+pattern as the rest. Install with
+`mpm install --release=R2026a --products=MATLAB_Compiler`.)*
 
 `licensed = 1, installed = 0` for all five — this is a **download, not a
 procurement problem**. Install via the MATLAB installer / Add-On Explorer.
@@ -708,8 +714,26 @@ directory structure from Task 0 and has been empty the whole time.
 
 ## Phase 8 — Deployment Hardening
 
-**Task 8.1 — MATLAB Compiler packaging for the local quality gate**
-- Build: package `qualityGateMain.m` as a standalone executable via MATLAB Compiler + MATLAB Runtime, so the PHC machine doesn't need a MATLAB license. Swap `qualityGateClient.js` (Task 1.3) from calling the Engine API to shelling out to the compiled executable.
+**Task 8.1 — MATLAB Compiler packaging** — CODE DONE (2026-09-09), **BUILD BLOCKED**
+- Files: `qualityGateCli.m` (the mcc entry point), `qualityGateAssetPath.m`,
+  `buildQualityGateExe.m`, dual-backend `qualityGateClient.js`.
+- **Nothing has been compiled.** MATLAB Compiler is licensed here but not
+  installed, so `mcc` does not exist — see Task 0.0. Do not describe the
+  quality gate as MATLAB-free until an exe has been built AND run on a machine
+  that has only the MATLAB Runtime.
+- `QUALITY_GATE_EXE=<path>` switches Node to the compiled backend; unset, or
+  pointing at a missing file, it falls back to `matlab -batch` with a warning.
+  Both paths share one parser, because the exe emits the identical JSON.
+- Two packaging traps handled: `mfilename('fullpath')` resolves into the CTF
+  archive when deployed, so `cameraPresets.json` is found via
+  `qualityGateAssetPath`; and `mcc` cannot trace a `fileread` dependency, so
+  the JSON is bundled with `-a`.
+- Side benefit worth naming: arguments now cross as **argv rather than being
+  interpolated into a MATLAB expression**, so a filename containing a quote is
+  inert instead of executable.
+- Verified: `verify_task81.js` (Node↔exe contract, compiled backend stood in
+  by a stub) and `testQualityGateDeploy.m` (17 checks). Neither is evidence the
+  compiled binary works.
 
 **Task 8.2 — Chunked/resumable sync upload** — DONE (2026-09-09)
 - Files: `central-system/backend/services/chunkedUploadService.js`, four routes in
