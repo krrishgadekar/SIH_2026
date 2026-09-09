@@ -327,13 +327,28 @@ async function processCase(caseId) {
   }
 
   // ── Step 3: INSERT INTO grading_results ────────────────────────────────────
-  // uncertainty_score stays NULL until Phase 6 (MC-Dropout).
+  //
+  // uncertainty_score (Task 6.1) is written from MC-dropout. It is NULL, never
+  // 0, when the measurement did not happen: the ophthalmologist queue ranks
+  // Tier C by it descending and falls back to (1 - confidence) while NULL, so
+  // a 0 meaning "not measured" would read as "maximally certain" and sort a
+  // never-sampled case to the wrong end of the queue.
+  //
+  // Note the comment sits ABOVE pool.query, not inside the template literal.
+  // A JS comment inside the SQL string is sent to Postgres as SQL and every
+  // case fails with a syntax error -- that has already happened here once.
+  const uncertaintyScore = branchA.uncertaintyScore ?? null;
+  if (branchA.uncertaintyError) {
+    console.warn(`[gradingOrchestrator] case ${caseId}: `
+      + `MC-dropout failed: ${branchA.uncertaintyError}`);
+  }
+
   await pool.query(`
     INSERT INTO grading_results
       (case_id, dr_grade_cnn, referable, confidence_score,
        conformal_tier, model_version, graded_at,
-       dr_grade_rule_engine, branch_agreement)
-    VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8)
+       dr_grade_rule_engine, branch_agreement, uncertainty_score)
+    VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8, $9)
     ON CONFLICT (case_id) DO UPDATE SET
       dr_grade_cnn         = EXCLUDED.dr_grade_cnn,
       referable            = EXCLUDED.referable,
@@ -342,9 +357,10 @@ async function processCase(caseId) {
       model_version        = EXCLUDED.model_version,
       graded_at            = NOW(),
       dr_grade_rule_engine = EXCLUDED.dr_grade_rule_engine,
-      branch_agreement     = EXCLUDED.branch_agreement
+      branch_agreement     = EXCLUDED.branch_agreement,
+      uncertainty_score    = EXCLUDED.uncertainty_score
   `, [caseId, grade, referable, confidenceScore, tier, MODEL_VERSION,
-      ruleEngineGrade, branchAgreement]);
+      ruleEngineGrade, branchAgreement, uncertaintyScore]);
 
   // ── Step 4: INSERT INTO explainability_outputs ─────────────────────────────
   // vessel_mask_path, lesion_red_path, lesion_bright_path stay NULL (Phase 3).

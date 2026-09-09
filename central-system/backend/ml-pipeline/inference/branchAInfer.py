@@ -233,6 +233,8 @@ def main():
     ap.add_argument("image", nargs="?", help="path to the fundus image")
     ap.add_argument("--gradcam", metavar="PNG",
                     help="also write a Grad-CAM overlay to this path")
+    ap.add_argument("--mc-dropout", type=int, default=20, metavar="N",
+                    help="MC-dropout passes for uncertainty_score (0 disables)")
     args = ap.parse_args()
 
     if not args.image:
@@ -275,6 +277,30 @@ def main():
         }
         if calib.get("warning"):
             out["calibrationWarning"] = calib["warning"]
+
+        # ── Task 6.1: MC-dropout uncertainty ───────────────────────────────
+        # Same process and same preprocessed tensor as the grade. On this model
+        # the convolutional trunk is deterministic and the single dropout sits
+        # after it, so 20 passes cost ~0.1 s -- the trunk runs once.
+        #
+        # A failure here must NOT fail the grade: uncertainty_score orders the
+        # review QUEUE, it does not decide anything clinical. The column stays
+        # NULL and the queue falls back to (1 - confidence), which is what it
+        # already does. NULL means "not measured"; 0.0 would mean "measured, and
+        # maximally certain", and those must never be confused.
+        if args.mc_dropout and args.mc_dropout >= 2:
+            try:
+                from mcDropout import mc_dropout
+                mc = mc_dropout(model, torch.from_numpy(x),
+                                n_passes=args.mc_dropout, temperature=T)
+                out["uncertaintyScore"] = mc["uncertaintyScore"]
+                out["uncertainty"] = mc
+            except Exception as exc:  # noqa: BLE001
+                out["uncertaintyScore"] = None
+                out["uncertaintyError"] = f"{type(exc).__name__}: {exc}"
+                print(f"branchAInfer: MC-dropout failed: {exc}", file=sys.stderr)
+        else:
+            out["uncertaintyScore"] = None
 
         # ── Grad-CAM, in the same process ──────────────────────────────────
         # Same spawn as the grade: the interpreter start and model load
