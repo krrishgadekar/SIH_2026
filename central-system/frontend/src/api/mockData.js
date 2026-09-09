@@ -171,11 +171,14 @@ export const mockAdminDashboard = {
   averageReviewTurnaroundSeconds: 27,
   modelAccuracy: 0.946,
   overrideRate: 0.083,
+  imagesRejectedQuality: 38,
+  qualityRejectionRate: 0.029,
+  avgConfidenceScore: 0.924,
   casesPerPhc: [
     { phcId: 'PHC001', phcName: 'PHC Kharadi', count: 18 },
-    { phcId: 'PHC002', phcName: 'PHC Wagholi', count: 12 },
-    { phcId: 'PHC003', phcName: 'PHC Hadapsar', count: 7 },
-    { phcId: 'PHC004', phcName: 'PHC Lohegaon', count: 5 },
+    { phcId: 'PHC002', phcName: 'PHC Wagholi', count: 14 },
+    { phcId: 'PHC003', phcName: 'PHC Hadapsar', count: 9 },
+    { phcId: 'PHC004', phcName: 'PHC Lohegaon', count: 7 },
   ],
   drGradeDistribution: [
     { grade: 0, label: 'No DR', count: 312, percentage: 24.3 },
@@ -201,6 +204,12 @@ export const mockReferrals = [
   { referralId: 'ref-004', patientReference: 'PT-6621', status: 'lost', assignedWorker: 'ASHA-045', updatedAt: '2026-08-28T14:00:00.000Z', phcName: 'PHC Hadapsar', drGrade: 2 },
   { referralId: 'ref-005', patientReference: 'PT-1102', status: 'referred', assignedWorker: null, updatedAt: '2026-09-06T08:00:00.000Z', phcName: 'PHC Kharadi', drGrade: 4 },
   { referralId: 'ref-006', patientReference: 'PT-7803', status: 'contacted', assignedWorker: 'ASHA-112', updatedAt: '2026-09-05T10:15:00.000Z', phcName: 'PHC Wagholi', drGrade: 3 },
+  { referralId: 'ref-007', patientReference: 'PT-9941', status: 'referred', assignedWorker: null, updatedAt: '2026-09-06T11:45:00.000Z', phcName: 'PHC Alandi', drGrade: 3 },
+  { referralId: 'ref-008', patientReference: 'PT-5532', status: 'attended', assignedWorker: 'ASHA-094', updatedAt: '2026-09-03T15:20:00.000Z', phcName: 'PHC Lohegaon', drGrade: 4 },
+  { referralId: 'ref-009', patientReference: 'PT-4120', status: 'contacted', assignedWorker: 'ASHA-063', updatedAt: '2026-09-05T14:10:00.000Z', phcName: 'PHC Saswad', drGrade: 2 },
+  { referralId: 'ref-010', patientReference: 'PT-8314', status: 'lost', assignedWorker: 'ASHA-022', updatedAt: '2026-08-25T09:30:00.000Z', phcName: 'PHC Khed', drGrade: 3 },
+  { referralId: 'ref-011', patientReference: 'PT-6288', status: 'referred', assignedWorker: null, updatedAt: '2026-09-06T07:15:00.000Z', phcName: 'PHC Wagholi', drGrade: 4 },
+  { referralId: 'ref-012', patientReference: 'PT-1944', status: 'attended', assignedWorker: 'ASHA-087', updatedAt: '2026-09-02T13:40:00.000Z', phcName: 'PHC Kharadi', drGrade: 3 },
 ];
 
 export const mockPhcSyncStatuses = [
@@ -208,6 +217,9 @@ export const mockPhcSyncStatuses = [
   { phcId: 'PHC002', phcName: 'PHC Wagholi', lastSyncAt: '2026-09-06T08:45:00.000Z', pendingCount: 3, totalScreened: 312, status: 'online' },
   { phcId: 'PHC003', phcName: 'PHC Hadapsar', lastSyncAt: '2026-09-05T22:00:00.000Z', pendingCount: 12, totalScreened: 189, status: 'offline' },
   { phcId: 'PHC004', phcName: 'PHC Lohegaon', lastSyncAt: '2026-09-06T07:00:00.000Z', pendingCount: 1, totalScreened: 327, status: 'online' },
+  { phcId: 'PHC005', phcName: 'PHC Alandi', lastSyncAt: '2026-09-06T09:05:00.000Z', pendingCount: 0, totalScreened: 245, status: 'online' },
+  { phcId: 'PHC006', phcName: 'PHC Saswad', lastSyncAt: '2026-09-05T18:30:00.000Z', pendingCount: 8, totalScreened: 164, status: 'offline' },
+  { phcId: 'PHC007', phcName: 'PHC Khed', lastSyncAt: '2026-09-06T08:15:00.000Z', pendingCount: 2, totalScreened: 298, status: 'online' },
 ];
 
 export const drGradeLabels = {
