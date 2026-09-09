@@ -1,0 +1,118 @@
+{
+  "header": {
+    "title": "NetraSetu",
+    "nav": {
+      "register": "ਰਜਿਸਟਰ ਕਰੋ",
+      "capture": "ਕੈਪਚਰ ਕਰੋ",
+      "queue": "ਕਤਾਰ"
+    },
+    "status": {
+      "online": "ਆਨਲਾਈਨ",
+      "offline": "ਆਫਲਾਈਨ",
+      "pending": "ਲੰਬਿਤ"
+    }
+  },
+  "registration": {
+    "title": "ਮਰੀਜ਼ ਰਜਿਸਟ੍ਰੇਸ਼ਨ",
+    "fullName": "ਪੂਰਾ ਨਾਮ",
+    "namePlaceholder": "ਉਦਾਹਰਣ ਲਈ ਸੁਨੀਤਾ ਦੇਵੀ",
+    "age": "ਉਮਰ",
+    "agePlaceholder": "ਉਦਾਹਰਣ ਲਈ 54",
+    "contact": "ਸੰਪਰਕ ਨੰਬਰ (ਵਿਕਲਪਿਕ)",
+    "contactPlaceholder": "+91...",
+    "btnRegistering": "ਰਜਿਸਟਰ ਕੀਤਾ ਜਾ ਰਿਹਾ ਹੈ...",
+    "btnInitiate": "ਕੈਪਚਰ ਸ਼ੁਰੂ ਕਰੋ ✦",
+    "secureModule": "ਸੁਰੱਖਿਅਤ ਆਫਲਾਈਨ ਮੋਡੀਊਲ V1.2.0"
+  },
+  "capture": {
+    "title": "ਚਿੱਤਰ ਕੈਪਚਰ",
+    "patient": "ਮਰੀਜ਼:",
+    "steps": {
+      "capture": "1. ਕੈਪਚਰ",
+      "quality": "2. ਗੁਣਵੱਤਾ ਜਾਂਚ",
+      "metadata": "3. ਮੈਟਾਡੇਟਾ ਅਤੇ ਸਿੰਕ"
+    },
+    "preview": "ਲਾਈਵ ਫੀਡ / ਪ੍ਰੀਵਿਊ",
+    "statusCaptured": "ਕੈਪਚਰ ਕੀਤਾ ਗਿਆ",
+    "statusReady": "ਤਿਆਰ",
+    "clickToInitiate": "ਕੈਪਚਰ ਕ੍ਰਮ ਸ਼ੁਰੂ ਕਰਨ ਲਈ ਕਲਿੱਕ ਕਰੋ",
+    "loadSample": "✦ ਨਮੂਨਾ ਰੈਟੀਨਲ ਸਕੈਨ ਲੋਡ ਕਰੋ",
+    "mockScenario": "ਮੌਕ ਟੈਸਟ ਦ੍ਰਿਸ਼:",
+    "scenarioPass": "ਪਾਸ (ਗ੍ਰੇਡ 1)",
+    "scenarioBorderline": "ਬਾਰਡਰਲਾਈਨ (ਗ੍ਰੇਡ 2)",
+    "scenarioRetake": "ਦੁਬਾਰਾ ਲਓ (ਧੁੰਦਲਾ)",
+    "btnRetake": "ਦੁਬਾਰਾ ਲਓ",
+    "btnAnalyze": "ਗੁਣਵੱਤਾ ਜਾਂਚ ਚਲਾਓ ✦",
+    "btnAnalyzing": "ਵਿਸ਼ਲੇਸ਼ਣ ਕੀਤਾ ਜਾ ਰਿਹਾ ਹੈ... ✦",
+    "instructionsTitle": "ਹਦਾਇਤਾਂ",
+    "instructions": [
+      "ਮਰੀਜ਼ ਦੇ ਸਿਰ ਨੂੰ ਚਿਨ ਰੈਸਟ 'ਤੇ ਇਕਸਾਰ ਕਰੋ।",
+      "ਜਦੋਂ ਤੱਕ ਪੁਤਲੀ ਫੀਡ ਵਿੱਚ ਕੇਂਦਰਿਤ ਨਹੀਂ ਹੋ ਜਾਂਦੀ, ਉਚਾਈ ਨੂੰ ਅਨੁਕੂਲ ਕਰੋ।",
+      "ਯਕੀਨੀ ਬਣਾਓ ਕਿ ਕਮਰੇ ਵਿੱਚ ਰੋਸ਼ਨੀ ਕਾਫ਼ੀ ਘੱਟ ਹੈ।",
+      "ਮਰੀਜ਼ ਨੂੰ ਅੰਦਰੂਨੀ ਹਰੇ ਟੀਚੇ 'ਤੇ ਧਿਆਨ ਕੇਂਦਰਿਤ ਕਰਨ ਦੀ ਹਦਾਇਤ ਕਰੋ।",
+      "ਜਦੋਂ ਫੋਕਸ ਸੂਚਕ ਠੋਸ ਹੋਵੇ ਤਾਂ ਕੈਪਚਰ ਸ਼ੁਰੂ ਕਰੋ।"
+    ]
+  },
+  "metadata": {
+    "title": "ਕੈਪਚਰ ਮੈਟਾਡੇਟਾ",
+    "eyeScanned": "ਅੱਖ ਸਕੈਨ ਕੀਤੀ ਗਈ",
+    "eyeLeft": "ਖੱਬੀ (OS)",
+    "eyeRight": "ਸੱਜੀ (OD)",
+    "cameraDevice": "ਕੈਮਰਾ ਡਿਵਾਈਸ",
+    "pupilDilation": "ਪੁਤਲੀ ਦਾ ਫੈਲਾਅ ਕੀਤਾ ਗਿਆ",
+    "observedIssues": "ਦੇਖੀਆਂ ਗਈਆਂ ਸਮੱਸਿਆਵਾਂ (ਵਿਕਲਪਿਕ)"
+  },
+  "questionnaire": {
+    "title": "ਕਲੀਨਿਕਲ ਪ੍ਰਸ਼ਨਾਵਲੀ",
+    "knownDiabetic": "ਕੀ ਸ਼ੂਗਰ ਦੀ ਬਿਮਾਰੀ ਹੈ?",
+    "yearsSince": "ਨਿਦਾਨ ਤੋਂ ਬਾਅਦ ਦੇ ਸਾਲ",
+    "yearsPlaceholder": "ਉਦਾਹਰਣ ਲਈ 5",
+    "bpHistory": "ਬਲੱਡ ਪ੍ਰੈਸ਼ਰ ਦਾ ਇਤਿਹਾਸ",
+    "bpOptions": {
+      "unknown": "ਅਣਜਾਣ / ਮਾਪਿਆ ਨਹੀਂ ਗਿਆ",
+      "normal": "ਆਮ",
+      "high": "ਉੱਚ (ਹਾਈ ਬਲੱਡ ਪ੍ਰੈਸ਼ਰ)",
+      "low": "ਘੱਟ (ਘੱਟ ਬਲੱਡ ਪ੍ਰੈਸ਼ਰ)"
+    },
+    "visionChanges": "ਹਾਲੀਆ ਨਜ਼ਰ ਵਿੱਚ ਬਦਲਾਅ? (ਧੁੰਦਲਾਪਣ, ਧੱਬੇ)"
+  },
+  "quality": {
+    "btnQue": "ਸਿੰਕ ਲਈ ਕਤਾਰ ਵਿੱਚ ਰੱਖੋ ✦",
+    "passTitle": "ਗੁਣਵੱਤਾ ਪਾਸ",
+    "passSub": "ਚਿੱਤਰ ਨਿਦਾਨ ਸੀਮਾ ਨੂੰ ਪੂਰਾ ਕਰਦਾ ਹੈ",
+    "retakeTitle": "ਦੁਬਾਰਾ ਲੈਣਾ ਜ਼ਰੂਰੀ ਹੈ",
+    "retakeSub": "ਚਿੱਤਰ ਸਵੀਕਾਰਯੋਗ ਗੁਣਵੱਤਾ ਤੋਂ ਘੱਟ ਹੈ",
+    "borderTitle": "ਬਾਰਡਰਲਾਈਨ ਗੁਣਵੱਤਾ",
+    "borderSub": "ਚਿੱਤਰ AI ਸ਼ੁੱਧਤਾ ਨੂੰ ਪ੍ਰਭਾਵਿਤ ਕਰ ਸਕਦਾ ਹੈ",
+    "score": "ਗੁਣਵੱਤਾ ਸਕੋਰ",
+    "metrics": {
+      "focus": "ਫੋਕਸ",
+      "illumination": "ਰੋਸ਼ਨੀ",
+      "contrast": "ਕੰਟ੍ਰਾਸਟ",
+      "coverage": "ਕਵਰੇਜ"
+    },
+    "issues": "ਲੱਭੀਆਂ ਗਈਆਂ ਸਮੱਸਿਆਵਾਂ",
+    "severityTitle": "AI ਗੰਭੀਰਤਾ ਭਵਿੱਖਬਾਣੀ",
+    "grade": "ਗ੍ਰੇਡ",
+    "confidence": "ਮਾਡਲ ਵਿਸ਼ਵਾਸ",
+    "btnBack": "← ਦੁਬਾਰਾ ਲਓ",
+    "btnAccept": "ਸਵੀਕਾਰ ਕਰੋ ਅਤੇ ਜਾਰੀ ਰੱਖੋ ✦"
+  },
+  "queue": {
+    "title": "ਸਥਾਨਕ ਕਤਾਰ",
+    "items": "ਆਈਟਮਾਂ",
+    "colId": "ਆਈਡੀ",
+    "colPatient": "ਮਰੀਜ਼",
+    "colCaptured": "ਕੈਪਚਰ ਕੀਤਾ ਗਿਆ",
+    "colStatus": "ਸਥਿਤੀ",
+    "colAction": "ਕਾਰਵਾਈ",
+    "empty": "ਕਤਾਰ ਖਾਲੀ ਹੈ",
+    "statusPass": "ਗੁਣਵੱਤਾ ਪਾਸ",
+    "statusSynced": "ਸਿੰਕ ਕੀਤਾ ਗਿਆ ↗",
+    "statusPending": "AI ਲੰਬਿਤ",
+    "statusReady": "ਨਤੀਜਾ ਤਿਆਰ ✓",
+    "statusCaptured": "ਕੈਪਚਰ ਕੀਤਾ ਗਿਆ",
+    "btnView": "ਨਤੀਜਾ ਦੇਖੋ",
+    "txtWaiting": "ਉਡੀਕ ਕੀਤੀ ਜਾ ਰਹੀ ਹੈ..."
+  }
+}

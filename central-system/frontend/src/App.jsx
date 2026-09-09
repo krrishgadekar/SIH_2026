@@ -7,6 +7,8 @@ import { CaseDetailPage } from './components/screens/CaseDetailPage';
 import { DashboardPage } from './components/screens/DashboardPage';
 import { ReferralTrackerPage } from './components/screens/ReferralTrackerPage';
 import { PhcHealthPage } from './components/screens/PhcHealthPage';
+import { PatientTimelinePage } from './components/screens/PatientTimelinePage';
+import { ProgramHealthPage } from './components/screens/ProgramHealthPage';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -45,11 +47,13 @@ const RoleRouter = () => {
   const [role, setRole] = useState(() => {
     return localStorage.getItem('netra_user_role') || null;
   });
+  const [userProfile, setUserProfile] = useState(null);
   const navigate = useNavigate();
 
-  const handleLogin = (selectedRole) => {
+  const handleLogin = (selectedRole, username) => {
     localStorage.setItem('netra_user_role', selectedRole);
     setRole(selectedRole);
+    setUserProfile({ username: username || '', fullName: '', phone: '', location: '' });
     if (selectedRole === 'ophthalmologist') {
       navigate('/ophth/queue');
     } else {
@@ -60,7 +64,12 @@ const RoleRouter = () => {
   const handleLogout = () => {
     localStorage.removeItem('netra_user_role');
     setRole(null);
+    setUserProfile(null);
     navigate('/');
+  };
+
+  const handleUpdateProfile = (newProfile) => {
+    setUserProfile(newProfile);
   };
 
   return (
@@ -69,16 +78,18 @@ const RoleRouter = () => {
       
       {/* Ophthalmologist Routes */}
       <Route path="/ophth" element={
-        role === 'ophthalmologist' ? <CentralLayout role={role} onLogout={handleLogout} /> : <Navigate to="/" replace />
+        role === 'ophthalmologist' ? <CentralLayout role={role} userProfile={userProfile} onUpdateProfile={handleUpdateProfile} onLogout={handleLogout} /> : <Navigate to="/" replace />
       }>
         <Route index element={<Navigate to="queue" replace />} />
         <Route path="queue" element={<ReviewQueuePage />} />
         <Route path="case/:caseId" element={<CaseDetailPage />} />
+        <Route path="timeline" element={<PatientTimelinePage />} />
+        <Route path="health" element={<ProgramHealthPage />} />
       </Route>
 
       {/* Admin Routes */}
       <Route path="/admin" element={
-        role === 'admin' ? <CentralLayout role={role} onLogout={handleLogout} /> : <Navigate to="/" replace />
+        role === 'admin' ? <CentralLayout role={role} userProfile={userProfile} onUpdateProfile={handleUpdateProfile} onLogout={handleLogout} /> : <Navigate to="/" replace />
       }>
         <Route index element={<Navigate to="dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />

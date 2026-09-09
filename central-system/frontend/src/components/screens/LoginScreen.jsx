@@ -110,6 +110,7 @@ export const LoginScreen = ({ onLogin }) => {
           </p>
         </div>
 
+
         {/* Dedicated District Admin Login Card (Matching Reference Image 1) */}
         {showAdminLogin ? (
           <div className="login-auth-container">
@@ -210,3 +211,4 @@ export const LoginScreen = ({ onLogin }) => {
     </div>
   );
 };
+

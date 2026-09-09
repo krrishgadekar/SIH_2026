@@ -1,0 +1,76 @@
+======================================================================
+  RED-LESION (MA + HE) U-Net  --  IDRiD segmentation
+======================================================================
+  Python exe        : C:\Users\Tanuj\miniconda3\envs\dr_screening\python.exe
+  Torch / CUDA      : 2.5.1+cu121 / 12.1  available=True
+  Device            : cuda  (NVIDIA GeForce RTX 4050 Laptop GPU)
+  smp version       : 0.5.0
+  albumentations    : 2.0.8  (geometric transforms done in custom cv2 pipeline - see AUGMENTATION note)
+  Free disk (start) : 6.96 GB
+
+  Projected disk usage created by this script:
+    - red_lesion_unet_v1.pt            ~ 293.2 MB  (best only, overwritten in place)
+    - red_lesion_metrics.json          ~  0.02 MB
+    - red_lesion_predictions/*.png     ~  1.75 MB  (5 images)
+    - dataset copies / patch cache / preproc cache on disk :   0.0 MB (none)
+    => total new disk  ~295.0 MB
+    (in-RAM preprocessed-image cache ~90 MB, not on disk)
+
+----------------------------------------------------------------------
+  DATASET DISCOVERY
+----------------------------------------------------------------------
+  images discovered              : 81
+  with valid MA mask             : 81
+  with valid HE mask             : 80
+  with BOTH MA and HE            : 80
+  final usable image/mask pairs  : 81
+  original image dimensions      : [(2848, 4288)]
+  images with >=1 lesion pixel   : 100.0%
+  (official IDRiD division seen  : 54 train + 27 test; we re-split at IMAGE level below)
+----------------------------------------------------------------------
+  IMAGE-LEVEL SPLIT  (seed=42)   train=65  val=16
+----------------------------------------------------------------------
+  TRAIN ids (65):
+    IDRiD_01 IDRiD_02 IDRiD_03 IDRiD_04 IDRiD_05 IDRiD_06 IDRiD_07 IDRiD_08 IDRiD_10 IDRiD_11 IDRiD_12 IDRiD_14 IDRiD_15 IDRiD_17 IDRiD_18 IDRiD_19 IDRiD_20 IDRiD_21 IDRiD_22 IDRiD_23 IDRiD_25 IDRiD_26 IDRiD_27 IDRiD_28 IDRiD_29 IDRiD_30 IDRiD_32 IDRiD_34 IDRiD_35 IDRiD_36 IDRiD_38 IDRiD_39 IDRiD_40 IDRiD_41 IDRiD_42 IDRiD_43 IDRiD_44 IDRiD_45 IDRiD_46 IDRiD_47 IDRiD_48 IDRiD_49 IDRiD_52 IDRiD_55 IDRiD_56 IDRiD_57 IDRiD_59 IDRiD_60 IDRiD_61 IDRiD_62 IDRiD_63 IDRiD_65 IDRiD_67 IDRiD_68 IDRiD_69 IDRiD_70 IDRiD_72 IDRiD_73 IDRiD_74 IDRiD_75 IDRiD_76 IDRiD_77 IDRiD_79 IDRiD_80 IDRiD_81
+  VAL ids (16):
+    IDRiD_09 IDRiD_13 IDRiD_16 IDRiD_24 IDRiD_31 IDRiD_33 IDRiD_37 IDRiD_50 IDRiD_51 IDRiD_53 IDRiD_54 IDRiD_58 IDRiD_64 IDRiD_66 IDRiD_71 IDRiD_78
+
+  Preprocessed-image RAM cache warmed: 81 images in 0.0s, 84.9 MB resident (not written to disk)
+----------------------------------------------------------------------
+  MODEL  +  VESSEL-ENCODER TRANSFER LEARNING
+----------------------------------------------------------------------
+  architecture         : segmentation_models_pytorch.Unet
+  encoder              : resnet34   in_channels=3  classes=1  activation=None
+  encoder init         : models\vessel_predictions(Model2)\vessel_unet_v1.pt  (encoder only, decoder discarded)
+  encoder tensors loaded          : 216
+  encoder scalar params loaded    : 21,301,732
+  encoder tensors changed vs init : 216
+  missing encoder keys            : none
+  unexpected keys (ignored)       : none
+  shape-mismatch keys             : none
+  conv1 handling                  : adapted (64, 1, 7, 7) -> (64, 3, 7, 7) (tile across 3 channels, /3)
+  conv1 / deep-layer verified     : True / True
+  (vessel ckpt in_channels=1, best_val_dice=0.7771)
+
+  [--finish-only] Skipping the training loop; using the saved best checkpoint.
+  checkpoint: best_epoch=52  best_val_dice=0.5353
+  recomputed mean image-level val Dice now = 0.5353
+  Reloaded best checkpoint: C:\Users\Tanuj\Desktop\Projects\DR_SCREENING\SIH_2026\central-system\backend\ml-pipeline\models\red_lesion_unet_v1.pt
+  Saved 5 visualisations to C:\Users\Tanuj\Desktop\Projects\DR_SCREENING\SIH_2026\central-system\backend\ml-pipeline\models\red_lesion_predictions
+    IDRiD_31  Dice=0.768  -> IDRiD_31_redlesion.png
+    IDRiD_33  Dice=0.716  -> IDRiD_33_redlesion.png
+    IDRiD_78  Dice=0.400  -> IDRiD_78_redlesion.png
+    IDRiD_58  Dice=0.381  -> IDRiD_58_redlesion.png
+    IDRiD_37  Dice=0.374  -> IDRiD_37_redlesion.png
+  Wrote metrics JSON: C:\Users\Tanuj\Desktop\Projects\DR_SCREENING\SIH_2026\central-system\backend\ml-pipeline\models\red_lesion_metrics.json
+
+======================================================================
+  DONE
+======================================================================
+  best epoch / val Dice : 52 / 0.5353
+  checkpoint            : C:\Users\Tanuj\Desktop\Projects\DR_SCREENING\SIH_2026\central-system\backend\ml-pipeline\models\red_lesion_unet_v1.pt  (293.5 MB)
+  visualisations        : C:\Users\Tanuj\Desktop\Projects\DR_SCREENING\SIH_2026\central-system\backend\ml-pipeline\models\red_lesion_predictions  (5 PNG)
+  metrics               : C:\Users\Tanuj\Desktop\Projects\DR_SCREENING\SIH_2026\central-system\backend\ml-pipeline\models\red_lesion_metrics.json
+  wall time             : 0.9 min
+  Free disk (end)       : 6.96 GB
+======================================================================

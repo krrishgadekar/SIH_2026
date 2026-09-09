@@ -7,6 +7,7 @@ import { LesionEvidencePanel } from './LesionEvidencePanel';
 import { BranchComparisonPanel } from './BranchComparisonPanel';
 import { DecisionControls } from './DecisionControls';
 import { CaseHistoryTimeline } from './CaseHistoryTimeline';
+import { InfoBanner } from '../shared/InfoBanner';
 
 const MetricBar = ({ label, value, maxVal = 1, color = 'var(--c-crimson)' }) => {
   const pct = Math.round((value / maxVal) * 100);
@@ -99,6 +100,11 @@ export const CaseDetailPage = () => {
           )}
         </div>
       </div>
+
+      <InfoBanner 
+        title="CLINICAL REVIEW GUIDANCE" 
+        text="Review both the holistic CNN branch and the explicit Rule Engine branch. Use the Grad-CAM toggle to verify lesion attention. Press 'C' to Confirm the AI grade, or 'O' to Override and provide a manual clinical reason." 
+      />
 
       {/* Main Content Grid */}
       <div className="case-detail__grid">
