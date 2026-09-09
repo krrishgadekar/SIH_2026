@@ -25,7 +25,12 @@ const path = require('path');
 const pool       = require('../db/pgClient');
 const mediaPaths = require('./mediaPaths');
 
-const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.bmp']);
+// Task 4.6: .dcm accepted because real fundus cameras export DICOM under the
+// Ophthalmic Photography IOD, and readFundusImage.m now reads it. Central only
+// -- the PHC quality gate still uses imread, so a DICOM cannot yet complete the
+// capture->sync path end to end. See readFundusImage.m for why that is a
+// bundle/licensing decision (Task 8.1) rather than a coding one.
+const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.bmp', '.dcm']);
 
 /**
  * parseJsonField(value, fieldName)

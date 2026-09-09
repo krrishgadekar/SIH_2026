@@ -145,7 +145,7 @@ this audit.*
 | **5.** Simulink workflow simulation | **3.8** | ⬜ moved up from 8.4; blocked on Task 0.0 |
 | *Expected solution:* outperforms any single technique | **9.2** | ❌ nothing built to compare against |
 | *Expected solution:* validation vs published benchmarks | 9.1, 9.3 | ❌ not started |
-| *Tools:* Computer Vision, Medical Imaging toolboxes | **4.6** | ⚠️ installed; Computer Vision now used in Phase 4 overlays, Medical Imaging still unused |
+| *Tools:* Computer Vision, Medical Imaging toolboxes | **4.6** | ✅ both genuinely used — CV for the annotated overlays, Medical Imaging for DICOM fundus input (`readFundusImage.m`) |
 
 **Bold** task numbers were added or moved by this audit. They were named
 requirements with nowhere to land — the kind of gap that stays invisible until
@@ -496,7 +496,37 @@ If everything above this line works end to end — capture → local quality gat
 - Build: classical CV first pass (`imfindcircles` for the bright, roughly-circular optic disc region), refined by a small regression CNN fine-tuned on IDRiD's 516-image localization subset for sub-pixel-accurate centers. Fovea estimated from its typical position relative to the optic disc plus the vessel arcade geometry.
 - Connects to: gives the quadrant-mapping axis that Tasks 4.2 and 4.3 need.
 
-**Task 4.6 — Put the two unused named toolboxes to genuine work** *(added 2026-09-08)*
+**Task 4.6 — Put the two unused named toolboxes to genuine work** — DONE (2026-09-09)
+- **Computer Vision Toolbox: already genuine, nothing added.** Used in
+  `generateEvidenceReport.m` (`insertObjectAnnotation`, `insertShape` for the
+  Task 7.3 annotated lesion overlay) and `verifyPhase4.m` (`labeloverlay`).
+  Both are the right tool for drawing annotations onto a clinical image.
+- **Medical Imaging Toolbox: was entirely unused; now used for DICOM.**
+  New `preprocessing/readFundusImage.m` — `isdicom` / `medicalImage` /
+  `dicominfo`. Three reasons it is not decorative:
+  1. Desktop fundus cameras (Topcon, Zeiss, Canon) export DICOM under the
+     Ophthalmic Photography IOD. **The pipeline could not read those files at
+     all**, so a PHC with a clinical-grade camera could not have submitted an
+     image.
+  2. DICOM names the device that took the photograph — better evidence than the
+     worker's dropdown, recorded for the Task 6.3 cross-check.
+  3. It carries `ImageLaterality`, the exact field Task 7.3 found missing.
+- Wired into `gradingOrchestrator`'s MATLAB chain in place of `imread`;
+  `.dcm` added to the central allowed extensions.
+- **Honestly incomplete:** the PHC quality gate still uses `imread`, so a DICOM
+  cannot yet complete the capture→sync path end to end. Wiring it there puts a
+  Medical Imaging dependency inside the Task 8.1 compiled bundle — a licensing
+  and bundle-size decision, not a coding one. Nothing consumes `.laterality`
+  yet either; no column was added under cover of this task.
+- The DICOM device is deliberately **not** substituted for `reportedDeviceId`:
+  `classifyCameraFamily` matches against known device keys, so a free-text
+  vendor string would match nothing and silently turn the Task 6.3 mismatch
+  check into a no-op.
+- Verified: `testReadFundusImage.m`, 21 checks, against a DICOM the test writes
+  with real ophthalmic tags. Not a vendor file — those carry private tags and
+  unusual layouts only real samples expose.
+
+**Task 4.6 (original spec)** *(added 2026-09-08)*
 - **Why this exists:** the PS names six tools. **Computer Vision Toolbox** and
   **Medical Imaging Toolbox** currently have *zero* usage anywhere in the
   codebase. Judges do check the tool list, and Phase 4 is the natural and

@@ -62,7 +62,12 @@ const MAX_TOTAL_BYTES  = parseInt(process.env.UPLOAD_MAX_TOTAL_BYTES  || String(
 const MAX_CHUNKS       = parseInt(process.env.UPLOAD_MAX_CHUNKS       || '2048', 10);
 const SESSION_TTL_MS   = parseInt(process.env.UPLOAD_SESSION_TTL_MS   || String(7 * 24 * 3600 * 1000), 10);
 
-const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.bmp']);
+// Task 4.6: .dcm accepted because real fundus cameras export DICOM under the
+// Ophthalmic Photography IOD, and readFundusImage.m now reads it. Central only
+// -- the PHC quality gate still uses imread, so a DICOM cannot yet complete the
+// capture->sync path end to end. See readFundusImage.m for why that is a
+// bundle/licensing decision (Task 8.1) rather than a coding one.
+const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.tif', '.tiff', '.bmp', '.dcm']);
 
 /**
  * Capture references are attacker-controlled: they arrive as a URL path segment
