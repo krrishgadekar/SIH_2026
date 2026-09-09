@@ -48,10 +48,13 @@ datasets/messidor2/
 
 # Trained network / model weight files (can be hundreds of MB)
 # Store these in a shared drive or object storage, not git.
-central-system/backend/ml-pipeline/models/*.mat
-central-system/backend/ml-pipeline/models/*.onnx
-central-system/backend/ml-pipeline/models/*.pt
-central-system/backend/ml-pipeline/models/*.h5
+# ** so nested model folders (models/Model1/, models/Model4/, ...) are covered too.
+central-system/backend/ml-pipeline/models/**/*.mat
+central-system/backend/ml-pipeline/models/**/*.onnx
+central-system/backend/ml-pipeline/models/**/*.pt
+central-system/backend/ml-pipeline/models/**/*.pth
+central-system/backend/ml-pipeline/models/**/*.ckpt
+central-system/backend/ml-pipeline/models/**/*.h5
 # Keep the README that documents where models live
 !central-system/backend/ml-pipeline/models/README.md
 
