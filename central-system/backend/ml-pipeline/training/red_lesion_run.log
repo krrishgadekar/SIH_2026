@@ -1,0 +1,162 @@
+======================================================================
+  RED-LESION (MA + HE) U-Net  --  IDRiD segmentation
+======================================================================
+  Python exe        : C:\Users\Tanuj\miniconda3\envs\dr_screening\python.exe
+  Torch / CUDA      : 2.5.1+cu121 / 12.1  available=True
+  Device            : cuda  (NVIDIA GeForce RTX 4050 Laptop GPU)
+  smp version       : 0.5.0
+  albumentations    : 2.0.8  (geometric transforms done in custom cv2 pipeline - see AUGMENTATION note)
+  Free disk (start) : 7.32 GB
+
+  Projected disk usage created by this script:
+    - red_lesion_unet_v1.pt            ~ 293.2 MB  (best only, overwritten in place)
+    - red_lesion_metrics.json          ~  0.02 MB
+    - red_lesion_predictions/*.png     ~  1.75 MB  (5 images)
+    - dataset copies / patch cache / preproc cache on disk :   0.0 MB (none)
+    => total new disk  ~295.0 MB
+    (in-RAM preprocessed-image cache ~90 MB, not on disk)
+
+----------------------------------------------------------------------
+  DATASET DISCOVERY
+----------------------------------------------------------------------
+  images discovered              : 81
+  with valid MA mask             : 81
+  with valid HE mask             : 80
+  with BOTH MA and HE            : 80
+  final usable image/mask pairs  : 81
+  original image dimensions      : [(2848, 4288)]
+  images with >=1 lesion pixel   : 100.0%
+  (official IDRiD division seen  : 54 train + 27 test; we re-split at IMAGE level below)
+----------------------------------------------------------------------
+  IMAGE-LEVEL SPLIT  (seed=42)   train=65  val=16
+----------------------------------------------------------------------
+  TRAIN ids (65):
+    IDRiD_01 IDRiD_02 IDRiD_03 IDRiD_04 IDRiD_05 IDRiD_06 IDRiD_07 IDRiD_08 IDRiD_10 IDRiD_11 IDRiD_12 IDRiD_14 IDRiD_15 IDRiD_17 IDRiD_18 IDRiD_19 IDRiD_20 IDRiD_21 IDRiD_22 IDRiD_23 IDRiD_25 IDRiD_26 IDRiD_27 IDRiD_28 IDRiD_29 IDRiD_30 IDRiD_32 IDRiD_34 IDRiD_35 IDRiD_36 IDRiD_38 IDRiD_39 IDRiD_40 IDRiD_41 IDRiD_42 IDRiD_43 IDRiD_44 IDRiD_45 IDRiD_46 IDRiD_47 IDRiD_48 IDRiD_49 IDRiD_52 IDRiD_55 IDRiD_56 IDRiD_57 IDRiD_59 IDRiD_60 IDRiD_61 IDRiD_62 IDRiD_63 IDRiD_65 IDRiD_67 IDRiD_68 IDRiD_69 IDRiD_70 IDRiD_72 IDRiD_73 IDRiD_74 IDRiD_75 IDRiD_76 IDRiD_77 IDRiD_79 IDRiD_80 IDRiD_81
+  VAL ids (16):
+    IDRiD_09 IDRiD_13 IDRiD_16 IDRiD_24 IDRiD_31 IDRiD_33 IDRiD_37 IDRiD_50 IDRiD_51 IDRiD_53 IDRiD_54 IDRiD_58 IDRiD_64 IDRiD_66 IDRiD_71 IDRiD_78
+
+  Preprocessed-image RAM cache warmed: 81 images in 0.0s, 84.9 MB resident (not written to disk)
+----------------------------------------------------------------------
+  MODEL  +  VESSEL-ENCODER TRANSFER LEARNING
+----------------------------------------------------------------------
+  architecture         : segmentation_models_pytorch.Unet
+  encoder              : resnet34   in_channels=3  classes=1  activation=None
+  encoder init         : models\vessel_predictions(Model2)\vessel_unet_v1.pt  (encoder only, decoder discarded)
+  encoder tensors loaded          : 216
+  encoder scalar params loaded    : 21,301,732
+  encoder tensors changed vs init : 216
+  missing encoder keys            : none
+  unexpected keys (ignored)       : none
+  shape-mismatch keys             : none
+  conv1 handling                  : adapted (64, 1, 7, 7) -> (64, 3, 7, 7) (tile across 3 channels, /3)
+  conv1 / deep-layer verified     : True / True
+  (vessel ckpt in_channels=1, best_val_dice=0.7771)
+
+======================================================================
+  SANITY CHECKS (must pass before the 150-epoch run)
+======================================================================
+  [OK]      Dataset pairing: 81 images | MA=81 HE=80 both=80 (each mask filename references its image id)
+  [OK]      Split counts: train=65  val=16  total=81
+  [OK]      No source image appears in both train and validation
+  [OK]      MA/HE logical-OR verified on IDRiD_01 (MA px=6941, HE px=35430, OR px=42371)
+  [OK]      Combined mask is binary (values [0, 1])
+  [OK]      Ben Graham preprocessing OK: image (512, 512, 3), mask (512, 512) (aligned)
+  [OK]      Preprocessed mask still binary after NEAREST resize
+  [OK]      Sampled patch dims: image (256, 256, 3), mask (256, 256)
+  [OK]      Lesion-aware sampling: 40/40 lesion patches on IDRiD_17 (image lesion px=49440)
+  [OK]      Augmentation keeps image/mask same shape and mask binary (spatial ops shared)
+  [OK]      Model forward pass OK: (8, 3, 256, 256) -> (8, 1, 256, 256)
+  [OK]      Loss is a finite scalar: 0.5697
+  [OK]      Backprop OK: finite non-zero gradient on encoder.conv1
+  [OK]      GPU detected: NVIDIA GeForce RTX 4050 Laptop GPU
+  [OK]      Vessel encoder transfer verified: 216 tensors (21,301,732 params), 216 changed vs random init; conv1 adapted (64, 1, 7, 7) -> (64, 3, 7, 7) (tile across 3 channels, /3)
+======================================================================
+  RESULT: all critical sanity checks passed.
+======================================================================
+
+  PATCH SAMPLING STRATEGY
+    patch size                 : 256 x 256 (generated on the fly)
+    patches / image / epoch    : 12  -> 780 train patches / epoch
+    lesion-patch target ratio  : 70% lesion / 30% background
+    min lesion px for 'lesion' : 10
+    max crop search attempts   : 30  (else graceful random-crop fallback)
+
+Epoch |   TrLoss  TrDice |   VlLoss  VlDice |        LR | notes
+----------------------------------------------------------------------
+    1 |   0.4929  0.0771 |   0.4881  0.2006 |  5.00e-04 | BEST -> checkpoint
+    2 |   0.4304  0.2270 |   0.4182  0.3176 |  5.00e-04 | BEST -> checkpoint
+    3 |   0.3552  0.2985 |   0.3662  0.3326 |  5.00e-04 | BEST -> checkpoint
+    4 |   0.3306  0.3270 |   0.3303  0.4136 |  5.00e-04 | BEST -> checkpoint
+    5 |   0.3328  0.3322 |   0.3465  0.3665 |  5.00e-04 | 
+    6 |   0.3041  0.3597 |   0.3552  0.3431 |  5.00e-04 | 
+    7 |   0.3083  0.3578 |   0.3120  0.4389 |  5.00e-04 | BEST -> checkpoint
+    8 |   0.3020  0.3745 |   0.3127  0.4259 |  5.00e-04 | 
+    9 |   0.2901  0.3930 |   0.3063  0.4389 |  5.00e-04 | 
+   10 |   0.2849  0.3913 |   0.3062  0.4416 |  5.00e-04 | BEST -> checkpoint
+   11 |   0.2800  0.3909 |   0.3261  0.3957 |  5.00e-04 | 
+   12 |   0.2917  0.3877 |   0.2991  0.4651 |  5.00e-04 | BEST -> checkpoint
+   13 |   0.2791  0.3966 |   0.2973  0.4664 |  5.00e-04 | BEST -> checkpoint
+   14 |   0.2754  0.3954 |   0.3171  0.4128 |  5.00e-04 | 
+   15 |   0.2672  0.4109 |   0.2998  0.4578 |  5.00e-04 | 
+   16 |   0.2661  0.4174 |   0.2979  0.4526 |  5.00e-04 | 
+   17 |   0.2747  0.4209 |   0.3015  0.4477 |  5.00e-04 | 
+   18 |   0.2693  0.4212 |   0.2914  0.4677 |  5.00e-04 | BEST -> checkpoint
+   19 |   0.2557  0.4350 |   0.3113  0.4326 |  5.00e-04 | 
+   20 |   0.2767  0.4206 |   0.2983  0.4548 |  5.00e-04 | 
+   21 |   0.2629  0.4304 |   0.2959  0.4584 |  5.00e-04 | 
+   22 |   0.2539  0.4386 |   0.3121  0.4249 |  5.00e-04 | 
+   23 |   0.2569  0.4393 |   0.3088  0.4259 |  5.00e-04 | 
+   24 |   0.2548  0.4473 |   0.2906  0.4639 |  5.00e-04 | 
+   25 |   0.2423  0.4610 |   0.2909  0.4633 |  5.00e-04 | 
+   26 |   0.2465  0.4397 |   0.2887  0.4656 |  5.00e-04 | 
+   27 |   0.2627  0.4319 |   0.3429  0.3817 |  5.00e-04 | 
+   28 |   0.2593  0.4354 |   0.2832  0.4840 |  5.00e-04 | BEST -> checkpoint
+   29 |   0.2482  0.4482 |   0.3078  0.4320 |  5.00e-04 | 
+   30 |   0.2430  0.4615 |   0.2872  0.4727 |  5.00e-04 | 
+   31 |   0.2453  0.4608 |   0.2814  0.4906 |  5.00e-04 | BEST -> checkpoint
+   32 |   0.2439  0.4586 |   0.2693  0.5086 |  5.00e-04 | BEST -> checkpoint
+   33 |   0.2435  0.4653 |   0.2717  0.5054 |  5.00e-04 | 
+   34 |   0.2489  0.4570 |   0.2629  0.5256 |  5.00e-04 | BEST -> checkpoint
+   35 |   0.2432  0.4706 |   0.2661  0.5114 |  5.00e-04 | 
+   36 |   0.2361  0.4655 |   0.2632  0.5228 |  5.00e-04 | 
+   37 |   0.2317  0.4682 |   0.2626  0.5223 |  5.00e-04 | 
+   38 |   0.2473  0.4647 |   0.2748  0.4970 |  5.00e-04 | 
+   39 |   0.2336  0.4732 |   0.2770  0.4923 |  5.00e-04 | 
+   40 |   0.2347  0.4781 |   0.2854  0.4833 |  5.00e-04 | 
+   41 |   0.2558  0.4478 |   0.2794  0.4818 |  5.00e-04 | 
+   42 |   0.2441  0.4669 |   0.2871  0.4747 |  5.00e-04 | 
+   43 |   0.2300  0.4854 |   0.2845  0.4780 |  5.00e-04 | 
+   44 |   0.2626  0.4400 |   0.2944  0.4583 |  5.00e-04 | 
+   45 |   0.2411  0.4682 |   0.2763  0.4941 |  2.50e-04 | 
+   46 |   0.2304  0.4783 |   0.2691  0.5105 |  2.50e-04 | 
+   47 |   0.2192  0.4858 |   0.2607  0.5256 |  2.50e-04 | BEST -> checkpoint
+   48 |   0.2262  0.4835 |   0.2675  0.5149 |  2.50e-04 | 
+   49 |   0.2271  0.4886 |   0.2696  0.5090 |  2.50e-04 | 
+   50 |   0.2144  0.5004 |   0.2667  0.5178 |  2.50e-04 | 
+   51 |   0.2194  0.4929 |   0.2650  0.5160 |  2.50e-04 | 
+   52 |   0.2159  0.5002 |   0.2574  0.5353 |  2.50e-04 | BEST -> checkpoint
+   53 |   0.2191  0.4900 |   0.2728  0.5060 |  2.50e-04 | 
+   54 |   0.2253  0.4849 |   0.2818  0.4784 |  2.50e-04 | 
+   55 |   0.2269  0.4926 |   0.2599  0.5241 |  2.50e-04 | 
+   56 |   0.2159  0.5045 |   0.2579  0.5290 |  2.50e-04 | 
+   57 |   0.2112  0.5093 |   0.2621  0.5211 |  2.50e-04 | 
+   58 |   0.2166  0.4982 |   0.2675  0.5076 |  2.50e-04 | 
+   59 |   0.2166  0.5051 |   0.2647  0.5126 |  2.50e-04 | 
+   60 |   0.2246  0.5017 |   0.2596  0.5291 |  2.50e-04 | 
+   61 |   0.2106  0.5012 |   0.2704  0.5065 |  2.50e-04 | 
+   62 |   0.2089  0.5140 |   0.2736  0.5033 |  2.50e-04 | 
+   63 |   0.2225  0.4949 |   0.2623  0.5178 |  1.25e-04 | 
+   64 |   0.2118  0.4938 |   0.2649  0.5114 |  1.25e-04 | 
+   65 |   0.2125  0.5084 |   0.2607  0.5223 |  1.25e-04 | 
+   66 |   0.2078  0.5139 |   0.2659  0.5130 |  1.25e-04 | 
+   67 |   0.2015  0.5140 |   0.2677  0.5096 |  1.25e-04 | 
+   68 |   0.2058  0.5145 |   0.2690  0.5067 |  1.25e-04 | 
+   69 |   0.2040  0.5097 |   0.2715  0.5010 |  1.25e-04 | 
+   70 |   0.2069  0.5047 |   0.2613  0.5260 |  1.25e-04 | 
+   71 |   0.2015  0.5171 |   0.2741  0.4954 |  1.25e-04 | 
+   72 |   0.2041  0.5061 |   0.2549  0.5339 |  1.25e-04 | 
+
+  Early stopping: no val-Dice improvement for 20 epochs.
+----------------------------------------------------------------------
+  Best epoch 52  |  best val Dice 0.5353
+  Reloaded best checkpoint: C:\Users\Tanuj\Desktop\Projects\DR_SCREENING\SIH_2026\central-system\backend\ml-pipeline\models\red_lesion_unet_v1.pt

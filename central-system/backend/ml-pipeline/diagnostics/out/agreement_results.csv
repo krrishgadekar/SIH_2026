@@ -1,0 +1,15 @@
+image,gt_grade,rule_grade,classifier_grade,agree,sum_red,sum_bright,red_per_quadrant,rule_clause
+IDRiD_212,0,2,0,0,1,4,"(1, 0, 0, 0)",red>0 & (bright>0 | red>5)
+IDRiD_029,0,2,0,0,2,1,"(1, 1, 0, 0)",red>0 & (bright>0 | red>5)
+IDRiD_256,1,2,0,0,3,1,"(0, 2, 0, 1)",red>0 & (bright>0 | red>5)
+IDRiD_085,1,1,0,0,3,0,"(0, 0, 2, 1)",red>0
+IDRiD_247,2,2,3,0,21,23,"(8, 8, 2, 3)",red>0 & (bright>0 | red>5)
+IDRiD_100,2,2,0,0,11,4,"(3, 0, 7, 1)",red>0 & (bright>0 | red>5)
+IDRiD_368,3,2,3,0,36,143,"(3, 9, 14, 10)",red>0 & (bright>0 | red>5)
+IDRiD_324,3,2,3,0,64,23,"(19, 16, 14, 15)",red>0 & (bright>0 | red>5)
+IDRiD_389,4,2,4,0,31,44,"(13, 7, 11, 0)",red>0 & (bright>0 | red>5)
+IDRiD_032,4,2,3,0,32,3,"(5, 21, 2, 4)",red>0 & (bright>0 | red>5)
+IDRiD_404,2,2,4,0,9,4,"(4, 1, 2, 2)",red>0 & (bright>0 | red>5)
+IDRiD_408,1,2,0,0,4,1,"(0, 0, 4, 0)",red>0 & (bright>0 | red>5)
+IDRiD_089,2,2,3,0,40,32,"(23, 7, 9, 1)",red>0 & (bright>0 | red>5)
+IDRiD_318,0,2,1,0,2,2,"(0, 1, 1, 0)",red>0 & (bright>0 | red>5)
