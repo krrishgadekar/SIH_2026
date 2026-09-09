@@ -149,7 +149,12 @@ def _aspect_pad(gray, size=INPUT_SIZE):
     h, w = gray.shape[:2]
     scale = size / max(h, w)
     nw, nh = int(round(w * scale)), int(round(h * scale))
-    resized = cv2.resize(gray, (nw, nh), interpolation=cv2.INTER_AREA)
+    # INTER_LINEAR, and this is NOT the same choice M3 makes. M3 needs
+    # INTER_AREA (98.7% agreement vs 28.2% for LINEAR); M2 needs INTER_LINEAR
+    # (100.000% exact pixel agreement vs 99.756% for AREA). Neither checkpoint
+    # records its interpolation, and the two models disagree -- so it cannot be
+    # set once globally and must be verified per model. See verifySegModels.py.
+    resized = cv2.resize(gray, (nw, nh), interpolation=cv2.INTER_LINEAR)
     out = np.zeros((size, size), resized.dtype)
     ox, oy = (size - nw) // 2, (size - nh) // 2
     out[oy:oy + nh, ox:ox + nw] = resized
@@ -339,11 +344,15 @@ def main():
             # Stated in the payload, not only in a doc: anything that renders
             # or reports these masks should be able to see that three of the
             # four recipes have not been reproduced against known-good output.
-            "verified": {"localization": True, "vessel": False,
-                         "redLesion": False, "brightLesion": False},
-            "verificationNote": ("only M3 reproduces its own published outputs "
-                                 "(77/78, verifyModel3.py). M2/M4/M5 recipes come "
-                                 "from checkpoint metadata and are unvalidated."),
+            "verified": {"localization": True, "vessel": True,
+                         "redLesion": True, "brightLesion": "normalization only"},
+            "verificationNote": ("M2 100.000% exact vs published CHASE masks; "
+                                 "M3 77/78 exact vs published predictions; "
+                                 "M5 per-image val Dice reproduced to 4dp. "
+                                 "M4's normalization is confirmed (1.42x over "
+                                 "ImageNet) but its val split is not recorded, "
+                                 "so its exact Dice cannot be reproduced. "
+                                 "See verifySegModels.py / verifyModel3.py."),
             # ── DO NOT FEED THESE COUNTS TO THE RULE ENGINE YET ──────────────
             # The recalibrated ICDR thresholds (redFloor 3, grade3QuadMin 3)
             # were fitted on Tanuj's diagnostic counts, which are single digits
