@@ -1,0 +1,12 @@
+{
+  "modelVersion": "branchA_v1",
+  "temperature": 1.5310892832656358,
+  "alpha": 0.1,
+  "qhat": 0.843151453885262,
+  "probThreshold": 0.15684854611473797,
+  "coverage": 0.9,
+  "referableFrom": 2,
+  "fittedOn": "val split, n=626",
+  "fittedAt": "2026-09-09T16:40:55Z",
+  "note": "fitted by calibrateBranchA.m. Do not hand-edit: temperature and qhat come from one fit on one fold and are only jointly meaningful."
+}
