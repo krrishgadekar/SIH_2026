@@ -43,6 +43,17 @@ class LocalApiClient {
   async saveCaptureMetadata(captureId, metadata) {
     if (this.useMock) {
       await delay(600);
+      const newQueueItem = {
+        captureId,
+        patientId: metadata.patientId || 'PHC001-lz3k9f-a2x9',
+        patientName: metadata.patientName || (metadata.patientId === 'PHC001-lz3k9g-b4y2' ? 'Ramesh Kumar' : 'Sunita Devi'),
+        status: 'result_delivered',
+        capturedAt: new Date().toISOString(),
+        imagePreviewUrl: metadata.imagePreviewUrl,
+        imageUrl: metadata.imagePreviewUrl,
+        prediction: metadata.aiPrediction,
+      };
+      mockData.mockQueueItems.unshift(newQueueItem);
       return { success: true, captureId, ...metadata };
     }
     const res = await fetch(`${this.baseUrl}/api/v1/captures/${captureId}/metadata`, {

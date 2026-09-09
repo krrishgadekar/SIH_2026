@@ -30,10 +30,10 @@ export const PatientRegistrationForm = () => {
   };
 
   return (
-    <div className="section" style={{ position: 'relative' }}>
+    <div className="registration-screen">
       <RetinalWaveCanvas />
       
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: '600px', margin: '0 auto', marginTop: '4rem' }}>
+      <div className="registration-screen__content">
         <h1 className="t-display u-text-center u-mb-6" dangerouslySetInnerHTML={{ __html: t('registration.title').replace(' ', '<br/>') }}></h1>
         
         <form onSubmit={handleSubmit} className="panel u-p-6">
@@ -84,10 +84,6 @@ export const PatientRegistrationForm = () => {
             </button>
           </div>
         </form>
-        
-        <div className="u-text-center u-mt-4">
-          <p className="t-mono" style={{ opacity: 0.5 }}>{t('registration.secureModule')}</p>
-        </div>
       </div>
     </div>
   );
