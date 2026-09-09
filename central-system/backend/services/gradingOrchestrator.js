@@ -9,6 +9,7 @@
  *
  * Pipeline (two round-trips, since 2026-09-09):
  *   PYTHON  ben_graham → EfficientNet-B0 → temperature → conformal tier
+ *           → Grad-CAM (same spawn)
  *   MATLAB  readFundusImage → preprocessForBranchA (camera cross-check)
  *           → generateEvidenceReport
  *
@@ -106,9 +107,11 @@ const BRANCH_A_INFER = path.join(ML_ROOT, 'inference', 'branchAInfer.py');
  * capture path containing a quote is inert rather than executable — the same
  * property the compiled quality gate gained in Task 8.1.
  */
-function runBranchAInference(imagePath) {
+function runBranchAInference(imagePath, gradcamPath) {
   return new Promise((resolve, reject) => {
-    const proc = spawn(PYTHON_EXE, [BRANCH_A_INFER, imagePath], {
+    const args = [BRANCH_A_INFER, imagePath];
+    if (gradcamPath) args.push('--gradcam', gradcamPath);
+    const proc = spawn(PYTHON_EXE, args, {
       env: process.env,
       timeout: TIMEOUT_MS,
     });
@@ -249,6 +252,9 @@ async function processCase(caseId) {
   }
 
   // ── Branch A: the REAL model, in Python ────────────────────────────────────
+  // Grad-CAM is produced in the SAME call. The interpreter start and model
+  // load dominate the cost, so a second spawn would roughly double the time to
+  // produce one explained result.
   // The MATLAB chain above still runs preprocessing metadata, the camera
   // cross-check and the evidence report. It no longer supplies the grade.
   //
@@ -258,7 +264,7 @@ async function processCase(caseId) {
   // Python reproduces them to 0.0050 with 100% agreement. The structure
   // imports correctly, which is what makes it dangerous. Measured in
   // testImportedNetwork.m; re-run it if the converter is updated.
-  const branchA = await runBranchAInference(imagePath);
+  const branchA = await runBranchAInference(imagePath, gradcamPath);
 
   const grade = branchA.drGradeCnn;
   const confidenceScore = branchA.confidenceScore;
@@ -266,6 +272,16 @@ async function processCase(caseId) {
 
   if (branchA.calibrationWarning) {
     console.warn(`[gradingOrchestrator] case ${caseId}: ${branchA.calibrationWarning}`);
+  }
+  if (branchA.gradcamError) {
+    console.warn(`[gradingOrchestrator] case ${caseId}: Grad-CAM failed: ${branchA.gradcamError}`);
+  }
+  // Design doc §6.9's safeguard. A heatmap sitting mostly outside the retinal
+  // circle means the model keyed on camera artefacts rather than the eye, and
+  // that is a reason for a human to look — not something to log quietly and
+  // move past.
+  if (branchA.gradcamWarning) {
+    console.warn(`[gradingOrchestrator] case ${caseId}: ${branchA.gradcamWarning}`);
   }
 
   // Branch B (Task 5.1) grades from lesion QUADRANT COUNTS, which come from
@@ -332,13 +348,18 @@ async function processCase(caseId) {
 
   // ── Step 4: INSERT INTO explainability_outputs ─────────────────────────────
   // vessel_mask_path, lesion_red_path, lesion_bright_path stay NULL (Phase 3).
+  //
+  // gradcam_path is written only when Python actually produced an overlay. A
+  // Grad-CAM failure does not fail the grade — the clinical output is already
+  // computed — so the column falls back to NULL and the frontend renders "not
+  // yet available" rather than a URL to a file that is not there.
   await pool.query(`
     INSERT INTO explainability_outputs (case_id, gradcam_path, evidence_summary_text)
     VALUES ($1, $2, $3)
     ON CONFLICT (case_id) DO UPDATE SET
       gradcam_path          = EXCLUDED.gradcam_path,
       evidence_summary_text = EXCLUDED.evidence_summary_text
-  `, [caseId, null, mlResult.evidenceSummaryText ?? null]);
+  `, [caseId, branchA.gradcamPath ?? null, mlResult.evidenceSummaryText ?? null]);
 
   // lesion_attention_consistency_score stays NULL on purpose (Task 7.1).
   // lesionAttentionConsistency is built and unit-tested, but it needs a lesion
@@ -356,7 +377,7 @@ async function processCase(caseId) {
     + `confidence=${confidenceScore.toFixed(4)}, tier=${tier}, `
     + `referable=${referable}`);
 
-  return { caseId, grade, confidenceScore, referable, tier, gradcamPath: null };
+  return { caseId, grade, confidenceScore, referable, tier, gradcamPath: branchA.gradcamPath ?? null };
 }
 
 // ── MATLAB expression builder ──────────────────────────────────────────────────

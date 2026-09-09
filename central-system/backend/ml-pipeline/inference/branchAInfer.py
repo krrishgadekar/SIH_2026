@@ -130,8 +130,38 @@ def load_model():
     return model, ckpt
 
 
+def display_base(bgr, size):
+    """The fundus at the model's geometry, without the contrast step.
+
+    ben_graham does crop -> resize -> contrast boost. Only the first two move
+    pixels; the boost is pixel-wise. So repeating the crop and resize gives an
+    image the heatmap aligns to EXACTLY while still looking like a retina,
+    rather than the grey, contrast-stretched thing the model consumes.
+
+    Display only. If this ever drifted from ben_graham's crop the consequence
+    is a heatmap drawn a few pixels off, not a wrong grade — but it is
+    duplicated logic and is flagged as such.
+    """
+    import cv2
+    green = bgr[:, :, 1]
+    _, mask = cv2.threshold(green, 7, 255, cv2.THRESH_BINARY)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE,
+                            cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15)))
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cropped = bgr
+    if contours:
+        x, y, w, h = cv2.boundingRect(max(contours, key=cv2.contourArea))
+        cropped = bgr[y:y + h, x:x + w]
+    if cropped.size == 0:
+        cropped = bgr
+    return cv2.resize(cropped, (size, size), interpolation=cv2.INTER_AREA)
+
+
 def preprocess(image_path, ckpt):
-    """The training chain, imported rather than reimplemented."""
+    """The training chain, imported rather than reimplemented.
+
+    Returns (model_input_NCHW, display_base_bgr).
+    """
     import cv2
     from preprocessing.ben_graham import ben_graham_preprocess
 
@@ -144,6 +174,7 @@ def preprocess(image_path, ckpt):
         _fail(f"could not read image: {image_path}")
 
     proc = ben_graham_preprocess(bgr, target_size=ckpt["img_size"])
+    base = display_base(bgr, ckpt["img_size"])
 
     if ckpt["channel_order"] == "RGB":
         proc = cv2.cvtColor(proc, cv2.COLOR_BGR2RGB)
@@ -151,7 +182,7 @@ def preprocess(image_path, ckpt):
     x = proc.astype(np.float32) / 255.0
     x = (x - np.array(ckpt["normalize_mean"], np.float32)) \
         / np.array(ckpt["normalize_std"], np.float32)
-    return x.transpose(2, 0, 1)[None, ...]      # HWC -> NCHW
+    return x.transpose(2, 0, 1)[None, ...], base      # HWC -> NCHW
 
 
 def softmax(v):
@@ -193,6 +224,8 @@ def assign_tier(probs, calib):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("image", nargs="?", help="path to the fundus image")
+    ap.add_argument("--gradcam", metavar="PNG",
+                    help="also write a Grad-CAM overlay to this path")
     args = ap.parse_args()
 
     if not args.image:
@@ -206,7 +239,7 @@ def main():
         model, ckpt = load_model()
         calib = load_calibration()
 
-        x = preprocess(args.image, ckpt)
+        x, base = preprocess(args.image, ckpt)
         with torch.no_grad():
             logits = model(torch.from_numpy(x)).numpy()[0]
 
@@ -235,6 +268,33 @@ def main():
         }
         if calib.get("warning"):
             out["calibrationWarning"] = calib["warning"]
+
+        # ── Grad-CAM, in the same process ──────────────────────────────────
+        # Same spawn as the grade: the interpreter start and model load
+        # dominate the cost, so a second process would roughly double the time
+        # to produce one explained result.
+        #
+        # A Grad-CAM failure must NOT fail the grade. The grade is the clinical
+        # output and is already computed; losing the picture is a degraded
+        # result, not a lost one. The reason is reported rather than swallowed.
+        if args.gradcam:
+            try:
+                from gradcam import compute_gradcam, save_overlay
+                cam, cam_class, _ = compute_gradcam(model, torch.from_numpy(x),
+                                                    class_index=grade)
+                info = save_overlay(cam, base, args.gradcam)
+                out["gradcam"] = info
+                out["gradcamClass"] = cam_class
+                out["gradcamPath"] = args.gradcam
+                if info.get("mostlyOutsideRetina"):
+                    out["gradcamWarning"] = (
+                        "most of the model's attention fell OUTSIDE the retinal "
+                        "circle -- the grade may rest on camera artefacts rather "
+                        "than on the eye")
+            except Exception as exc:  # noqa: BLE001
+                out["gradcamPath"] = None
+                out["gradcamError"] = f"{type(exc).__name__}: {exc}"
+                print(f"branchAInfer: Grad-CAM failed: {exc}", file=sys.stderr)
 
         print(json.dumps(out))
         return 0
