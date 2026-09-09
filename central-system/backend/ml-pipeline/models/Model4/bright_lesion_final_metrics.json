@@ -1,0 +1,9 @@
+{
+  "best_epoch": 13,
+  "best_saved_val_dice": 0.5831056841876934,
+  "final_mean_val_dice": 0.5831056841876934,
+  "final_global_val_dice": 0.7325068434272193,
+  "od_mask_radius": 58,
+  "num_train_images": 43,
+  "num_val_images": 11
+}

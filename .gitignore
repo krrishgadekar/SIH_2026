@@ -31,3 +31,11 @@ lerna-debug.log*
 *.sw?
 .DS_Store
 Thumbs.db
+
+# --- ML pipeline artifacts (regenerable; too large / noisy for GitHub) ---
+*.pt
+*.pth
+*.ckpt
+__pycache__/
+*.pyc
+central-system/backend/ml-pipeline/datasets/
