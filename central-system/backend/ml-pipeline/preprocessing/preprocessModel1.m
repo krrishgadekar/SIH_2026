@@ -6,7 +6,7 @@ function [out, steps] = preprocessModel1(img, opts)
 %
 %   opts:
 %     .targetSize  384  - MUST match the trained network's input
-%     .clipLimit   0.01 - adapthisteq clip; see the CLAHE note below
+%     .clipLimit        accepted but UNUSED -- no CLAHE in the training chain
 %     .numTiles  [8 8]
 %
 %   Returns a targetSize x targetSize x 3 uint8 image.
@@ -16,7 +16,7 @@ function [out, steps] = preprocessModel1(img, opts)
 %   (Model1, EfficientNet-B0, 2026-09-09) was actually trained with:
 %
 %       central-system/backend/ml-pipeline/preprocessing/ben_graham.py
-%       central-system/backend/ml-pipeline/preprocessing/clahe_enhance.py
+%   (clahe_enhance.py sits beside it and is NOT part of the chain -- see below)
 %
 %   Its correctness criterion is not "is this good preprocessing" — it is
 %   "does this produce what the model was trained on". A better denoiser, a
@@ -39,23 +39,35 @@ function [out, steps] = preprocessModel1(img, opts)
 %   better. They remain in use for the Phase 4 segmentation path, where the
 %   models are ours and we control both sides of the chain.
 %
-%   ── THE ONE PART THAT IS NOT EXACT ─────────────────────────────────────────
-%   cv2.createCLAHE(clipLimit=2.0) and adapthisteq('ClipLimit', c) do not use
-%   the same normalisation: OpenCV's limit is a multiplier on the average
-%   histogram bin count, MATLAB's is a fraction in [0,1]. There is no published
-%   exact conversion.
+%   ── HOW THE CHAIN WAS ESTABLISHED, RATHER THAN ASSUMED ─────────────────────
+%   The training script is not in the repo, and the two preprocessing modules
+%   that ARE there (ben_graham.py, clahe_enhance.py) do not say which of them
+%   training called. Reading alone could not settle it.
 %
-%   For 384x384 with 8x8 tiles, each tile is 48x48 = 2304 px, so the average
-%   bin holds 2304/256 = 9 counts and OpenCV clips at 2.0 x 9 = 18. Expressed
-%   as a fraction of the tile that is 18/2304 = 0.0078, which is where the
-%   default below comes from — reasoned, not measured. Confirming it needs
-%   OpenCV installed and a direct diff against the Python output; until then
-%   this is the weakest link in the port and is marked as such rather than
-%   presented as exact.
+%   identifyTrainingChain.py settles it empirically: the checkpoint ships the
+%   model's own test-split logits, so each candidate chain can be run and
+%   checked against them. Logits are a fingerprint — the right preprocessing
+%   reproduces them, the wrong one does not.
+%
+%       ben_graham only      mean |logit diff| 0.66   class agreement 81.2%
+%       ben_graham + CLAHE   mean |logit diff| 1.92   class agreement 43.5%
+%
+%   So: no CLAHE. Re-run that script if the model is ever replaced.
+%
+%   ── STILL NOT AN EXACT REPRODUCTION ────────────────────────────────────────
+%   0.66 and 81.2%% is decisively better than the alternative but is not the
+%   near-zero an exact match would give, so something ELSE still differs
+%   between this chain and training — a resize interpolation, an extra
+%   normalisation, or preprocessed images cached at train time. Unresolved and
+%   recorded rather than smoothed over. The remaining gap is small enough not
+%   to be the CLAHE-sized error, and large enough to be worth finding.
 
 if nargin < 2, opts = struct(); end
 targetSize = getdef(opts, 'targetSize', 384);
-clipLimit  = getdef(opts, 'clipLimit', 0.0078);
+% Accepted but UNUSED: the training chain applies no CLAHE (see above). Kept in
+% the signature so callers written against the earlier, wrong version fail
+% loudly on their expectations rather than silently passing a dead parameter.
+clipLimit  = getdef(opts, 'clipLimit', NaN);
 numTiles   = getdef(opts, 'numTiles', [8 8]);
 
 if size(img, 3) ~= 3
@@ -105,27 +117,35 @@ blurred = imgaussfilt(double(resized), sigma, 'FilterSize', ksize);
 enhanced = 4 * double(resized) - 4 * blurred + 128;
 enhanced = uint8(min(255, max(0, enhanced)));
 
-% ── clahe_enhance.py: CLAHE on the L channel of LAB, colour left alone ─────
-% Only luminance is touched. Running CLAHE per RGB channel instead would shift
-% hue, and the red/green balance of a fundus photograph carries the lesion
-% signal — that is why their code goes through LAB rather than the easy route.
-lab = rgb2lab(enhanced);
-L = lab(:, :, 1) / 100;                       % adapthisteq wants [0,1]
-L = adapthisteq(L, 'ClipLimit', clipLimit, 'NumTiles', numTiles);
-lab(:, :, 1) = L * 100;
-out = lab2rgb(lab, 'OutputType', 'uint8');
+% ── AND THAT IS THE WHOLE CHAIN. NO CLAHE. ─────────────────────────────────
+% clahe_enhance.py sits next to ben_graham.py in the training repo and is
+% exported from preprocessing/__init__.py, so the obvious reading is that both
+% ran. The first version of this file made exactly that assumption.
+%
+% It is wrong. The checkpoint's own metadata records
+%     preprocessing: "ben_graham: circular crop -> resize ->
+%                     gaussian-subtraction contrast"
+% naming ben_graham alone, and identifyTrainingChain.py settled it by
+% reproducing the model's published test logits under each candidate:
+%
+%     ben_graham only      mean |logit diff| 0.66   class agreement 81.2%
+%     ben_graham + CLAHE   mean |logit diff| 1.92   class agreement 43.5%
+%
+% Adding CLAHE roughly halved agreement with the model's own recorded outputs.
+% The file existing is not evidence the training script called it.
+out = enhanced;
 
 steps = struct( ...
     'recipe',      'model1', ...
     'targetSize',  targetSize, ...
     'sigma',       sigma, ...
     'kernelSize',  ksize, ...
-    'clipLimit',   clipLimit, ...
-    'numTiles',    numTiles, ...
-    'portedFrom',  'ben_graham.py + clahe_enhance.py (Model1 training code)', ...
-    'exactness',   ['crop/resize/gaussian are faithful; the CLAHE clip limit ' ...
-                    'is a reasoned conversion from cv2 clipLimit=2.0 and is ' ...
-                    'UNVERIFIED against the Python']);
+    'claheApplied', false, ...
+    'portedFrom',  'ben_graham.py (Model1 training code); CLAHE deliberately NOT applied', ...
+    'exactness',   ['chain identified by reproducing the model''s published ' ...
+                    'logits (identifyTrainingChain.py): 0.66 mean logit diff, ' ...
+                    '81.2%% class agreement. Close but not exact — something ' ...
+                    'minor still differs from training']);
 end
 
 function v = getdef(s, name, dflt)
