@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import fundusEyeImg from '../../assets/fundus_eye.jpg';
 
 export const DiagnosticResultModal = React.memo(({ isOpen, onClose, item, prediction, imageUrl }) => {
-  if (!isOpen || !item) return null;
 
   // The actual eye image: priority to uploaded image, then item image, then authentic fundus eye photo
   const displayImage = imageUrl || item?.imagePreviewUrl || item?.imageUrl || item?.image || fundusEyeImg;
@@ -37,13 +36,13 @@ export const DiagnosticResultModal = React.memo(({ isOpen, onClose, item, predic
   }, [prediction]);
 
   const captureTime = useMemo(() => {
-    if (!item.capturedAt) return "02:35 PM";
+    if (!item?.capturedAt) return "02:35 PM";
     try {
       return new Date(item.capturedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
     } catch {
       return "02:35 PM";
     }
-  }, [item.capturedAt]);
+  }, [item?.capturedAt]);
 
   const biomarkers = useMemo(() => [
     {
@@ -82,6 +81,8 @@ export const DiagnosticResultModal = React.memo(({ isOpen, onClose, item, predic
       badgeClass: "biomarker-badge--low",
     },
   ], []);
+
+  if (!isOpen || !item) return null;
 
   const handlePrint = (e) => {
     e?.stopPropagation();
