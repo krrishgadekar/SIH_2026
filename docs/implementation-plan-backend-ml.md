@@ -663,7 +663,35 @@ directory structure from Task 0 and has been empty the whole time.
   the `model_versions` validation columns. Those columns are the continual-
   learning promotion gate (§6.11), so this task is what makes that gate real.
 
-**Task 9.2 — Integrated pipeline vs single-technique baseline**
+**Task 9.2 — Integrated pipeline vs single-technique baseline** — DONE (2026-09-09), never run on real predictions
+- Files: `compareToBaseline.m`, `testCompareToBaseline.m` (34 checks).
+- **The thing this task is really about:** the integrated pipeline DEFERS
+  disagreements to a human. Branch A alone defers nothing. Comparing their
+  accuracies directly flatters the integrated system automatically — deferring
+  is how you raise accuracy without improving anything, and a pipeline
+  answering only the easiest 30% would post a spectacular number while being
+  useless.
+- So the report always carries coverage, and the headline is a **matched-
+  coverage** comparison: Branch A forced to defer its own least-confident cases
+  until coverage matches, then re-scored. That is the baseline at its best, not
+  a straw man. If the integrated pipeline wins only at unmatched coverage, the
+  summary says deferral did the work, not the second branch.
+- Also reports **disagreement lift** = P(Branch A wrong | branches disagree) /
+  P(Branch A wrong), measurable on any labelled split with no review capacity
+  needed. That is the dual-branch design's actual claim and is stronger
+  evidence than the accuracy delta: a lift near 1 means the flag fires at
+  random and costs reviewer time for nothing.
+- Verdicts rest on **non-overlapping confidence intervals**, never point
+  estimates, and a loss is checked before a win so a mixed result cannot have
+  its good half quoted.
+- Two bugs the tests caught: the verdict originally checked only sensitivity
+  for a loss, so an arm that collapsed on specificity (0.50 vs 1.00, intervals
+  far apart) was reported as "no difference"; and the first loss fixture failed
+  to distinguish the two arms at all.
+- **No comparative claim is supported today** — Branch A is a stub and no
+  lesion counts exist, so this has never seen real predictions.
+
+**Task 9.2 (original spec)**
 - File: `central-system/backend/ml-pipeline/training/compareToBaseline.m`
 - **Why this exists:** the PS's expected solution asks for "validation against
   published benchmarks showing **the integrated pipeline outperforms any single
