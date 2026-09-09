@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { centralApi } from '../../api/centralApiClient';
 import { drGradeLabels } from '../../api/mockData';
@@ -58,6 +58,11 @@ export const ReviewQueuePage = () => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const navigate = useNavigate();
 
+  // Search and filter state (matching ReferralTrackerPage pattern)
+  const [searchQuery, setSearchQuery] = useState('');
+  const [phcFilter, setPhcFilter] = useState('all');
+  const [gradeFilter, setGradeFilter] = useState('all');
+
   useEffect(() => {
     centralApi.getOphthQueue().then(data => {
       setQueue(data);
@@ -65,14 +70,43 @@ export const ReviewQueuePage = () => {
     });
   }, []);
 
-  const filteredQueue = queue.filter(item => {
-    if (filter === 'tier-c') return item.conformalTier === 'C';
-    if (filter === 'tier-b') return item.conformalTier === 'B';
-    if (filter === 'disagreement') return item.branchAgreement === false;
-    return true;
-  });
+  // Extract unique PHC names for dropdown
+  const phcOptions = useMemo(() => {
+    return Array.from(new Set(queue.map(q => q.phcName).filter(Boolean))).sort();
+  }, [queue]);
 
-  const sortedQueue = React.useMemo(() => {
+  const filteredQueue = useMemo(() => {
+    let list = queue;
+
+    // Tier / disagreement filter
+    if (filter === 'tier-c') list = list.filter(item => item.conformalTier === 'C');
+    if (filter === 'tier-b') list = list.filter(item => item.conformalTier === 'B');
+    if (filter === 'disagreement') list = list.filter(item => item.branchAgreement === false);
+
+    // PHC filter
+    if (phcFilter !== 'all') {
+      list = list.filter(item => item.phcName === phcFilter);
+    }
+
+    // Grade filter
+    if (gradeFilter !== 'all') {
+      list = list.filter(item => String(item.drGradeCnn) === String(gradeFilter));
+    }
+
+    // Text search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list.filter(item =>
+        (item.patientReference && item.patientReference.toLowerCase().includes(q)) ||
+        (item.phcName && item.phcName.toLowerCase().includes(q)) ||
+        (item.caseId && item.caseId.toLowerCase().includes(q))
+      );
+    }
+
+    return list;
+  }, [queue, filter, phcFilter, gradeFilter, searchQuery]);
+
+  const sortedQueue = useMemo(() => {
     let sortableItems = [...filteredQueue];
     if (sortConfig.key !== null) {
       sortableItems.sort((a, b) => {
@@ -117,6 +151,16 @@ export const ReviewQueuePage = () => {
   const tierBCount = queue.filter(q => q.conformalTier === 'B').length;
   const disagreeCount = queue.filter(q => q.branchAgreement === false).length;
 
+  const hasActiveFilters = searchQuery.trim() !== '' || phcFilter !== 'all' || gradeFilter !== 'all' || filter !== 'all';
+
+  const handleResetFilters = useCallback(() => {
+    setSearchQuery('');
+    setPhcFilter('all');
+    setGradeFilter('all');
+    setFilter('all');
+    setSortConfig({ key: null, direction: 'asc' });
+  }, []);
+
   if (loading) {
     return (
       <div className="section">
@@ -135,7 +179,7 @@ export const ReviewQueuePage = () => {
           <p className="section__subtitle">OPHTHALMOLOGIST INTERFACE</p>
           <h1 className="section__title" style={{ marginBottom: 0 }}>REVIEW QUEUE</h1>
         </div>
-        <div className="u-flex u-gap-2">
+        <div className="u-flex u-items-center u-gap-3">
           <span className="badge badge--neutral">{queue.length} TOTAL</span>
           <span className="badge badge--tier-c">{tierCCount} TIER C</span>
           <span className="badge badge--tier-b">{tierBCount} TIER B</span>
@@ -147,6 +191,88 @@ export const ReviewQueuePage = () => {
         title="QUEUE PRIORITIZATION" 
         text="Cases are automatically sorted by urgency. Tier C cases and branch disagreements are floated to the top, followed by lowest confidence scores. Spot-check Tier B cases appear last." 
       />
+
+      {/* Search & Multi-Filter Bar (matching ReferralTrackerPage) */}
+      <div className="panel u-mb-4" style={{ padding: 'var(--sp-4)', border: 'var(--border)' }}>
+        <div className="u-flex u-items-center u-gap-3" style={{ flexWrap: 'wrap' }}>
+          {/* Search Input */}
+          <div style={{ flex: '1 1 200px', minWidth: '180px' }}>
+            <input
+              type="text"
+              className="input"
+              placeholder="🔍 Search Patient Ref, Case ID, or PHC..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ height: '38px', fontSize: 'var(--fs-tiny)' }}
+            />
+          </div>
+
+          {/* PHC Filter Dropdown */}
+          <div style={{ width: '160px' }}>
+            <select
+              className="select"
+              value={phcFilter}
+              onChange={(e) => setPhcFilter(e.target.value)}
+              style={{ height: '38px', fontSize: 'var(--fs-tiny)' }}
+            >
+              <option value="all">ALL PHCs</option>
+              {phcOptions.map(p => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Grade Filter Dropdown */}
+          <div style={{ width: '150px' }}>
+            <select
+              className="select"
+              value={gradeFilter}
+              onChange={(e) => setGradeFilter(e.target.value)}
+              style={{ height: '38px', fontSize: 'var(--fs-tiny)' }}
+            >
+              <option value="all">ALL GRADES</option>
+              <option value="4">Grade 4 (PDR)</option>
+              <option value="3">Grade 3 (Severe)</option>
+              <option value="2">Grade 2 (Moderate)</option>
+              <option value="1">Grade 1 (Mild)</option>
+              <option value="0">Grade 0 (No DR)</option>
+            </select>
+          </div>
+
+          {/* Mismatch Chip */}
+          <button
+            className={`badge ${filter === 'disagreement' ? 'badge--fail' : 'badge--neutral'}`}
+            style={{
+              height: '38px',
+              padding: '0 12px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: 'var(--fs-tiny)',
+              border: filter === 'disagreement' ? '2px solid #000' : '1px solid var(--c-crimson)',
+              background: filter === 'disagreement' ? 'var(--c-crimson)' : 'rgba(168, 34, 34, 0.08)',
+              color: filter === 'disagreement' ? '#FFF' : 'var(--c-crimson)',
+              boxShadow: filter === 'disagreement' ? '2px 2px 0px #000' : 'none',
+              transition: 'all 0.15s ease',
+            }}
+            onClick={() => setFilter(filter === 'disagreement' ? 'all' : 'disagreement')}
+            title="Filter to branch mismatch cases"
+          >
+            ⚠ MISMATCH ({disagreeCount})
+          </button>
+
+          {/* Reset Filters */}
+          {hasActiveFilters && (
+            <button
+              className="btn btn--secondary"
+              style={{ height: '38px', padding: '0 12px', fontSize: 'var(--fs-tiny)' }}
+              onClick={handleResetFilters}
+              title="Reset all active search and filters"
+            >
+              RESET (✕)
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Filter Bar */}
       <div className="queue-filter-bar u-mb-4">
@@ -167,7 +293,7 @@ export const ReviewQueuePage = () => {
       </div>
 
       {/* Queue Table */}
-      <div style={{ border: 'var(--border)' }}>
+      <div className="table-wrapper">
         <table className="table">
           <thead>
             <tr>

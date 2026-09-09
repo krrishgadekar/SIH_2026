@@ -2270,6 +2270,15 @@ body {
   color: var(--c-text-muted);
 }
 
+.login-auth-container--exit {
+  animation: fade-out-down 0.5s var(--ease-out) forwards;
+}
+
+@keyframes fade-out-down {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(20px); }
+}
+
 /* ═══════════════════════════════════════════════════════════════
    3-STATE SORTING TABLE HEADERS (MATCHING REFERENCE IMAGE 2)
    ═══════════════════════════════════════════════════════════════ */
