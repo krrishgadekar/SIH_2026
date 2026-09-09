@@ -134,3 +134,8 @@ central-system/backend/ml-pipeline/models/Model1/branchA_v1_traced.pt
 # regenerated in seconds by exportModel1Predictions.py. The .npy originals are
 # the source of truth and are tracked.
 central-system/backend/ml-pipeline/models/Model1/*.csv
+
+# PyTorch->MATLAB import experiment artifacts (traced models, probe tensors).
+# All regenerable; the traced .pt files duplicate weights already tracked.
+central-system/backend/ml-pipeline/models/Model1/*_traced*.pt
+central-system/backend/ml-pipeline/models/Model1/probe_*.csv
