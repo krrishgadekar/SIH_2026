@@ -97,6 +97,7 @@ function spawnMatlabBatch(expr) {
 
 const PYTHON_EXE = process.env.PYTHON_EXECUTABLE || 'python';
 const BRANCH_A_INFER = path.join(ML_ROOT, 'inference', 'branchAInfer.py');
+const SEG_INFER      = path.join(ML_ROOT, 'inference', 'segInfer.py');
 
 /**
  * runBranchAInference(imagePath)
@@ -141,6 +142,59 @@ function runBranchAInference(imagePath, gradcamPath) {
 
     proc.on('error', (err) => reject(new Error(
       `Failed to spawn Python (set PYTHON_EXECUTABLE?): ${err.message}`)));
+  });
+}
+
+/**
+ * runSegInference(imagePath, outdir)
+ *
+ * Phase 4: vessels, optic disc/fovea, and both lesion models (M2-M5), in one
+ * Python process. Returns the parsed JSON, or NULL on any failure.
+ *
+ * NULL, NOT A THROW. Branch B is the SECOND opinion. If segmentation fails, the
+ * right outcome is a case graded by Branch A alone with branch_agreement NULL —
+ * which the schema, the API contract and the tier logic all already handle,
+ * because that has been the normal state for the whole project so far. Throwing
+ * would fail a case that the classifier graded perfectly well, turning a
+ * degraded result into a lost one.
+ *
+ * The distinction that must not blur: NULL means "Branch B did not run", and
+ * FALSE means "Branch B ran and disagreed". Only the second forces Tier C.
+ */
+function runSegInference(imagePath, outdir) {
+  return new Promise((resolve) => {
+    const args = [SEG_INFER, imagePath];
+    if (outdir) args.push('--outdir', outdir);
+    const proc = spawn(PYTHON_EXE, args, { env: process.env, timeout: TIMEOUT_MS });
+    let stdout = '';
+    let stderr = '';
+    proc.stdout.on('data', (d) => { stdout += d.toString(); });
+    proc.stderr.on('data', (d) => { stderr += d.toString(); });
+
+    proc.on('close', (code) => {
+      if (code !== 0) {
+        console.warn(`[gradingOrchestrator] segmentation exited ${code}; `
+          + `Branch B unavailable. stderr: ${stderr.trim().slice(0, 300)}`);
+        return resolve(null);
+      }
+      const start = stdout.indexOf('{');
+      if (start === -1) {
+        console.warn('[gradingOrchestrator] segmentation returned no JSON; '
+          + 'Branch B unavailable');
+        return resolve(null);
+      }
+      try {
+        resolve(JSON.parse(stdout.slice(start)));
+      } catch (err) {
+        console.warn(`[gradingOrchestrator] segmentation JSON parse failed: ${err.message}`);
+        resolve(null);
+      }
+    });
+
+    proc.on('error', (err) => {
+      console.warn(`[gradingOrchestrator] failed to spawn segmentation: ${err.message}`);
+      resolve(null);
+    });
   });
 }
 
@@ -232,7 +286,39 @@ async function processCase(caseId) {
 
   const cameraDeviceId = caseRow.camera_device_id || '';
 
-  const expr = buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId, caseId);
+  // ── The two Python stages, in parallel ─────────────────────────────────────
+  // Branch A (the classifier) and Phase 4 segmentation are independent, so they
+  // run concurrently: each loads its own models and neither reads the other's
+  // output. MATLAB then runs LAST, because the rule engine needs the lesion
+  // counts and the agreement check needs Branch A's grade.
+  //
+  // Why Python at all: MATLAB's official PyTorch converter imports these
+  // networks and computes the wrong numbers — 8-11% class agreement against the
+  // model's own published logits, correlation -0.25, on identical input
+  // tensors, while Python reproduces them to 0.0050 with 100% agreement. The
+  // structure imports correctly, which is what makes it dangerous. Measured in
+  // testImportedNetwork.m; re-run it if the converter is updated.
+  //
+  // Grad-CAM is produced inside the Branch A call rather than a second spawn:
+  // interpreter start and model load dominate the cost.
+  //
+  // Promise.all and not allSettled: runSegInference never rejects, it resolves
+  // NULL on failure, because Branch B is the second opinion and losing it must
+  // degrade the result rather than fail the case. A Branch A failure DOES
+  // reject, and should — without it there is no grade at all.
+  const [branchA, segResult] = await Promise.all([
+    runBranchAInference(imagePath, gradcamPath),
+    runSegInference(imagePath, mediaPaths.caseDir(caseId)),
+  ]);
+
+  if (!segResult) {
+    console.warn(`[gradingOrchestrator] case ${caseId}: Branch B unavailable, `
+      + 'grading on the classifier alone');
+  }
+
+  const expr = buildMatlabExpr(imagePath, gradcamPath, qualityScores,
+                               cameraDeviceId, caseId, segResult,
+                               branchA.drGradeCnn);
   let raw;
   try {
     raw = await spawnMatlabBatch(expr);
@@ -250,21 +336,6 @@ async function processCase(caseId) {
   } catch (err) {
     throw new Error(`MATLAB JSON parse failed: ${err.message}\nRaw: ${raw.slice(jsonStart, jsonStart+300)}`);
   }
-
-  // ── Branch A: the REAL model, in Python ────────────────────────────────────
-  // Grad-CAM is produced in the SAME call. The interpreter start and model
-  // load dominate the cost, so a second spawn would roughly double the time to
-  // produce one explained result.
-  // The MATLAB chain above still runs preprocessing metadata, the camera
-  // cross-check and the evidence report. It no longer supplies the grade.
-  //
-  // Why Python: MATLAB's official PyTorch converter imports this network and
-  // computes the wrong numbers — 8-11% class agreement against the model's own
-  // published logits, correlation -0.25, on identical input tensors, while
-  // Python reproduces them to 0.0050 with 100% agreement. The structure
-  // imports correctly, which is what makes it dangerous. Measured in
-  // testImportedNetwork.m; re-run it if the converter is updated.
-  const branchA = await runBranchAInference(imagePath, gradcamPath);
 
   const grade = branchA.drGradeCnn;
   const confidenceScore = branchA.confidenceScore;
@@ -284,16 +355,15 @@ async function processCase(caseId) {
     console.warn(`[gradingOrchestrator] case ${caseId}: ${branchA.gradcamWarning}`);
   }
 
-  // Branch B (Task 5.1) grades from lesion QUADRANT COUNTS, which come from
-  // Phase 4 segmentation. That is not built, so no counts exist and the rule
-  // engine cannot run — both stay null rather than being guessed at.
+  // Branch B (Tasks 5.1/5.2), live. The rule engine grades the lesion QUADRANT
+  // COUNTS that Phase 4 segmentation produced, and branchesAgree compares its
+  // grade with Branch A's.
   //
-  // TO ACTIVATE, once Tasks 4.2/4.3 land: have the MATLAB chain return
-  // lesionCounts and nvSuspicionScore, then
-  //   ruleEngineGrade = mlResult.ruleEngineGrade;
-  //   branchAgreement = mlResult.branchAgreement;
-  // Nothing else here changes — the columns, the tier override and the writes
-  // below are already wired for it.
+  // ?? null, not || null: a rule-engine grade of 0 is a real result — "no DR by
+  // ICDR criteria" — and || would convert it to null, silently discarding
+  // Branch B's opinion on exactly the healthy eyes where agreement matters most
+  // for clearing a case. Likewise branch_agreement false is meaningful and must
+  // survive.
   const ruleEngineGrade = mlResult.ruleEngineGrade ?? null;
   const branchAgreement = mlResult.branchAgreement ?? null;
 
@@ -369,13 +439,25 @@ async function processCase(caseId) {
   // Grad-CAM failure does not fail the grade — the clinical output is already
   // computed — so the column falls back to NULL and the frontend renders "not
   // yet available" rather than a URL to a file that is not there.
+  // Segmentation mask paths come straight from segInfer's own report of what it
+  // wrote, rather than being reconstructed from a naming convention here. A
+  // path built by guessing the filename is a path that 404s the moment the
+  // convention changes on one side only.
+  const masks = (segResult && segResult.masks) || {};
+
   await pool.query(`
-    INSERT INTO explainability_outputs (case_id, gradcam_path, evidence_summary_text)
-    VALUES ($1, $2, $3)
+    INSERT INTO explainability_outputs
+      (case_id, gradcam_path, evidence_summary_text,
+       vessel_mask_path, lesion_red_path, lesion_bright_path)
+    VALUES ($1, $2, $3, $4, $5, $6)
     ON CONFLICT (case_id) DO UPDATE SET
       gradcam_path          = EXCLUDED.gradcam_path,
-      evidence_summary_text = EXCLUDED.evidence_summary_text
-  `, [caseId, branchA.gradcamPath ?? null, mlResult.evidenceSummaryText ?? null]);
+      evidence_summary_text = EXCLUDED.evidence_summary_text,
+      vessel_mask_path      = EXCLUDED.vessel_mask_path,
+      lesion_red_path       = EXCLUDED.lesion_red_path,
+      lesion_bright_path    = EXCLUDED.lesion_bright_path
+  `, [caseId, branchA.gradcamPath ?? null, mlResult.evidenceSummaryText ?? null,
+      masks.vessel ?? null, masks.red ?? null, masks.bright ?? null]);
 
   // lesion_attention_consistency_score stays NULL on purpose (Task 7.1).
   // lesionAttentionConsistency is built and unit-tested, but it needs a lesion
@@ -397,7 +479,22 @@ async function processCase(caseId) {
 }
 
 // ── MATLAB expression builder ──────────────────────────────────────────────────
-function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId, caseIdForReport) {
+/**
+ * matlabVector(arr) — a 1x4 MATLAB literal, or [] when absent.
+ *
+ * [] and not zeros(1,4). An empty vector makes ruleEngineGrade refuse to run;
+ * a vector of zeros is a positive claim that four quadrants were examined and
+ * nothing was found. Not-measured and measured-zero are different clinical
+ * statements and this project does not let them collapse.
+ */
+function matlabVector(arr) {
+  if (!Array.isArray(arr) || arr.length !== 4) return '[]';
+  if (!arr.every((v) => Number.isInteger(v) && v >= 0)) return '[]';
+  return `[${arr.join(' ')}]`;
+}
+
+function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId,
+                         caseIdForReport, segResult, branchAGrade) {
   const p  = toMatlabStr;
   const preDir   = p(PREPROCESSING_DIR);
   const gradDir  = p(GRADING_DIR);
@@ -492,7 +589,43 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId, 
     // lands, populate evidenceInputs here and the sentence becomes the real
     // lesion-level report with nothing else changing.
     `addpath('${p(SEGMENTATION_DIR)}');`,
-    `evidenceInputs = struct();`,
+
+    // ── Branch B (Tasks 5.1/5.2), live ────────────────────────────────────
+    // Counts come from segInfer.py, computed in CROP-512 with a 10 px minimum
+    // component area — the exact procedure the ICDR thresholds were calibrated
+    // against (verifyRuleEngineCounts.py: 14/14 on sum(red), and the same
+    // rule-engine grade on 14/14).
+    //
+    // Both vectors are [] when segmentation did not run, and ruleEngineGrade
+    // then refuses rather than grading an eye nothing looked at.
+    `redQ = ${matlabVector(segResult && segResult.redPerQuadrant)};`,
+    `brightQ = ${matlabVector(segResult && segResult.brightPerQuadrant)};`,
+    `nvScore = ${Number.isFinite(segResult && segResult.nvSuspicionScore)
+      ? segResult.nvSuspicionScore : 0};`,
+    `branchAGrade = ${Number.isInteger(branchAGrade) ? branchAGrade : '[]'};`,
+
+    `ruleGrade = []; branchAgree = []; evidenceInputs = struct();`,
+    `if numel(redQ) == 4 && numel(brightQ) == 4,`,   // trailing comma: the whole
+    // expression is joined onto ONE line, and MATLAB needs a separator after an
+    // if-condition there or it parses the next statement as part of the test.
+    `  [ruleGrade, ruleEvidence] = ruleEngineGrade(redQ, brightQ, nvScore);`,
+    `  evidenceInputs = struct('redByQuadrant', redQ, 'brightByQuadrant', brightQ, 'nvSuspicionScore', nvScore);`,
+    // branchesAgree returns [] — NOT false — when either branch is missing.
+    // false means "compared and disagreed" and forces mandatory review; []
+    // means "Branch B did not run". Collapsing them would send every
+    // segmentation failure to the review queue as though something was wrong
+    // with the eye.
+    `  branchAgree = branchesAgree(branchAGrade, ruleGrade);`,
+    // `end;` with the semicolon for the same one-line-join reason as the
+    // if-condition above: `end [evidenceText, ...]` parses as indexing into
+    // `end` and fails with "Unexpected '['".
+    `end;`,
+
+    // ── Task 7.3: the evidence report, now with real lesion content ────────
+    // With counts present this produces the lesion-level sentence; with none it
+    // still says segmentation has not been run rather than inventing "0
+    // microaneurysms", because zero-measured and not-measured are different
+    // clinical claims.
     `[evidenceText, ~, ~] = generateEvidenceReport('${toMatlabStr(caseIdForReport)}', evidenceInputs);`,
 
     // ── Output JSON
@@ -507,6 +640,13 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId, 
     `out.imageLaterality = imgMeta.laterality;`,
     `out.cameraFamily = ppSteps.cameraFamily;`,
     `out.cameraMismatch = ~isempty(ppSteps.cameraDetail) && ppSteps.cameraDetail.mismatch;`,
+
+    // Branch B. jsonencode maps an empty MATLAB array to JSON null, which is
+    // exactly what the schema wants for "did not run" — so [] survives the
+    // round trip as null and never arrives as 0 or false.
+    `out.ruleEngineGrade = ruleGrade;`,
+    `out.branchAgreement = branchAgree;`,
+    `out.nvSuspicionScore = nvScore;`,
     `disp(jsonencode(out));`,
   ].join(' ');
 }

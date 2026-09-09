@@ -157,10 +157,26 @@ CREATE TABLE IF NOT EXISTS explainability_outputs (
   -- Phase 2 (Task 2.7) -- populated now
   gradcam_path                       TEXT,
 
+  -- Phase 4 (Tasks 4.1-4.3) -- populated now, from segInfer.py
+  -- NULL means segmentation did not run for this case, which is a normal and
+  -- non-fatal outcome: Branch B is the second opinion, so losing it degrades
+  -- the result rather than failing it.
+  vessel_mask_path                   TEXT,
+  lesion_red_path                    TEXT,
+  lesion_bright_path                 TEXT,
+
   -- Phase 7 (Task 7.1) -- NULL until the safeguards ship
   lesion_attention_consistency_score REAL,
   evidence_summary_text              TEXT
 );
+
+-- Additive migration for databases created before the Phase 4 columns existed.
+-- IF NOT EXISTS so this file stays runnable against both a fresh database and
+-- one already carrying data -- the alternative is a schema that only applies to
+-- new installs, which is how a dev machine and a deployment silently diverge.
+ALTER TABLE explainability_outputs ADD COLUMN IF NOT EXISTS vessel_mask_path   TEXT;
+ALTER TABLE explainability_outputs ADD COLUMN IF NOT EXISTS lesion_red_path    TEXT;
+ALTER TABLE explainability_outputs ADD COLUMN IF NOT EXISTS lesion_bright_path TEXT;
 
 -- -----------------------------------------------------------------------------
 -- 8. ophthalmologist_reviews -- confirm/override audit trail
