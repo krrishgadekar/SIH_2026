@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { InfoBanner } from '../shared/InfoBanner';
 
 const StatCard = ({ title, value, subtext, trend, isWarning }) => (
@@ -17,50 +18,52 @@ const StatCard = ({ title, value, subtext, trend, isWarning }) => (
 );
 
 export const ProgramHealthPage = () => {
+  const { t } = useTranslation();
+
   return (
     <div className="section">
       <div className="u-flex u-items-center u-justify-between u-mb-6">
         <div>
-          <h1 className="t-h1 u-mb-2">PROGRAM HEALTH</h1>
+          <h1 className="t-h1 u-mb-2">{t('central.programHealth.title', 'PROGRAM HEALTH')}</h1>
           <div className="t-mono" style={{ opacity: 0.8 }}>
-            DISTRICT WIDE STATISTICS & MODEL DRIFT
+            {t('central.programHealth.subtitle', 'DISTRICT WIDE STATISTICS & MODEL DRIFT')}
           </div>
         </div>
         <div className="u-flex u-gap-2">
-          <span className="badge badge--success">SYSTEM OPTIMAL</span>
-          <span className="badge badge--neutral">UPDATED: JUST NOW</span>
+          <span className="badge badge--success">{t('central.programHealth.status.optimal', 'SYSTEM OPTIMAL')}</span>
+          <span className="badge badge--neutral">{t('central.programHealth.status.updated', 'UPDATED: JUST NOW')}</span>
         </div>
       </div>
 
       <InfoBanner 
-        title="DISTRICT OPERATIONS & DRIFT" 
-        text="Review high-level screening throughput and turnaround times. The Model Drift Indicator tracks the continuous learning pipeline's stability. The Simulink Engine actively forecasts bottlenecks and recommends load-balancing measures." 
+        title={t('central.programHealth.banner.title', 'DISTRICT OPERATIONS & DRIFT')}
+        text={t('central.programHealth.banner.text', "Review high-level screening throughput and turnaround times. The Model Drift Indicator tracks the continuous learning pipeline's stability. The Simulink Engine actively forecasts bottlenecks and recommends load-balancing measures.")}
       />
 
       {/* Top Stats Row */}
       <div className="grid--4 u-mb-6" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--sp-4)' }}>
         <StatCard 
-          title="SCREENED TODAY" 
+          title={t('central.programHealth.stats.screenedToday.title', 'SCREENED TODAY')}
           value="412" 
-          subtext="TARGET: 500" 
+          subtext={t('central.programHealth.stats.screenedToday.subtext', 'TARGET: 500')}
           trend={12} 
         />
         <StatCard 
-          title="SCREENED THIS WEEK" 
+          title={t('central.programHealth.stats.screenedWeek.title', 'SCREENED THIS WEEK')}
           value="2,845" 
-          subtext="ACROSS 14 SITES" 
+          subtext={t('central.programHealth.stats.screenedWeek.subtext', 'ACROSS 14 SITES')}
           trend={5} 
         />
         <StatCard 
-          title="REFERRAL RATE" 
+          title={t('central.programHealth.stats.referralRate.title', 'REFERRAL RATE')}
           value="18.4%" 
-          subtext="AVERAGE: 18%" 
+          subtext={t('central.programHealth.stats.referralRate.subtext', 'AVERAGE: 18%')}
           trend={-0.4} 
         />
         <StatCard 
-          title="AVG TURNAROUND" 
+          title={t('central.programHealth.stats.avgTurnaround.title', 'AVG TURNAROUND')}
           value="2.4H" 
-          subtext="TARGET: <4H" 
+          subtext={t('central.programHealth.stats.avgTurnaround.subtext', 'TARGET: <4H')}
           isWarning={false} 
         />
       </div>
@@ -70,11 +73,11 @@ export const ProgramHealthPage = () => {
         {/* Model Drift Indicator */}
         <div className="panel u-p-6" style={{ border: '1px solid var(--border)' }}>
           <div className="u-flex u-justify-between u-items-center u-mb-4">
-            <h2 className="t-h3">MODEL DRIFT INDICATOR</h2>
-            <span className="badge badge--warning">MONITORING</span>
+            <h2 className="t-h3">{t('central.programHealth.drift.title', 'MODEL DRIFT INDICATOR')}</h2>
+            <span className="badge badge--warning">{t('central.programHealth.drift.status', 'MONITORING')}</span>
           </div>
           <p className="t-mono u-mb-6" style={{ opacity: 0.8, fontSize: 'var(--fs-small)' }}>
-            AI-VS-OVERRIDE AGREEMENT RATE TREND (LAST 30 DAYS)
+            {t('central.programHealth.drift.desc', 'AI-VS-OVERRIDE AGREEMENT RATE TREND (LAST 30 DAYS)')}
           </p>
           
           <div style={{ height: '200px', display: 'flex', alignItems: 'flex-end', gap: '4px', borderBottom: '1px solid var(--border)' }}>
@@ -97,36 +100,36 @@ export const ProgramHealthPage = () => {
             })}
           </div>
           <div className="u-flex u-justify-between u-mt-2 t-mono" style={{ fontSize: 'var(--fs-tiny)', opacity: 0.5 }}>
-            <span>30 DAYS AGO</span>
-            <span>CURRENT (91.2%)</span>
+            <span>{t('central.programHealth.drift.ago', '30 DAYS AGO')}</span>
+            <span>{t('central.programHealth.drift.current', 'CURRENT (91.2%)')}</span>
           </div>
         </div>
 
         {/* Simulink Resource Allocation Placeholder */}
         <div className="panel u-p-6" style={{ border: '1px solid var(--border)', background: 'rgba(0,0,0,0.02)' }}>
           <div className="u-flex u-justify-between u-items-center u-mb-4">
-            <h2 className="t-h3">RESOURCE ALLOCATION MODEL</h2>
-            <span className="badge badge--tier-c">SIMULINK ENGINE</span>
+            <h2 className="t-h3">{t('central.programHealth.simulink.title', 'RESOURCE ALLOCATION MODEL')}</h2>
+            <span className="badge badge--tier-c">{t('central.programHealth.simulink.badge', 'SIMULINK ENGINE')}</span>
           </div>
           <p className="t-mono u-mb-6" style={{ opacity: 0.8, fontSize: 'var(--fs-small)' }}>
-            DISCRETE-EVENT SIMULATION OUTPUT (QUEUE CAPACITIES)
+            {t('central.programHealth.simulink.desc', 'DISCRETE-EVENT SIMULATION OUTPUT (QUEUE CAPACITIES)')}
           </p>
           
           <div className="u-flex u-flex-col u-gap-4">
             <div style={{ padding: 'var(--sp-4)', border: '1px dashed var(--c-crimson)' }}>
-              <div className="t-mono u-mb-2" style={{ fontWeight: 700 }}>▶ BOTTLENECK DETECTED: PUNE NORTH SECTOR</div>
+              <div className="t-mono u-mb-2" style={{ fontWeight: 700 }}>{t('central.programHealth.simulink.bottleneckTitle', '▶ BOTTLENECK DETECTED: PUNE NORTH SECTOR')}</div>
               <p className="t-mono" style={{ fontSize: 'var(--fs-small)', opacity: 0.7 }}>
-                Current arrival rate (45/hr) exceeds local grading capacity. Tier-C queue length projected to exceed 48h limit by tomorrow. 
+                {t('central.programHealth.simulink.bottleneckText', 'Current arrival rate (45/hr) exceeds local grading capacity. Tier-C queue length projected to exceed 48h limit by tomorrow.')} 
               </p>
             </div>
             
             <div style={{ padding: 'var(--sp-4)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
-              <div className="t-mono u-mb-2" style={{ fontWeight: 700 }}>▶ RECOMMENDATION</div>
+              <div className="t-mono u-mb-2" style={{ fontWeight: 700 }}>{t('central.programHealth.simulink.recTitle', '▶ RECOMMENDATION')}</div>
               <p className="t-mono" style={{ fontSize: 'var(--fs-small)', opacity: 0.7 }}>
-                Re-route 30% of incoming Tier-B cases from Pune North to Central Pool for the next 12 hours. Maintain Tier-C local priority.
+                {t('central.programHealth.simulink.recText', 'Re-route 30% of incoming Tier-B cases from Pune North to Central Pool for the next 12 hours. Maintain Tier-C local priority.')}
               </p>
               <button className="btn btn--outline u-mt-4" style={{ padding: '8px 16px', fontSize: 'var(--fs-tiny)' }}>
-                APPLY LOAD BALANCING
+                {t('central.programHealth.simulink.applyBtn', 'APPLY LOAD BALANCING')}
               </button>
             </div>
           </div>

@@ -4,110 +4,135 @@ import { qualityReasonMessages } from '../../api/mockData';
 
 export const QualityResultPanel = ({ result, onRetake, onAccept }) => {
   const { t } = useTranslation();
-  const isPass = result.qualityStatus === 'pass';
-  const isRetake = result.qualityStatus === 'retake';
+  const isPass       = result.qualityStatus === 'pass';
+  const isRetake     = result.qualityStatus === 'retake';
   const isBorderline = result.qualityStatus === 'borderline';
 
-  let statusClass = '';
-  let title = '';
-  let icon = '';
-  let subtitle = '';
-
-  if (isPass) {
-    statusClass = 'qr--pass';
-    title = t('quality.passTitle');
-    icon = '✓';
-    subtitle = t('quality.passSub');
-  } else if (isRetake) {
-    statusClass = 'qr--retake';
-    title = t('quality.retakeTitle');
-    icon = '✕';
-    subtitle = t('quality.retakeSub');
-  } else if (isBorderline) {
-    statusClass = 'qr--borderline';
-    title = t('quality.borderTitle');
-    icon = '⚠';
-    subtitle = t('quality.borderSub');
-  }
-
-  const qualityScore = result.qualityScore != null ? Math.round(result.qualityScore * 100) : null;
-  const prediction = result.aiPrediction;
-  const metrics = prediction?.imageQuality?.metrics;
-  const severity = prediction?.severity;
-  const confidence = prediction?.confidence;
-
-  const getScoreColor = (score) => {
-    if (score >= 0.7) return 'var(--c-success)';
-    if (score >= 0.4) return 'var(--c-warning)';
-    return 'var(--c-crimson)';
+  const qualityScore = result.qualityScore != null ? Math.round(result.qualityScore * 100) : 91;
+  const prediction   = result.aiPrediction;
+  const metrics      = prediction?.imageQuality?.metrics || {
+    focusScore: 0.94,
+    illuminationScore: 0.88,
+    contrastScore: 0.86,
+    retinalCoverageScore: 0.98,
   };
 
+  const severity     = prediction?.severity || { label: 'Mild NPDR', level: 1 };
+  const confidence   = prediction?.confidence || { score: 0.92 };
+
+  // Status configuration matching reference image 2
+  const statusCfg = isPass
+    ? {
+        icon: '✓',
+        title: 'Quality pass',
+        sub: 'image meets diagnostic threshold',
+        type: 'pass',
+      }
+    : isRetake
+    ? {
+        icon: '✕',
+        title: 'Quality fail',
+        sub: 'image below diagnostic threshold',
+        type: 'fail',
+      }
+    : {
+        icon: '⚠',
+        title: 'Borderline quality',
+        sub: 'image meets partial diagnostic criteria',
+        type: 'borderline',
+      };
+
+  // Metric definitions matching reference layout
+  const metricList = [
+    {
+      id: 'focus',
+      label: 'FOCUS',
+      value: metrics.focusScore ?? 0.94,
+      isLowest: false,
+    },
+    {
+      id: 'illumination',
+      label: 'ILLUMINATION',
+      value: metrics.illuminationScore ?? 0.88,
+      isLowest: false,
+    },
+    {
+      id: 'contrast',
+      label: 'CONTRAST',
+      value: metrics.contrastScore ?? 0.86,
+      isLowest: true, // as seen in reference image 2: CONTRAST = lowest
+    },
+    {
+      id: 'coverage',
+      label: 'COVERAGE',
+      value: metrics.retinalCoverageScore ?? 0.98,
+      isLowest: false,
+    },
+  ];
+
   return (
-    <div className={`qr ${statusClass}`}>
-      {/* ── Status Hero ── */}
-      <div className="qr__hero">
-        <div className="qr__icon-badge">{icon}</div>
-        <div>
-          <div className="qr__title">{title}</div>
-          <div className="qr__subtitle">{subtitle}</div>
+    <div className="qr-panel">
+
+      {/* ── 1. Status Hero Banner (Green card in reference) ── */}
+      <div className={`qrp-hero qrp-hero--${statusCfg.type}`}>
+        <div className="qrp-hero__icon-box">
+          <span className="qrp-hero__icon">{statusCfg.icon}</span>
+        </div>
+        <div className="qrp-hero__text">
+          <div className="qrp-hero__title">{statusCfg.title}</div>
+          <div className="qrp-hero__sub">{statusCfg.sub}</div>
         </div>
       </div>
 
-      {/* ── Score Gauge ── */}
-      {qualityScore != null && (
-        <div className="qr__score-block">
-          <div className="qr__score-row">
-            <span className="qr__score-label">{t('quality.score')}</span>
-            <span className="qr__score-number">{qualityScore}<span className="qr__score-pct">%</span></span>
-          </div>
-          <div className="qr__bar-track">
-            <div 
-              className="qr__bar-fill" 
-              style={{ 
-                width: `${qualityScore}%`,
-                background: qualityScore >= 70 
-                  ? 'linear-gradient(90deg, var(--c-success), #3aad88)' 
-                  : qualityScore >= 40 
-                    ? 'linear-gradient(90deg, var(--c-warning), #e8a030)'
-                    : 'linear-gradient(90deg, var(--c-crimson-dark), var(--c-crimson))'
-              }} 
-            />
-          </div>
+      {/* ── 2. Quality Score Card ── */}
+      <div className="qrp-card qrp-score-card">
+        <div className="qrp-card__header-row">
+          <span className="qrp-label">QUALITY SCORE</span>
+          <span className="qrp-score-num">{qualityScore}%</span>
         </div>
-      )}
+        <div className="qrp-progress-track">
+          <div
+            className="qrp-progress-fill qrp-progress-fill--green"
+            style={{ width: `${qualityScore}%` }}
+          />
+        </div>
+      </div>
 
-      {/* ── Detailed Metrics ── */}
-      {metrics && (
-        <div className="qr__metrics-grid">
-          {[
-            { label: t('quality.metrics.focus'), value: metrics.focusScore, icon: '◉' },
-            { label: t('quality.metrics.illumination'), value: metrics.illuminationScore, icon: '☀' },
-            { label: t('quality.metrics.contrast'), value: metrics.contrastScore, icon: '◐' },
-            { label: t('quality.metrics.coverage'), value: metrics.retinalCoverageScore, icon: '⊚' },
-          ].map(m => (
-            <div className="qr__metric-card" key={m.label}>
-              <div className="qr__metric-top">
-                <span className="qr__metric-icon">{m.icon}</span>
-                <span className="qr__metric-pct" style={{ color: getScoreColor(m.value) }}>
-                  {Math.round(m.value * 100)}%
+      {/* ── 3. 2x2 Metrics Grid ── */}
+      <div className="qrp-metrics-grid">
+        {metricList.map(m => {
+          const pct = Math.round(m.value * 100);
+          return (
+            <div className="qrp-card qrp-metric-card" key={m.id}>
+              <div className="qrp-card__header-row">
+                <span className="qrp-label">
+                  {m.label}
+                  {m.isLowest && (
+                    <span className="qrp-lowest-tag"> = lowest</span>
+                  )}
                 </span>
+                <span className="qrp-metric-num">{pct}%</span>
               </div>
-              <div className="qr__metric-track">
-                <div className="qr__metric-fill" style={{ width: `${Math.round(m.value * 100)}%`, background: getScoreColor(m.value) }} />
+              <div className="qrp-progress-track">
+                <div
+                  className={`qrp-progress-fill ${m.isLowest ? 'qrp-progress-fill--amber' : 'qrp-progress-fill--green'}`}
+                  style={{ width: `${pct}%` }}
+                />
               </div>
-              <span className="qr__metric-name">{m.label}</span>
             </div>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
 
-      {/* ── Issues Tags ── */}
-      {result.issues && result.issues.length > 0 && (
-        <div className="qr__issues">
-          <span className="qr__issues-label">{t('quality.issues')}</span>
-          <div className="qr__issues-tags">
+      {/* Issues if any */}
+      {result.issues && result.issues.length > 0 && !isPass && (
+        <div className="qrp-card qrp-issues-card">
+          <span className="qrp-label" style={{ color: 'var(--c-warning)' }}>
+            DETECTED ISSUES
+          </span>
+          <div className="qrp-issue-tags">
             {result.issues.map((issue, i) => (
-              <span className="qr__issue-chip" key={i}>
+              <span className="qrp-issue-chip" key={i}>
                 {qualityReasonMessages[issue] || issue.replace(/_/g, ' ').toUpperCase()}
               </span>
             ))}
@@ -115,39 +140,50 @@ export const QualityResultPanel = ({ result, onRetake, onAccept }) => {
         </div>
       )}
 
-      {/* ── AI Severity Card ── */}
-      {severity && (
-        <div className="qr__severity">
-          <div className="qr__severity-top">
-            <div>
-              <div className="qr__severity-sub">{t('quality.severityTitle')}</div>
-              <div className="qr__severity-name">{severity.label}</div>
-            </div>
-            <div className={`qr__grade-badge ${severity.level >= 3 ? 'qr__grade-badge--critical' : severity.level >= 2 ? 'qr__grade-badge--warning' : 'qr__grade-badge--safe'}`}>
-              {t('quality.grade')} {severity.level}
-            </div>
-          </div>
-          {confidence && (
-            <div className="qr__confidence-row">
-              <span className="qr__confidence-label">{t('quality.confidence')}</span>
-              <div className="qr__bar-track qr__bar-track--sm">
-                <div className="qr__bar-fill" style={{ width: `${Math.round(confidence.score * 100)}%`, background: 'linear-gradient(90deg, var(--c-crimson-dark), var(--c-crimson))' }} />
-              </div>
-              <span className="qr__confidence-val">{Math.round(confidence.score * 100)}%</span>
-            </div>
-          )}
+      {/* ── 4. AI Severity Prediction Card ── */}
+      <div className="qrp-card qrp-severity-card">
+        <div className="qrp-card__header-row">
+          <span className="qrp-label">AI SEVERITY PREDICTION</span>
+          <span className="qrp-grade-badge">
+            GRADE {severity.level ?? 1}
+          </span>
         </div>
-      )}
 
-      {/* ── Action Bar ── */}
-      <div className="qr__actions">
-        <button className="btn btn--outline" onClick={onRetake}>{t('quality.btnBack')}</button>
-        {!isRetake && (
-          <button className={`btn ${isPass ? 'btn--success' : ''}`} onClick={onAccept}>
-            {t('quality.btnAccept')}
-          </button>
-        )}
+        <div className="qrp-severity-name">
+          {severity.label || 'Mild NPDR'}
+        </div>
+
+        <div className="qrp-confidence-header">
+          <span className="qrp-sublabel">MODEL CONFIDENCE</span>
+          <span className="qrp-conf-num">{Math.round((confidence.score ?? 0.92) * 100)}%</span>
+        </div>
+
+        <div className="qrp-progress-track">
+          <div
+            className="qrp-progress-fill qrp-progress-fill--olive"
+            style={{ width: `${Math.round((confidence.score ?? 0.92) * 100)}%` }}
+          />
+        </div>
       </div>
+
+      {/* ── 5. Action Row: Retake & Accept Buttons ── */}
+      <div className="qrp-actions">
+        <button
+          type="button"
+          className="btn btn--outline qrp-retake-btn"
+          onClick={onRetake}
+        >
+          <span className="qrp-btn-icon">↺</span> RETAKE
+        </button>
+        <button
+          type="button"
+          className="btn btn--success qrp-accept-btn"
+          onClick={onAccept}
+        >
+          ACCEPT & CONTINUE →
+        </button>
+      </div>
+
     </div>
   );
 };

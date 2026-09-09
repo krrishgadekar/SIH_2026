@@ -4,10 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { QualityResultPanel } from './QualityResultPanel';
 import { CaptureMetadataForm } from './CaptureMetadataForm';
 import { PatientQuestionnaireForm } from './PatientQuestionnaireForm';
+import { RetinalImageViewer } from './RetinalImageViewer';
 import { localApi } from '../../api/localApiClient';
 import { ML_API_ENDPOINT, USE_MOCK_DATA } from '../../config';
 import { mockAiPredictions } from '../../api/mockData';
-import demoFundusImg from '../../assets/hero.png';
+import demoFundusImg from '../../assets/fundus_eye.jpg';
 
 export const CaptureScreen = () => {
   const { t } = useTranslation();
@@ -19,7 +20,7 @@ export const CaptureScreen = () => {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
   const [qualityResult, setQualityResult] = useState(null);
-  const [metadata, setMetadata] = useState({});
+  const [metadata, setMetadata] = useState({ eye: 'right' });
   const [questionnaire, setQuestionnaire] = useState({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [mockScenario, setMockScenario] = useState('pass');
@@ -60,34 +61,24 @@ export const CaptureScreen = () => {
     try {
       let data = null;
 
-      // If mock mode is disabled, try real ML API first
       if (!USE_MOCK_DATA) {
         try {
           const formData = new FormData();
           formData.append('file', imageFile);
-
-          const response = await fetch(ML_API_ENDPOINT, {
-            method: 'POST',
-            body: formData,
-          });
-
-          if (response.ok) {
-            data = await response.json();
-          }
+          const response = await fetch(ML_API_ENDPOINT, { method: 'POST', body: formData });
+          if (response.ok) data = await response.json();
         } catch (apiErr) {
           console.warn("ML API call failed, falling back to mock data:", apiErr);
         }
       }
 
-      // If in mock mode or API failed, load realistic mock prediction
       if (!data || !data.imageQuality) {
-        await new Promise(r => setTimeout(r, 900)); // scanning latency
+        await new Promise(r => setTimeout(r, 600));
         data = JSON.parse(JSON.stringify(mockAiPredictions[mockScenario] || mockAiPredictions.pass));
         data.input.filename = imageFile.name;
         data.processedAt = new Date().toISOString();
       }
       
-      // Map API response to UI model
       const apiStatus = data.imageQuality?.status || 'poor';
       let uiStatus = 'retake';
       if (apiStatus === 'good') uiStatus = 'pass';
@@ -98,7 +89,7 @@ export const CaptureScreen = () => {
         qualityStatus: uiStatus,
         issues: data.imageQuality?.issues || [],
         qualityScore: data.imageQuality?.qualityScore,
-        aiPrediction: data // store full data for later
+        aiPrediction: data
       });
       setActiveStep(2);
     } catch (err) {
@@ -114,21 +105,19 @@ export const CaptureScreen = () => {
     setImagePreviewUrl(null);
     setQualityResult(null);
     setActiveStep(1);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''; // clear input
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleAcceptQuality = () => {
-    setActiveStep(3);
-  };
+  const handleAcceptQuality = () => setActiveStep(3);
 
   const handleSubmit = async () => {
     try {
-      await localApi.saveCaptureMetadata(qualityResult.captureId, {
+      await localApi.saveCaptureMetadata(qualityResult?.captureId || `CAPT-${Date.now()}`, {
+        patientId,
         metadata,
         questionnaire,
-        aiPrediction: qualityResult.aiPrediction
+        aiPrediction: qualityResult?.aiPrediction,
+        imagePreviewUrl: imagePreviewUrl || demoFundusImg
       });
       navigate('/queue');
     } catch (err) {
@@ -136,129 +125,180 @@ export const CaptureScreen = () => {
     }
   };
 
+  const eyeLabel = metadata.eye === 'left' ? 'LEFT EYE (OS)' : 'RIGHT EYE (OD)';
+
   return (
-    <div className="section">
-      <div className="u-flex u-justify-between u-items-center u-mb-6">
-        <h1 className="t-h1">{t('capture.title')}</h1>
-        <div className="t-mono" style={{ opacity: 0.6 }}>
-          {t('capture.patient')} {patientId}
-        </div>
+    <div className="capture-screen-root">
+      {/* ── Title Bar ── */}
+      <div className="cs-titlebar">
+        <h1 className="t-h1 cs-title">{t('capture.title', 'IMAGE CAPTURE')}</h1>
+        <span className="cs-patient-id">{t('capture.patient', 'PATIENT:')} {patientId}</span>
       </div>
 
-      <div className="stepper u-mb-6">
-        <div className={`stepper__step ${activeStep === 1 ? 'active' : ''} ${activeStep > 1 ? 'completed' : ''}`}>{t('capture.steps.capture')}</div>
-        <div className={`stepper__step ${activeStep === 2 ? 'active' : ''} ${activeStep > 2 ? 'completed' : ''}`}>{t('capture.steps.quality')}</div>
-        <div className={`stepper__step ${activeStep === 3 ? 'active' : ''}`}>{t('capture.steps.metadata')}</div>
-      </div>
-
-      <div className="grid grid--2">
-        {/* Left Column: Image Area */}
-        <div className="panel u-p-4 hash-fill" style={{ minHeight: '500px' }}>
-          <div className="u-flex u-justify-between u-mb-2">
-            <span className="t-label">{t('capture.preview')}</span>
-            <span className="t-label">{imageFile ? t('capture.statusCaptured') : t('capture.statusReady')}</span>
+      {/* ── Stepper ── */}
+      <div className="cs-stepper">
+        {[
+          { n: 1, label: t('capture.steps.capture', '1. CAPTURE') },
+          { n: 2, label: t('capture.steps.quality', '2. QUALITY GATE') },
+          { n: 3, label: t('capture.steps.metadata', '3. METADATA & SYNC') },
+        ].map(({ n, label }) => (
+          <div
+            key={n}
+            className={`cs-step ${activeStep === n ? 'cs-step--active' : ''} ${activeStep > n ? 'cs-step--done' : ''}`}
+          >
+            {label}{activeStep > n ? ' ✓' : ''}
           </div>
-          
-          <input 
-            type="file" 
-            accept="image/png, image/jpeg, image/jpg" 
-            style={{ display: 'none' }} 
+        ))}
+      </div>
+
+      {/* ── Main Two-Column Body ── */}
+      <div className="cs-body">
+
+        {/* ═══ LEFT: Image Panel ═══ */}
+        <div className="cs-image-col">
+          {/* Header strip according to active step */}
+          {activeStep === 1 && (
+            <div className="cs-img-strip">
+              <span className="cs-img-strip__label cs-img-strip__label--active">
+                {t('capture.preview', 'LIVE FEED / PREVIEW')}
+              </span>
+              <span className="cs-img-strip__label">
+                {t('capture.statusCaptured', 'CAPTURED')}
+              </span>
+            </div>
+          )}
+
+          {activeStep === 2 && (
+            <div className="cs-img-strip">
+              <span className="cs-img-strip__label">
+                LIVE FEED
+              </span>
+              <span className="cs-img-strip__label cs-img-strip__label--active">
+                CAPTURED
+              </span>
+            </div>
+          )}
+
+          {activeStep === 3 && (
+            <div className="cs-img-strip cs-img-strip--center">
+              <span className="cs-img-strip__label cs-img-strip__label--active">
+                CAPTURED — {eyeLabel}
+              </span>
+            </div>
+          )}
+
+          <input
+            type="file"
+            accept="image/png, image/jpeg, image/jpg"
+            style={{ display: 'none' }}
             ref={fileInputRef}
             onChange={handleFileChange}
           />
 
-          <div className={`capture-zone ${imageFile ? 'has-image' : ''}`} onClick={handleCaptureClick}>
+          {/* Image area — fully scaled, object-fit: contain, no cropping, zoomable */}
+          <div className={`cs-img-frame ${imageFile ? 'cs-img-frame--has-image' : ''}`} onClick={handleCaptureClick}>
             {imagePreviewUrl ? (
-              <img src={imagePreviewUrl} alt="Fundus Capture" className="capture-zone__preview" />
+              <RetinalImageViewer src={imagePreviewUrl} alt="Fundus Capture" />
             ) : (
-              <>
-                <div className="capture-zone__placeholder">
-                  <div className="capture-zone__placeholder-icon">◎</div>
-                  <div className="t-mono u-mb-3">{t('capture.clickToInitiate')}</div>
-                  <button 
-                    type="button" 
-                    className="btn btn--outline" 
-                    style={{ fontSize: '0.72rem', padding: '6px 14px', zIndex: 10, cursor: 'pointer' }}
-                    onClick={handleLoadDemoImage}
-                  >
-                    {t('capture.loadSample')}
-                  </button>
-                </div>
-                <div className="capture-zone__crosshair"></div>
-              </>
+              <div className="cs-img-placeholder">
+                <div className="cs-img-placeholder__icon">◎</div>
+                <div className="t-mono cs-img-placeholder__text">{t('capture.clickToInitiate', 'CLICK TO INITIATE CAPTURE SEQUENCE')}</div>
+                <button
+                  type="button"
+                  className="btn btn--outline"
+                  style={{ fontSize: '0.72rem', padding: '6px 14px', zIndex: 10 }}
+                  onClick={handleLoadDemoImage}
+                >
+                  {t('capture.loadSample', '✦ LOAD SAMPLE RETINAL SCAN')}
+                </button>
+              </div>
             )}
+            {/* Crosshair when empty */}
+            {!imageFile && <div className="capture-zone__crosshair" />}
           </div>
-          
+
+          {/* Bottom controls — step 1 only: matches reference image 3 layout */}
           {imageFile && activeStep === 1 && (
-            <div className="u-mt-4">
-              <div className="u-flex u-justify-between u-items-center u-mb-3" style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
-                <span style={{ color: 'var(--c-cream-dark)', letterSpacing: '0.05em' }}>{t('capture.mockScenario')}</span>
-                <div style={{ display: 'flex', gap: '6px' }}>
+            <div className="cs-bottom-bar">
+              <div className="cs-bottom-bar__scenarios">
+                <span className="cs-scenario-label">{t('capture.mockScenario', 'MOCK TEST SCENARIO:')}</span>
+                <div className="cs-scenario-btn-group">
                   {[
-                    { id: 'pass', label: t('capture.scenarioPass') },
-                    { id: 'borderline', label: t('capture.scenarioBorderline') },
-                    { id: 'retake', label: t('capture.scenarioRetake') }
+                    { id: 'pass', label: t('capture.scenarioPass', 'PASS (GRADE 1)') },
+                    { id: 'borderline', label: t('capture.scenarioBorderline', 'BORDERLINE (GRADE 2)') },
+                    { id: 'retake', label: t('capture.scenarioRetake', 'RETAKE (POOR)') },
                   ].map(s => (
                     <button
                       key={s.id}
                       type="button"
                       onClick={() => setMockScenario(s.id)}
-                      style={{
-                        padding: '3px 9px',
-                        fontSize: '0.68rem',
-                        fontFamily: 'var(--font-mono)',
-                        border: `1px solid ${mockScenario === s.id ? 'var(--c-crimson)' : 'var(--c-cream-dark)'}`,
-                        background: mockScenario === s.id ? 'var(--c-crimson)' : 'transparent',
-                        color: mockScenario === s.id ? '#ffffff' : 'inherit',
-                        borderRadius: '2px',
-                        cursor: 'pointer',
-                        fontWeight: mockScenario === s.id ? 'bold' : 'normal',
-                        transition: 'all 0.15s ease'
-                      }}
+                      className={`cs-scenario-btn ${mockScenario === s.id ? 'cs-scenario-btn--active' : ''}`}
                     >
                       {s.label}
                     </button>
                   ))}
                 </div>
               </div>
-              <div className="u-flex u-justify-between">
-                <button className="btn btn--outline" onClick={handleRetake} disabled={isAnalyzing}>{t('capture.btnRetake')}</button>
-                <button className="btn" onClick={runQualityCheck} disabled={isAnalyzing}>
-                  {isAnalyzing ? t('capture.btnAnalyzing') : t('capture.btnAnalyze')}
+
+              <div className="cs-bottom-bar__actions">
+                <button className="btn btn--outline cs-retake-btn" onClick={handleRetake} disabled={isAnalyzing}>
+                  {t('capture.btnRetake', 'RETAKE')}
+                </button>
+                <button className="btn cs-run-check-btn" onClick={runQualityCheck} disabled={isAnalyzing}>
+                  {isAnalyzing ? t('capture.btnAnalyzing', 'ANALYZING... ✦') : 'RUN QUALITY CHECK →'}
                 </button>
               </div>
             </div>
           )}
         </div>
 
-        {/* Right Column: Workflow Context */}
-        <div className="panel capture-context-panel">
+        {/* ═══ RIGHT: Context Panel ═══ */}
+        <div className="cs-right-col">
+
+          {/* ─── STEP 1: Instructions ─── */}
           {activeStep === 1 && (
-            <div className="capture-instructions">
-              <h2 className="t-h3" style={{ color: 'var(--c-crimson)' }}>{t('capture.instructionsTitle')}</h2>
-              <div className="capture-instructions__divider" />
-              <ul className="capture-instructions__list">
+            <div className="cs-instructions">
+              <h2 className="t-h3 cs-instr-title">
+                {t('capture.instructionsTitle', 'INSTRUCTIONS')}
+              </h2>
+              <div className="cs-instr-divider" />
+              <ul className="cs-instr-list">
                 {t('capture.instructions', { returnObjects: true }).map((instruction, idx) => (
-                  <li key={idx}><span className="capture-instructions__num">0{idx + 1}</span> {instruction}</li>
+                  <li key={idx} className="cs-instr-item">
+                    <span className="cs-instr-num">0{idx + 1}</span>
+                    <span>{instruction}</span>
+                  </li>
                 ))}
               </ul>
             </div>
           )}
 
+          {/* ─── STEP 2: Quality Gate (matches reference image 2) ─── */}
           {activeStep === 2 && qualityResult && (
-            <div className="capture-quality-wrapper">
-              <QualityResultPanel result={qualityResult} onRetake={handleRetake} onAccept={handleAcceptQuality} />
+            <div className="cs-quality-panel">
+              <QualityResultPanel
+                result={qualityResult}
+                onRetake={handleRetake}
+                onAccept={handleAcceptQuality}
+              />
             </div>
           )}
 
+          {/* ─── STEP 3: Metadata & Sync (matches reference image 4) ─── */}
           {activeStep === 3 && (
-            <div style={{ overflowY: 'auto', maxHeight: '500px', padding: 'var(--sp-4)' }}>
-              <CaptureMetadataForm onChange={setMetadata} />
-              <div className="u-mt-6">
-                <PatientQuestionnaireForm onChange={setQuestionnaire} />
-              </div>
-              <div className="u-mt-6 u-text-right">
-                 <button className="btn btn--success" onClick={handleSubmit}>{t('quality.btnQue')}</button>
+            <div className="cs-meta-panel">
+              <CaptureMetadataForm
+                value={metadata}
+                onChange={(newMeta) => setMetadata(newMeta)}
+              />
+              <PatientQuestionnaireForm
+                value={questionnaire}
+                onChange={(newQ) => setQuestionnaire(newQ)}
+              />
+              <div className="cs-meta-footer">
+                <button className="btn cs-sync-btn" onClick={handleSubmit}>
+                  SAVE & SYNC TO SERVER →
+                </button>
               </div>
             </div>
           )}

@@ -1,0 +1,145 @@
+{
+  "central": {
+    "login": {
+      "title": "RETINAL✦DIAGNOSTICS",
+      "subtitle": "EXPLAINABLE AI FOR DIABETIC RETINOPATHY",
+      "version": "NETRA SETU PLATFORM v1.0",
+      "selectRole": "SELECT YOUR ROLE TO PROCEED",
+      "roles": {
+        "ophthalmologist": {
+          "title": "OPHTHALMOLOGIST",
+          "subtitle": "Case Review & Diagnosis",
+          "desc": "Review AI-graded retinal scans, confirm or override diagnoses, and manage the review queue.",
+          "stats": "cases pending"
+        },
+        "admin": {
+          "title": "DISTRICT ADMIN",
+          "subtitle": "Analytics & Oversight",
+          "desc": "Monitor PHC performance, track referrals, view screening analytics, and manage district-wide operations.",
+          "stats": "cases today"
+        }
+      },
+      "auth": {
+        "authenticatingAs": "AUTHENTICATING AS: {{role}}",
+        "back": "← BACK",
+        "username": "USERNAME",
+        "password": "PASSWORD",
+        "initiate": "INITIATE SESSION ✦",
+        "authenticating": "AUTHENTICATING...",
+        "demo": "DEMO CREDENTIALS:",
+        "errorEmpty": "Please enter both username and password.",
+        "errorInvalid": "INVALID CREDENTIALS. USE DEMO: {{user}} / {{pass}}"
+      }
+    },
+    "header": {
+      "nav": {
+        "dashboard": "DASHBOARD",
+        "referrals": "REFERRALS",
+        "phcHealth": "PHC HEALTH",
+        "queue": "REVIEW QUEUE",
+        "timeline": "TIMELINE",
+        "programHealth": "PROGRAM HEALTH"
+      },
+      "statusLive": "LIVE",
+      "profile": "PROFILE",
+      "logout": "LOG OUT",
+      "language": "LANGUAGE"
+    },
+    "queue": {
+      "subtitle": "OPHTHALMOLOGIST INTERFACE",
+      "title": "REVIEW QUEUE",
+      "stats": {
+        "total": "TOTAL",
+        "tierC": "TIER C",
+        "tierB": "TIER B",
+        "mismatch": "MISMATCH"
+      },
+      "banner": {
+        "title": "QUEUE PRIORITIZATION",
+        "text": "Cases are automatically sorted by urgency. Tier C cases and branch disagreements are floated to the top, followed by lowest confidence scores. Spot-check Tier B cases appear last."
+      },
+      "search": {
+        "placeholder": "🔍 Search Patient Ref, Case ID, or PHC...",
+        "allPhcs": "ALL PHCs",
+        "allGrades": "ALL GRADES",
+        "mismatchChip": "⚠ MISMATCH",
+        "reset": "RESET (✕)"
+      },
+      "filters": {
+        "all": "ALL CASES",
+        "tierC": "TIER C — FULL REVIEW",
+        "tierB": "TIER B — SPOT CHECK",
+        "mismatch": "⚠ BRANCH MISMATCH"
+      },
+      "table": {
+        "colPriority": "#",
+        "colPatientRef": "PATIENT REF",
+        "colPhc": "PHC",
+        "colTier": "TIER",
+        "colCnnGrade": "CNN GRADE",
+        "colRuleEngine": "RULE ENGINE",
+        "colAgreement": "AGREEMENT",
+        "colConfidence": "CONFIDENCE",
+        "colCaptured": "CAPTURED",
+        "grade": "Grade",
+        "notAvailable": "NOT YET AVAILABLE",
+        "agree": "✓ AGREE",
+        "disagree": "⚠ DISAGREE",
+        "na": "N/A"
+      },
+      "empty": "NO CASES MATCH FILTER"
+    },
+    "timeline": {
+      "subtitle": "OPHTHALMOLOGIST INTERFACE",
+      "title": "PATIENT TIMELINE",
+      "ref": "REF:",
+      "enableDiff": "ENABLE DIFF VIEW",
+      "disableDiff": "◆ DIFF VIEW ON",
+      "banner": {
+        "title": "PATIENT HISTORY & COMPARISON",
+        "text": "Review the longitudinal visit history for this patient. Enable Diff View to automatically highlight changes in lesion evidence between adjacent visits. Track the referral progress loop across different nodes."
+      },
+      "latestVisit": "LATEST VISIT",
+      "visitId": "VISIT ID",
+      "referralStatus": "REFERRAL STATUS",
+      "lesionEvidence": "LESION EVIDENCE",
+      "vsPrevious": "(VS PREVIOUS)",
+      "steps": {
+        "referred": "REFERRED",
+        "contacted": "CONTACTED",
+        "scheduled": "SCHEDULED",
+        "seen": "SEEN"
+      }
+    },
+    "referral": {
+      "subtitle": "DISTRICT ADMIN",
+      "title": "REFERRAL TRACKER",
+      "showAll": "SHOW ALL",
+      "pipeline": {
+        "referred": "REFERRED",
+        "contacted": "CONTACTED",
+        "attended": "ATTENDED",
+        "lost": "LOST TO FOLLOW-UP"
+      },
+      "search": {
+        "placeholder": "🔍 Search Patient Ref, Worker, or PHC...",
+        "allStatuses": "ALL STATUSES",
+        "urgentLost": "⚠ URGENT: LOST",
+        "reset": "RESET (✕)"
+      },
+      "table": {
+        "colPatientRef": "PATIENT REF",
+        "colPhc": "PHC",
+        "colDrGrade": "DR GRADE",
+        "colStatus": "STATUS",
+        "colAssigned": "ASSIGNED WORKER",
+        "colLastUpdated": "LAST UPDATED",
+        "colAction": "ACTION",
+        "unassigned": "UNASSIGNED",
+        "actionReq": "ACTION REQ.",
+        "final": "FINAL",
+        "empty": "NO REFERRALS FOUND MATCHING CRITERIA"
+      }
+    }
+  }
+}

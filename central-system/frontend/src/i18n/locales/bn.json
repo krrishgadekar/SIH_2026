@@ -1,0 +1,118 @@
+{
+  "header": {
+    "title": "NetraSetu",
+    "nav": {
+      "register": "নিবন্ধন",
+      "capture": "ক্যাপচার",
+      "queue": "কিউ"
+    },
+    "status": {
+      "online": "অনলাইন",
+      "offline": "অফলাইন",
+      "pending": "অপেক্ষমাণ"
+    }
+  },
+  "registration": {
+    "title": "রোগীর নিবন্ধন",
+    "fullName": "পুরো নাম",
+    "namePlaceholder": "উদা. সুনিতা দেবী",
+    "age": "বয়স",
+    "agePlaceholder": "উদা. 54",
+    "contact": "যোগাযোগ নম্বর (ঐচ্ছিক)",
+    "contactPlaceholder": "+91...",
+    "btnRegistering": "নিবন্ধন করা হচ্ছে...",
+    "btnInitiate": "ক্যাপচার শুরু করুন ✦",
+    "secureModule": "নিরাপদ অফলাইন মডিউল V1.2.0"
+  },
+  "capture": {
+    "title": "ইমেজ ক্যাপচার",
+    "patient": "রোগী:",
+    "steps": {
+      "capture": "1. ক্যাপচার",
+      "quality": "2. গুণমান পরীক্ষা",
+      "metadata": "3. মেটাডেটা এবং সিঙ্ক"
+    },
+    "preview": "লাইভ ফিড / প্রিভিউ",
+    "statusCaptured": "ক্যাপচার করা হয়েছে",
+    "statusReady": "প্রস্তুত",
+    "clickToInitiate": "ক্যাপচার ক্রম শুরু করতে ক্লিক করুন",
+    "loadSample": "✦ নমুনা রেটিনাল স্ক্যান লোড করুন",
+    "mockScenario": "মক টেস্ট দৃশ্যকল্প:",
+    "scenarioPass": "পাস (গ্রেড 1)",
+    "scenarioBorderline": "বর্ডারলাইন (গ্রেড 2)",
+    "scenarioRetake": "পুনরায় নিন (অস্পষ্ট)",
+    "btnRetake": "পুনরায় নিন",
+    "btnAnalyze": "গুণমান পরীক্ষা চালান ✦",
+    "btnAnalyzing": "বিশ্লেষণ করা হচ্ছে... ✦",
+    "instructionsTitle": "নির্দেশাবলী",
+    "instructions": [
+      "রোগীর মাথা চিন রেস্টে সারিবদ্ধ করুন।",
+      "পিউপিল ফিডে কেন্দ্রীভূত না হওয়া পর্যন্ত উচ্চতা সামঞ্জস্য করুন।",
+      "নিশ্চিত করুন যে ঘরের আলো পর্যাপ্তভাবে কম।",
+      "রোগীকে অভ্যন্তরীণ সবুজ লক্ষ্যে ফোকাস করার নির্দেশ দিন।",
+      "ফোকাস নির্দেশক শক্ত হলে ক্যাপচার শুরু করুন।"
+    ]
+  },
+  "metadata": {
+    "title": "ক্যাপচার মেটাডেটা",
+    "eyeScanned": "চোখ স্ক্যান করা হয়েছে",
+    "eyeLeft": "বাম (OS)",
+    "eyeRight": "ডান (OD)",
+    "cameraDevice": "ক্যামেরা ডিভাইস",
+    "pupilDilation": "পিউপিল প্রসারিত করা হয়েছে",
+    "observedIssues": "পর্যবেক্ষিত সমস্যা (ঐচ্ছিক)"
+  },
+  "questionnaire": {
+    "title": "ক্লিনিকাল প্রশ্নাবলী",
+    "knownDiabetic": "ডায়াবেটিস আছে কি?",
+    "yearsSince": "নির্ণয়ের পর থেকে বছর",
+    "yearsPlaceholder": "উদা. 5",
+    "bpHistory": "রক্তচাপের ইতিহাস",
+    "bpOptions": {
+      "unknown": "অজানা / পরিমাপ করা হয়নি",
+      "normal": "স্বাভাবিক",
+      "high": "উচ্চ (উচ্চ রক্তচাপ)",
+      "low": "নিম্ন (নিম্ন রক্তচাপ)"
+    },
+    "visionChanges": "সাম্প্রতিক দৃষ্টি পরিবর্তন? (অস্পষ্টতা, দাগ)"
+  },
+  "quality": {
+    "btnQue": "সিঙ্কের জন্য কিউতে রাখুন ✦",
+    "passTitle": "গুণমান পাস",
+    "passSub": "ইমেজ ডায়াগনস্টিক থ্রেশহোল্ড পূরণ করে",
+    "retakeTitle": "পুনরায় নেওয়া প্রয়োজন",
+    "retakeSub": "ইমেজ গ্রহণযোগ্য মানের নিচে",
+    "borderTitle": "বর্ডারলাইন গুণমান",
+    "borderSub": "ইমেজ এআই সঠিকতাকে প্রভাবিত করতে পারে",
+    "score": "গুণমান স্কোর",
+    "metrics": {
+      "focus": "ফোকাস",
+      "illumination": "আলো",
+      "contrast": "বৈসাদৃশ্য",
+      "coverage": "কভারেজ"
+    },
+    "issues": "শনাক্ত করা সমস্যা",
+    "severityTitle": "এআই তীব্রতা ভবিষ্যদ্বাণী",
+    "grade": "গ্রেড",
+    "confidence": "মডেল আত্মবিশ্বাস",
+    "btnBack": "← পুনরায় নিন",
+    "btnAccept": "গ্রহণ করুন এবং চালিয়ে যান ✦"
+  },
+  "queue": {
+    "title": "স্থানীয় কিউ",
+    "items": "আইটেম",
+    "colId": "আইডি",
+    "colPatient": "রোগী",
+    "colCaptured": "ক্যাপচার করা হয়েছে",
+    "colStatus": "অবস্থা",
+    "colAction": "ক্রিয়া",
+    "empty": "কিউ খালি",
+    "statusPass": "গুণমান পাস",
+    "statusSynced": "সিঙ্ক করা হয়েছে ↗",
+    "statusPending": "এআই অপেক্ষমাণ",
+    "statusReady": "ফলাফল প্রস্তুত ✓",
+    "statusCaptured": "ক্যাপচার করা হয়েছে",
+    "btnView": "ফলাফল দেখুন",
+    "txtWaiting": "অপেক্ষা করছে..."
+  }
+}

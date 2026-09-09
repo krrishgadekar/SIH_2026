@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { centralApi } from '../../api/centralApiClient';
 import { drGradeLabels } from '../../api/mockData';
 import { GradCamOverlay } from './GradCamOverlay';
@@ -29,6 +30,7 @@ const MetricBar = ({ label, value, maxVal = 1, color = 'var(--c-crimson)' }) => 
 export const CaseDetailPage = () => {
   const { caseId } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [caseData, setCaseData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showGradCam, setShowGradCam] = useState(false);
@@ -67,7 +69,7 @@ export const CaseDetailPage = () => {
   }
 
   if (!caseData) {
-    return <div className="section"><p className="t-mono">Case not found.</p></div>;
+    return <div className="section"><p className="t-mono">{t('central.caseDetail.notFound', 'Case not found.')}</p></div>;
   }
 
   const c = caseData;
@@ -79,10 +81,10 @@ export const CaseDetailPage = () => {
       <div className={`case-detail__top-bar ${isBranchMismatch ? 'case-detail__top-bar--mismatch' : ''}`}>
         <div className="u-flex u-items-center u-gap-4">
           <button className="btn btn--outline" onClick={() => navigate('/ophth/queue')} style={{ padding: 'var(--sp-2) var(--sp-3)' }}>
-            <span>← QUEUE</span>
+            <span>← {t('central.caseDetail.nav.queue', 'QUEUE')}</span>
           </button>
           <div>
-            <span className="t-mono" style={{ fontSize: 'var(--fs-small)', opacity: 0.5 }}>CASE</span>
+            <span className="t-mono" style={{ fontSize: 'var(--fs-small)', opacity: 0.5 }}>{t('central.caseDetail.caseLabel', 'CASE')}</span>
             <span className="t-mono" style={{ fontWeight: 700, marginLeft: 'var(--sp-2)' }}>
               #{caseId.slice(0, 8).toUpperCase()}
             </span>
@@ -91,19 +93,19 @@ export const CaseDetailPage = () => {
 
         <div className="u-flex u-items-center u-gap-4">
           <span className={`badge ${c.conformalTier === 'C' ? 'badge--tier-c' : 'badge--tier-b'}`}>
-            TIER {c.conformalTier} — {c.conformalTier === 'C' ? 'FULL MANUAL REVIEW' : 'SPOT CHECK'}
+            {t('central.caseDetail.tier', 'TIER')} {c.conformalTier} — {c.conformalTier === 'C' ? t('central.caseDetail.fullManualReview', 'FULL MANUAL REVIEW') : t('central.caseDetail.spotCheck', 'SPOT CHECK')}
           </span>
           {isBranchMismatch && (
             <span className="badge badge--fail case-detail__mismatch-badge">
-              ⚠ BRANCH MISMATCH — REVIEW REQUIRED
+              {t('central.caseDetail.mismatchWarning', '⚠ BRANCH MISMATCH — REVIEW REQUIRED')}
             </span>
           )}
         </div>
       </div>
 
       <InfoBanner 
-        title="CLINICAL REVIEW GUIDANCE" 
-        text="Review both the holistic CNN branch and the explicit Rule Engine branch. Use the Grad-CAM toggle to verify lesion attention. Press 'C' to Confirm the AI grade, or 'O' to Override and provide a manual clinical reason." 
+        title={t('central.caseDetail.banner.title', 'CLINICAL REVIEW GUIDANCE')}
+        text={t('central.caseDetail.banner.text', "Review both the holistic CNN branch and the explicit Rule Engine branch. Use the Grad-CAM toggle to verify lesion attention. Press 'C' to Confirm the AI grade, or 'O' to Override and provide a manual clinical reason.")}
       />
 
       {/* Main Content Grid */}
@@ -113,13 +115,13 @@ export const CaseDetailPage = () => {
           {/* Fundus Image with Grad-CAM Toggle */}
           <div className="case-detail__image-panel panel--dark">
             <div className="case-detail__image-header u-flex u-justify-between u-items-center">
-              <span className="t-label" style={{ color: 'var(--c-crimson)' }}>FUNDUS IMAGE — {c.patientReference}</span>
+              <span className="t-label" style={{ color: 'var(--c-crimson)' }}>{t('central.caseDetail.image.fundus', 'FUNDUS IMAGE')} — {c.patientReference}</span>
               <button
                 className={`btn ${showGradCam ? 'btn--danger' : 'btn--outline'}`}
                 onClick={() => setShowGradCam(!showGradCam)}
                 style={{ padding: 'var(--sp-1) var(--sp-3)', fontSize: 'var(--fs-tiny)' }}
               >
-                <span>{showGradCam ? '✦ GRAD-CAM ON' : '○ GRAD-CAM OFF'}</span>
+                <span>{showGradCam ? t('central.caseDetail.image.gradCamOn', '✦ GRAD-CAM ON') : t('central.caseDetail.image.gradCamOff', '○ GRAD-CAM OFF')}</span>
               </button>
             </div>
             <GradCamOverlay showOverlay={showGradCam} caseData={c} />
@@ -128,17 +130,17 @@ export const CaseDetailPage = () => {
           {/* Metric Bars */}
           <div className="case-detail__metrics" style={{ padding: 'var(--sp-6)', border: 'var(--border)' }}>
             <MetricBar
-              label="CONFIDENCE"
+              label={t('central.caseDetail.metrics.confidence', 'CONFIDENCE')}
               value={c.confidenceScore}
               color={c.confidenceScore > 0.85 ? 'var(--c-success)' : c.confidenceScore > 0.7 ? 'var(--c-warning)' : 'var(--c-crimson)'}
             />
             <MetricBar
-              label="UNCERTAINTY"
+              label={t('central.caseDetail.metrics.uncertainty', 'UNCERTAINTY')}
               value={c.uncertaintyScore}
               color="var(--c-warning)"
             />
             <MetricBar
-              label="LESION-ATTENTION CONSISTENCY"
+              label={t('central.caseDetail.metrics.lesionConsistency', 'LESION-ATTENTION CONSISTENCY')}
               value={c.lesionAttentionConsistencyScore}
               color={c.lesionAttentionConsistencyScore !== null && c.lesionAttentionConsistencyScore > 0.6 ? 'var(--c-success)' : 'var(--c-crimson)'}
             />
@@ -155,10 +157,10 @@ export const CaseDetailPage = () => {
 
           {/* Patient / Capture Context */}
           <div className="case-detail__context" style={{ border: 'var(--border)', padding: 'var(--sp-6)' }}>
-            <h3 className="t-h3 u-mb-4">PATIENT / CAPTURE CONTEXT</h3>
+            <h3 className="t-h3 u-mb-4">{t('central.caseDetail.context.title', 'PATIENT / CAPTURE CONTEXT')}</h3>
             <div className="grid--2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
               <div style={{ padding: 'var(--sp-3)', borderRight: 'var(--border)' }}>
-                <span className="t-label" style={{ opacity: 0.5 }}>DIABETES DURATION</span>
+                <span className="t-label" style={{ opacity: 0.5 }}>{t('central.caseDetail.context.diabetesDuration', 'DIABETES DURATION')}</span>
                 <p className="t-mono" style={{ fontWeight: 700 }}>
                   {c.questionnaireData?.riskFactors?.yearsSinceDiagnosis
                     ? { lt1: '< 1 year', '1to5': '1–5 years', '5to10': '5–10 years', gt10: '> 10 years' }[c.questionnaireData.riskFactors.yearsSinceDiagnosis]
@@ -166,31 +168,31 @@ export const CaseDetailPage = () => {
                 </p>
               </div>
               <div style={{ padding: 'var(--sp-3)' }}>
-                <span className="t-label" style={{ opacity: 0.5 }}>BLOOD PRESSURE</span>
+                <span className="t-label" style={{ opacity: 0.5 }}>{t('central.caseDetail.context.bloodPressure', 'BLOOD PRESSURE')}</span>
                 <p className="t-mono" style={{ fontWeight: 700, textTransform: 'uppercase' }}>
                   {c.questionnaireData?.riskFactors?.bloodPressure || 'N/A'}
                 </p>
               </div>
               <div style={{ padding: 'var(--sp-3)', borderRight: 'var(--border)', borderTop: 'var(--border)' }}>
-                <span className="t-label" style={{ opacity: 0.5 }}>PUPIL STATUS</span>
+                <span className="t-label" style={{ opacity: 0.5 }}>{t('central.caseDetail.context.pupilStatus', 'PUPIL STATUS')}</span>
                 <p className="t-mono" style={{ fontWeight: 700, textTransform: 'uppercase' }}>
                   {c.captureMetadata?.pupilStatus || 'N/A'}
                 </p>
               </div>
               <div style={{ padding: 'var(--sp-3)', borderTop: 'var(--border)' }}>
-                <span className="t-label" style={{ opacity: 0.5 }}>CAMERA DEVICE</span>
+                <span className="t-label" style={{ opacity: 0.5 }}>{t('central.caseDetail.context.cameraDevice', 'CAMERA DEVICE')}</span>
                 <p className="t-mono" style={{ fontWeight: 700 }}>
                   {c.captureMetadata?.cameraDeviceReported?.replace(/_/g, ' ').toUpperCase() || 'N/A'}
                 </p>
               </div>
               <div style={{ padding: 'var(--sp-3)', borderRight: 'var(--border)', borderTop: 'var(--border)' }}>
-                <span className="t-label" style={{ opacity: 0.5 }}>WORKER RATING</span>
+                <span className="t-label" style={{ opacity: 0.5 }}>{t('central.caseDetail.context.workerRating', 'WORKER RATING')}</span>
                 <p className="t-mono" style={{ fontWeight: 700, textTransform: 'uppercase' }}>
                   {c.captureMetadata?.workerUsabilityRating || 'N/A'}
                 </p>
               </div>
               <div style={{ padding: 'var(--sp-3)', borderTop: 'var(--border)' }}>
-                <span className="t-label" style={{ opacity: 0.5 }}>SYMPTOMS</span>
+                <span className="t-label" style={{ opacity: 0.5 }}>{t('central.caseDetail.context.symptoms', 'SYMPTOMS')}</span>
                 <p className="t-mono" style={{ fontWeight: 700, fontSize: 'var(--fs-tiny)' }}>
                   {c.questionnaireData?.symptoms
                     ? Object.entries(c.questionnaireData.symptoms)
@@ -219,7 +221,7 @@ export const CaseDetailPage = () => {
             onClick={() => setShowHistory(!showHistory)}
             style={{ justifyContent: 'center' }}
           >
-            <span>{showHistory ? '▼ HIDE HISTORY' : '▶ SHOW PATIENT HISTORY'} ({c.priorAssessments?.length || 0} prior)</span>
+            <span>{showHistory ? t('central.caseDetail.history.hide', '▼ HIDE HISTORY') : t('central.caseDetail.history.show', '▶ SHOW PATIENT HISTORY')} ({c.priorAssessments?.length || 0} {t('central.caseDetail.history.prior', 'prior')})</span>
           </button>
           {showHistory && <CaseHistoryTimeline priorAssessments={c.priorAssessments || []} />}
         </div>
@@ -230,8 +232,8 @@ export const CaseDetailPage = () => {
         <div className="case-detail__success-overlay">
           <div className="case-detail__success-content">
             <span style={{ fontSize: '4rem' }}>✓</span>
-            <h2 className="t-h2">REVIEW SUBMITTED</h2>
-            <p className="t-mono" style={{ opacity: 0.6 }}>REDIRECTING TO QUEUE...</p>
+            <h2 className="t-h2">{t('central.caseDetail.success.title', 'REVIEW SUBMITTED')}</h2>
+            <p className="t-mono" style={{ opacity: 0.6 }}>{t('central.caseDetail.success.subtitle', 'REDIRECTING TO QUEUE...')}</p>
           </div>
         </div>
       )}

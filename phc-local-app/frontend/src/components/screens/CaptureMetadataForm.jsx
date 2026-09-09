@@ -2,95 +2,105 @@ import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cameraDevices } from '../../api/mockData';
 
-export const CaptureMetadataForm = ({ onChange }) => {
+export const CaptureMetadataForm = ({ value, onChange }) => {
   const { t } = useTranslation();
   const [data, setData] = useState({
-    eye: 'right', // left, right
-    cameraDeviceId: cameraDevices[0].id,
-    pupilDilation: false,
-    issuesNoticed: []
+    eye: value?.eye || 'right',
+    cameraDeviceId: value?.cameraDeviceId || cameraDevices[0].id,
+    pupilDilation: value?.pupilDilation || false,
+    issuesNoticed: value?.issuesNoticed || []
   });
 
   useEffect(() => {
-    onChange(data);
-  }, [data, onChange]);
+    if (onChange) onChange(data);
+  }, [data]);
 
-  const handleChange = (field, value) => {
-    setData(prev => ({ ...prev, [field]: value }));
-  };
+  const handleChange = (field, val) =>
+    setData(prev => ({ ...prev, [field]: val }));
 
-  const toggleIssue = (issue) => {
+  const toggleIssue = (issue) =>
     setData(prev => {
       const issues = prev.issuesNoticed;
-      if (issues.includes(issue)) {
-        return { ...prev, issuesNoticed: issues.filter(i => i !== issue) };
-      } else {
-        return { ...prev, issuesNoticed: [...issues, issue] };
-      }
+      return {
+        ...prev,
+        issuesNoticed: issues.includes(issue)
+          ? issues.filter(i => i !== issue)
+          : [...issues, issue],
+      };
     });
-  };
 
   return (
-    <div className="panel u-p-4">
-      <h3 className="t-h3" style={{ color: 'var(--c-crimson)', marginBottom: 'var(--sp-4)' }}>{t('metadata.title')}</h3>
-      
-      <div className="u-mb-4">
-        <label className="label">{t('metadata.eyeScanned')}</label>
-        <div className="u-flex" style={{ border: '1px solid var(--c-crimson)' }}>
-          <div 
-            className="u-p-2 u-text-center t-mono" 
-            style={{ flex: 1, cursor: 'pointer', background: data.eye === 'left' ? 'var(--c-crimson)' : 'transparent', color: data.eye === 'left' ? 'var(--c-black)' : 'var(--c-crimson)' }}
-            onClick={() => handleChange('eye', 'left')}
-          >
-            {t('metadata.eyeLeft')}
-          </div>
-          <div 
-            className="u-p-2 u-text-center t-mono" 
-            style={{ flex: 1, cursor: 'pointer', background: data.eye === 'right' ? 'var(--c-crimson)' : 'transparent', color: data.eye === 'right' ? 'var(--c-black)' : 'var(--c-crimson)' }}
-            onClick={() => handleChange('eye', 'right')}
-          >
-            {t('metadata.eyeRight')}
+    <div className="meta-card">
+      <div className="meta-card__header">
+        <h3 className="meta-card__title">CAPTURE METADATA</h3>
+      </div>
+
+      <div className="meta-card__body">
+        {/* Eye Scanned */}
+        <div className="meta-field">
+          <label className="meta-label">EYE SCANNED</label>
+          <div className="meta-eye-toggle">
+            <button
+              type="button"
+              className={`meta-eye-btn ${data.eye === 'left' ? 'meta-eye-btn--active' : ''}`}
+              onClick={() => handleChange('eye', 'left')}
+            >
+              LEFT (OS)
+            </button>
+            <button
+              type="button"
+              className={`meta-eye-btn ${data.eye === 'right' ? 'meta-eye-btn--active' : ''}`}
+              onClick={() => handleChange('eye', 'right')}
+            >
+              RIGHT (OD)
+            </button>
           </div>
         </div>
-      </div>
 
-      <div className="u-mb-4">
-        <label className="label">{t('metadata.cameraDevice')}</label>
-        <select 
-          className="select input--on-dark" 
-          value={data.cameraDeviceId} 
-          onChange={(e) => handleChange('cameraDeviceId', e.target.value)}
-        >
-          {cameraDevices.map(cam => (
-            <option key={cam.id} value={cam.id}>{cam.label}</option>
-          ))}
-        </select>
-      </div>
+        {/* Camera Device */}
+        <div className="meta-field">
+          <label className="meta-label">CAMERA DEVICE</label>
+          <div className="select-wrap">
+            <select
+              className="select meta-select"
+              value={data.cameraDeviceId}
+              onChange={(e) => handleChange('cameraDeviceId', e.target.value)}
+            >
+              {cameraDevices.map(cam => (
+                <option key={cam.id} value={cam.id}>{cam.label}</option>
+              ))}
+            </select>
+          </div>
+        </div>
 
-      <div className="u-mb-4">
-        <label className="label" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          {t('metadata.pupilDilation')}
-          <div className={`toggle ${data.pupilDilation ? 'toggle--active' : ''}`} onClick={() => handleChange('pupilDilation', !data.pupilDilation)}>
-            <div className="toggle__track">
-              <div className="toggle__thumb"></div>
+        {/* Pupil Dilation Administered */}
+        <div className="meta-field meta-field--inline">
+          <label className="meta-label">PUPIL DILATION ADMINISTERED</label>
+          <div
+            className={`meta-toggle ${data.pupilDilation ? 'meta-toggle--active' : ''}`}
+            onClick={() => handleChange('pupilDilation', !data.pupilDilation)}
+          >
+            <div className="meta-toggle__track">
+              <div className="meta-toggle__thumb" />
             </div>
           </div>
-        </label>
-      </div>
+        </div>
 
-      <div>
-        <label className="label">{t('metadata.observedIssues')}</label>
-        <div className="chip-group">
-          {['Cataract Suspected', 'Small Pupil', 'Patient Uncooperative', 'Other'].map(issue => (
-            <div 
-              key={issue} 
-              className={`chip ${data.issuesNoticed.includes(issue) ? 'selected' : ''}`}
-              style={data.issuesNoticed.includes(issue) ? { background: 'var(--c-crimson)', color: 'var(--c-black)', borderColor: 'var(--c-crimson)' } : { borderColor: 'var(--c-crimson)', color: 'var(--c-crimson)' }}
-              onClick={() => toggleIssue(issue)}
-            >
-              {issue}
-            </div>
-          ))}
+        {/* Observed Issues */}
+        <div className="meta-field">
+          <label className="meta-label">OBSERVED ISSUES (OPTIONAL)</label>
+          <div className="meta-chip-grid">
+            {['CATARACT SUSPECTED', 'SMALL PUPIL', 'PATIENT UNCOOPERATIVE', 'OTHER'].map(issue => (
+              <button
+                key={issue}
+                type="button"
+                className={`meta-chip ${data.issuesNoticed.includes(issue) ? 'meta-chip--active' : ''}`}
+                onClick={() => toggleIssue(issue)}
+              >
+                {issue}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

@@ -1,29 +1,33 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ConsoleStatus } from '../shared/ConsoleStatus';
 
-const OPTH_MESSAGES = [
-  'CENTRAL SYSTEM ONLINE...',
-  'ML PIPELINE v4.2 CONNECTED',
-  'GRAD-CAM MODULE READY',
-  'LESION DETECTION ACTIVE',
-  'CONFORMAL PREDICTION CALIBRATED',
-  'AWAITING CASE SELECTION...',
-];
 
-const ADMIN_MESSAGES = [
-  'ADMIN DASHBOARD LOADING...',
-  'AGGREGATING PHC DATA...',
-  'REFERRAL TRACKER ONLINE',
-  'SYNC STATUS: ALL NODES CONNECTED',
-  'ANALYTICS MODULE READY',
-];
 
-export const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) => {
+const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) => {
+  const { t, i18n } = useTranslation();
   const isOphth = role === 'ophthalmologist';
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [editProfile, setEditProfile] = useState(userProfile || { username: '', fullName: '', phone: '', location: '' });
+
+  const OPTH_MESSAGES = [
+    t('central.header.statusLive', 'CENTRAL SYSTEM ONLINE...'),
+    'ML PIPELINE v4.2 CONNECTED',
+    'GRAD-CAM MODULE READY',
+    'LESION DETECTION ACTIVE',
+    'CONFORMAL PREDICTION CALIBRATED',
+    'AWAITING CASE SELECTION...',
+  ];
+
+  const ADMIN_MESSAGES = [
+    'ADMIN DASHBOARD LOADING...',
+    'AGGREGATING PHC DATA...',
+    'REFERRAL TRACKER ONLINE',
+    'SYNC STATUS: ALL NODES CONNECTED',
+    'ANALYTICS MODULE READY',
+  ];
 
   const handleSaveProfile = () => {
     onUpdateProfile(editProfile);
@@ -49,14 +53,14 @@ export const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) 
 
   const navLinks = isOphth
     ? [
-        { to: '/ophth/queue', label: 'REVIEW QUEUE' },
-        { to: '/ophth/timeline', label: 'PATIENT TIMELINE' },
-        { to: '/ophth/health', label: 'PROGRAM HEALTH' },
+        { to: '/ophth/queue', label: t('central.header.nav.queue', 'REVIEW QUEUE') },
+        { to: '/ophth/timeline', label: t('central.header.nav.timeline', 'PATIENT TIMELINE') },
+        { to: '/ophth/health', label: t('central.header.nav.programHealth', 'PROGRAM HEALTH') },
       ]
     : [
-        { to: '/admin/dashboard', label: 'DASHBOARD' },
-        { to: '/admin/referrals', label: 'REFERRALS' },
-        { to: '/admin/phc-health', label: 'PHC HEALTH' },
+        { to: '/admin/dashboard', label: t('central.header.nav.dashboard', 'DASHBOARD') },
+        { to: '/admin/referrals', label: t('central.header.nav.referrals', 'REFERRALS') },
+        { to: '/admin/phc-health', label: t('central.header.nav.phcHealth', 'PHC HEALTH') },
       ];
 
   const handleOfficerSaveProfile = (e) => {
@@ -105,6 +109,23 @@ export const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) 
         </nav>
 
         <div className="app-header__actions" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="t-label" style={{ opacity: 0.5 }}>{t('central.header.language', 'LANGUAGE')}</span>
+            <select 
+              value={i18n.language || 'en'} 
+              onChange={(e) => i18n.changeLanguage(e.target.value)}
+              className="select"
+              style={{ padding: '4px 24px 4px 8px', fontSize: '10px', height: 'auto', minWidth: '70px', backgroundSize: '8px', backgroundPosition: 'right 8px center', borderColor: 'rgba(255,255,255,0.2)' }}
+            >
+              <option value="en">ENG</option>
+              <option value="hi">हिंदी</option>
+              <option value="mr">मराठी</option>
+            </select>
+          </div>
+
+          <span style={{ color: 'var(--c-crimson)', opacity: 0.3 }}>|</span>
+
           <button 
             className="app-header__help" 
             onClick={() => setShowHelpModal(true)}
@@ -170,7 +191,7 @@ export const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) 
               background: 'none', border: 'none', color: 'var(--text-h)', cursor: 'pointer', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: '8px'
             }}
           >
-            <span className="t-label">✕ EXIT</span>
+            <span className="t-label">✕ {t('central.header.logout', 'EXIT')}</span>
           </button>
         </div>
       </header>
@@ -487,3 +508,5 @@ export const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) 
     </>
   );
 };
+
+export { CentralHeader };

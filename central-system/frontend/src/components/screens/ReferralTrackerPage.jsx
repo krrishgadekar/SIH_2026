@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { centralApi } from '../../api/centralApiClient';
 
-const statusConfig = {
-  referred: { label: 'REFERRED', badge: 'badge--warning', next: 'contacted' },
-  contacted: { label: 'CONTACTED', badge: 'badge--neutral', next: 'attended' },
-  attended: { label: 'ATTENDED', badge: 'badge--pass', next: null },
-  lost: { label: 'LOST TO FOLLOW-UP', badge: 'badge--fail', next: null },
-};
+const getStatusConfig = (t) => ({
+  referred: { label: t('central.referral.pipeline.referred', 'REFERRED'), badge: 'badge--warning', next: 'contacted' },
+  contacted: { label: t('central.referral.pipeline.contacted', 'CONTACTED'), badge: 'badge--neutral', next: 'attended' },
+  attended: { label: t('central.referral.pipeline.attended', 'ATTENDED'), badge: 'badge--pass', next: null },
+  lost: { label: t('central.referral.pipeline.lost', 'LOST TO FOLLOW-UP'), badge: 'badge--fail', next: null },
+});
 
 // 3-State Sort Header Component (Matching Reference Image 2)
 const SortHeader = React.memo(({ label, field, sortKey, sortDir, onSort, alignRight = false }) => {
@@ -34,6 +35,8 @@ SortHeader.displayName = 'SortHeader';
 
 // Memoized individual table row for zero-lag updates and DOM optimization
 const ReferralRow = React.memo(({ item, onAdvance }) => {
+  const { t } = useTranslation();
+  const statusConfig = getStatusConfig(t);
   const config = statusConfig[item.status];
   const nextConfig = config?.next ? statusConfig[config.next] : null;
   const isLost = item.status === 'lost';
@@ -57,7 +60,7 @@ const ReferralRow = React.memo(({ item, onAdvance }) => {
         {item.assignedWorker ? (
           <span>{item.assignedWorker}</span>
         ) : (
-          <span style={{ color: 'var(--c-text-muted)', fontWeight: 600 }}>UNASSIGNED</span>
+          <span style={{ color: 'var(--c-text-muted)', fontWeight: 600 }}>{t('central.referral.table.unassigned', 'UNASSIGNED')}</span>
         )}
       </td>
       <td className="t-mono u-text-right" style={{ fontSize: 'var(--fs-tiny)', color: 'var(--c-text-muted)' }}>
@@ -84,7 +87,7 @@ const ReferralRow = React.memo(({ item, onAdvance }) => {
           </button>
         ) : (
           <span className="t-label" style={{ color: isLost ? 'var(--c-crimson)' : 'var(--c-text-muted)', fontWeight: isLost ? 700 : 500 }}>
-            {isLost ? 'ACTION REQ.' : 'FINAL'}
+            {isLost ? t('central.referral.table.actionReq', 'ACTION REQ.') : t('central.referral.table.final', 'FINAL')}
           </span>
         )}
       </td>
@@ -94,6 +97,8 @@ const ReferralRow = React.memo(({ item, onAdvance }) => {
 ReferralRow.displayName = 'ReferralRow';
 
 export const ReferralTrackerPage = () => {
+  const { t } = useTranslation();
+  const statusConfig = getStatusConfig(t);
   const [referrals, setReferrals] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -236,8 +241,8 @@ export const ReferralTrackerPage = () => {
     <div className="section">
       <div className="u-flex u-items-center u-justify-between u-mb-6">
         <div>
-          <p className="section__subtitle">DISTRICT ADMIN</p>
-          <h1 className="section__title" style={{ marginBottom: 0 }}>REFERRAL TRACKER</h1>
+          <p className="section__subtitle">{t('central.referral.subtitle', 'DISTRICT ADMIN')}</p>
+          <h1 className="section__title" style={{ marginBottom: 0 }}>{t('central.referral.title', 'REFERRAL TRACKER')}</h1>
         </div>
         <div className="u-flex u-items-center u-gap-3">
           <button
@@ -249,7 +254,7 @@ export const ReferralTrackerPage = () => {
             }}
             onClick={handleResetFilters}
           >
-            SHOW ALL ({referrals.length})
+            {t('central.referral.showAll', 'SHOW ALL')} ({referrals.length})
           </button>
         </div>
       </div>
@@ -282,7 +287,7 @@ export const ReferralTrackerPage = () => {
             <input
               type="text"
               className="input"
-              placeholder="🔍 Search Patient Ref, Worker, or PHC..."
+              placeholder={t('central.referral.search.placeholder', '🔍 Search Patient Ref, Worker, or PHC...')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{ height: '38px', fontSize: 'var(--fs-tiny)' }}
@@ -297,7 +302,7 @@ export const ReferralTrackerPage = () => {
               onChange={(e) => setPhcFilter(e.target.value)}
               style={{ height: '38px', fontSize: 'var(--fs-tiny)' }}
             >
-              <option value="all">ALL PHCs</option>
+              <option value="all">{t('central.queue.search.allPhcs', 'ALL PHCs')}</option>
               {phcOptions.map(p => (
                 <option key={p} value={p}>{p}</option>
               ))}
@@ -312,7 +317,7 @@ export const ReferralTrackerPage = () => {
               onChange={(e) => setGradeFilter(e.target.value)}
               style={{ height: '38px', fontSize: 'var(--fs-tiny)' }}
             >
-              <option value="all">ALL GRADES</option>
+              <option value="all">{t('central.queue.search.allGrades', 'ALL GRADES')}</option>
               <option value="4">Grade 4 (PDR)</option>
               <option value="3">Grade 3 (Severe)</option>
               <option value="2">Grade 2 (Moderate)</option>
@@ -329,11 +334,11 @@ export const ReferralTrackerPage = () => {
               onChange={(e) => setFilter(e.target.value)}
               style={{ height: '38px', fontSize: 'var(--fs-tiny)' }}
             >
-              <option value="all">ALL STATUSES</option>
-              <option value="referred">REFERRED</option>
-              <option value="contacted">CONTACTED</option>
-              <option value="attended">ATTENDED</option>
-              <option value="lost">LOST TO FOLLOW-UP</option>
+              <option value="all">{t('central.referral.search.allStatuses', 'ALL STATUSES')}</option>
+              <option value="referred">{t('central.referral.pipeline.referred', 'REFERRED')}</option>
+              <option value="contacted">{t('central.referral.pipeline.contacted', 'CONTACTED')}</option>
+              <option value="attended">{t('central.referral.pipeline.attended', 'ATTENDED')}</option>
+              <option value="lost">{t('central.referral.pipeline.lost', 'LOST TO FOLLOW-UP')}</option>
             </select>
           </div>
 
@@ -355,7 +360,7 @@ export const ReferralTrackerPage = () => {
             onClick={() => setFilter(filter === 'lost' ? 'all' : 'lost')}
             title="Filter directly to urgent cases lost to follow-up"
           >
-            ⚠ URGENT: LOST ({statusCounts.lost})
+            {t('central.referral.search.urgentLost', '⚠ URGENT: LOST')} ({statusCounts.lost})
           </button>
 
           {/* Reset Filters Shortcut */}
@@ -366,7 +371,7 @@ export const ReferralTrackerPage = () => {
               onClick={handleResetFilters}
               title="Reset all active search and filters"
             >
-              RESET (✕)
+              {t('central.referral.search.reset', 'RESET (✕)')}
             </button>
           )}
         </div>
@@ -378,56 +383,56 @@ export const ReferralTrackerPage = () => {
           <thead>
             <tr>
               <SortHeader
-                label="PATIENT REF"
+                label={t('central.referral.table.colPatientRef', 'PATIENT REF')}
                 field="patientReference"
                 sortKey={sortConfig.key}
                 sortDir={sortConfig.direction}
                 onSort={handleSort}
               />
               <SortHeader
-                label="PHC"
+                label={t('central.referral.table.colPhc', 'PHC')}
                 field="phcName"
                 sortKey={sortConfig.key}
                 sortDir={sortConfig.direction}
                 onSort={handleSort}
               />
               <SortHeader
-                label="DR GRADE"
+                label={t('central.referral.table.colDrGrade', 'DR GRADE')}
                 field="drGrade"
                 sortKey={sortConfig.key}
                 sortDir={sortConfig.direction}
                 onSort={handleSort}
               />
               <SortHeader
-                label="STATUS"
+                label={t('central.referral.table.colStatus', 'STATUS')}
                 field="status"
                 sortKey={sortConfig.key}
                 sortDir={sortConfig.direction}
                 onSort={handleSort}
               />
               <SortHeader
-                label="ASSIGNED WORKER"
+                label={t('central.referral.table.colAssigned', 'ASSIGNED WORKER')}
                 field="assignedWorker"
                 sortKey={sortConfig.key}
                 sortDir={sortConfig.direction}
                 onSort={handleSort}
               />
               <SortHeader
-                label="LAST UPDATED"
+                label={t('central.referral.table.colLastUpdated', 'LAST UPDATED')}
                 field="updatedAt"
                 sortKey={sortConfig.key}
                 sortDir={sortConfig.direction}
                 onSort={handleSort}
                 alignRight={true}
               />
-              <th>ACTION</th>
+              <th>{t('central.referral.table.colAction', 'ACTION')}</th>
             </tr>
           </thead>
           <tbody>
             {processedReferrals.length === 0 ? (
               <tr>
                 <td colSpan="7" style={{ textAlign: 'center', padding: 'var(--sp-8)', color: 'var(--c-text-muted)' }}>
-                  NO REFERRALS FOUND MATCHING CRITERIA
+                  {t('central.referral.table.empty', 'NO REFERRALS FOUND MATCHING CRITERIA')}
                 </td>
               </tr>
             ) : (

@@ -1,61 +1,66 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { RetinalWaveCanvas } from '../shared/RetinalWaveCanvas';
 
-const ROLES = [
-  {
-    id: 'ophthalmologist',
-    title: 'OPHTHALMOLOGIST',
-    subtitle: 'Case Review & Diagnosis',
-    description: 'Review AI-graded retinal scans, confirm or override diagnoses, and manage the review queue.',
-    icon: '◉',
-    stats: '6 cases pending',
-  },
-  {
-    id: 'admin',
-    title: 'DISTRICT ADMIN',
-    subtitle: 'Analytics & Oversight',
-    description: 'Monitor PHC performance, track referrals, view screening analytics, and manage district-wide operations.',
-    icon: '⬡',
-    stats: '42 cases today',
-  },
-];
-
 export const LoginScreen = ({ onLogin }) => {
+  const { t } = useTranslation();
   const [hoveredRole, setHoveredRole] = useState(null);
   const [selectedRole, setSelectedRole] = useState(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
-  // Admin login screen state (Only for District Admin)
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const ROLES = [
+    {
+      id: 'ophthalmologist',
+      title: t('central.login.roles.ophthalmologist.title', 'OPHTHALMOLOGIST'),
+      subtitle: t('central.login.roles.ophthalmologist.subtitle', 'Case Review & Diagnosis'),
+      description: t('central.login.roles.ophthalmologist.desc', 'Review AI-graded retinal scans, confirm or override diagnoses, and manage the review queue.'),
+      icon: '◉',
+      stats: `6 ${t('central.login.roles.ophthalmologist.stats', 'cases pending')}`,
+    },
+    {
+      id: 'admin',
+      title: t('central.login.roles.admin.title', 'DISTRICT ADMIN'),
+      subtitle: t('central.login.roles.admin.subtitle', 'Analytics & Oversight'),
+      description: t('central.login.roles.admin.desc', 'Monitor PHC performance, track referrals, view screening analytics, and manage district-wide operations.'),
+      icon: '⬡',
+      stats: `42 ${t('central.login.roles.admin.stats', 'cases today')}`,
+    },
+  ];
+
+  // Auth screen state — shared between both roles
+  const [activeAuthRole, setActiveAuthRole] = useState(null); // 'admin' | 'ophthalmologist' | null
+
+  // Admin login state
   const [adminUsername, setAdminUsername] = useState('admin');
   const [adminPassword, setAdminPassword] = useState('admin123');
   const [adminError, setAdminError] = useState(null);
   const [adminLoading, setAdminLoading] = useState(false);
 
+  // Ophthalmologist login state
+  const [ophthUsername, setOphthUsername] = useState('doctor');
+  const [ophthPassword, setOphthPassword] = useState('doctor123');
+  const [ophthError, setOphthError] = useState(null);
+  const [ophthLoading, setOphthLoading] = useState(false);
+
   const handleRoleClick = (roleId) => {
-    if (roleId === 'admin') {
-      // Show District Admin Login screen matching Reference Image 1
-      setShowAdminLogin(true);
-      setAdminError(null);
-    } else {
-      // Ophthalmologist section untouched: immediate smooth transition to queue
-      setSelectedRole(roleId);
-      setIsTransitioning(true);
-      setTimeout(() => {
-        onLogin(roleId);
-      }, 600);
-    }
+    setSelectedRole(roleId);
+    setActiveAuthRole(roleId);
+    // Clear errors when switching
+    setAdminError(null);
+    setOphthError(null);
   };
 
   const handleBackToRoles = () => {
-    setShowAdminLogin(false);
+    setActiveAuthRole(null);
+    setSelectedRole(null);
     setAdminError(null);
+    setOphthError(null);
   };
 
   const handleAdminSubmit = (e) => {
     e.preventDefault();
     if (!adminUsername.trim() || !adminPassword.trim()) {
-      setAdminError('Please enter both username and password.');
+      setAdminError(t('central.login.auth.errorEmpty', 'Please enter both username and password.'));
       return;
     }
 
@@ -63,17 +68,121 @@ export const LoginScreen = ({ onLogin }) => {
     setAdminError(null);
 
     setTimeout(() => {
-      // Verify demo credentials
       if (
         (adminUsername.toLowerCase() === 'admin' && adminPassword === 'admin123') ||
         adminPassword.length >= 4
       ) {
-        onLogin('admin');
+        setIsTransitioning(true);
+        setTimeout(() => onLogin('admin', adminUsername), 400);
       } else {
-        setAdminError('INVALID CREDENTIALS. USE DEMO: admin / admin123');
+        setAdminError(t('central.login.auth.errorInvalid', 'INVALID CREDENTIALS. USE DEMO: {{user}} / {{pass}}', { user: 'admin', pass: 'admin123' }));
         setAdminLoading(false);
       }
     }, 400);
+  };
+
+  const handleOphthSubmit = (e) => {
+    e.preventDefault();
+    if (!ophthUsername.trim() || !ophthPassword.trim()) {
+      setOphthError(t('central.login.auth.errorEmpty', 'Please enter both username and password.'));
+      return;
+    }
+
+    setOphthLoading(true);
+    setOphthError(null);
+
+    setTimeout(() => {
+      if (
+        (ophthUsername.toLowerCase() === 'doctor' && ophthPassword === 'doctor123') ||
+        ophthPassword.length >= 4
+      ) {
+        setIsTransitioning(true);
+        setTimeout(() => onLogin('ophthalmologist', ophthUsername), 400);
+      } else {
+        setOphthError(t('central.login.auth.errorInvalid', 'INVALID CREDENTIALS. USE DEMO: {{user}} / {{pass}}', { user: 'doctor', pass: 'doctor123' }));
+        setOphthLoading(false);
+      }
+    }, 400);
+  };
+
+  // Render the auth form for a given role
+  const renderAuthCard = (role) => {
+    const isAdmin = role === 'admin';
+    const roleLabel = isAdmin ? t('central.login.roles.admin.title', 'DISTRICT ADMIN') : t('central.login.roles.ophthalmologist.title', 'OPHTHALMOLOGIST');
+    const username = isAdmin ? adminUsername : ophthUsername;
+    const setUsername = isAdmin ? setAdminUsername : setOphthUsername;
+    const password = isAdmin ? adminPassword : ophthPassword;
+    const setPassword = isAdmin ? setAdminPassword : setOphthPassword;
+    const error = isAdmin ? adminError : ophthError;
+    const loading = isAdmin ? adminLoading : ophthLoading;
+    const handleSubmit = isAdmin ? handleAdminSubmit : handleOphthSubmit;
+    const demoUser = isAdmin ? 'admin' : 'doctor';
+    const demoPass = isAdmin ? 'admin123' : 'doctor123';
+
+    return (
+      <div className={`login-auth-container ${isTransitioning ? 'login-auth-container--exit' : ''}`}>
+        <div className="login-auth-topbar">
+          <span style={{ fontWeight: 600 }}>
+            {t('central.login.auth.authenticatingAs', 'AUTHENTICATING AS: {{role}}', { role: roleLabel })}
+          </span>
+          <button
+            type="button"
+            className="login-auth-back-btn"
+            onClick={handleBackToRoles}
+          >
+            {t('central.login.auth.back', '← BACK')}
+          </button>
+        </div>
+
+        <div className="login-auth-box">
+          <form onSubmit={handleSubmit}>
+            {error && (
+              <div className="login-auth-error">
+                <span>⚠</span>
+                <span>{error}</span>
+              </div>
+            )}
+
+            <div className="login-auth-field">
+              <label className="login-auth-label">{t('central.login.auth.username', 'USERNAME')}</label>
+              <input
+                type="text"
+                className="login-auth-input"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                autoFocus
+                autoComplete="username"
+              />
+            </div>
+
+            <div className="login-auth-field">
+              <label className="login-auth-label">{t('central.login.auth.password', 'PASSWORD')}</label>
+              <input
+                type="password"
+                className="login-auth-input"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="login-auth-submit"
+              disabled={loading}
+            >
+              {loading ? t('central.login.auth.authenticating', 'AUTHENTICATING...') : t('central.login.auth.initiate', 'INITIATE SESSION ✦')}
+            </button>
+
+            <div className="login-auth-hint">
+              {t('central.login.auth.demo', 'DEMO CREDENTIALS:')} <span style={{ fontWeight: 700, color: 'var(--c-crimson)' }}>{demoUser}</span> / <span style={{ fontWeight: 700, color: 'var(--c-crimson)' }}>{demoPass}</span>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -82,7 +191,7 @@ export const LoginScreen = ({ onLogin }) => {
       
       <div className="login-screen__content" style={{ position: 'relative', zIndex: 1 }}>
         {/* Top Header branding */}
-        <div className={`login-hero ${isTransitioning ? 'login-hero--exit' : ''}`} style={{ marginBottom: showAdminLogin ? 'var(--sp-6)' : 'var(--sp-8)' }}>
+        <div className={`login-hero ${isTransitioning ? 'login-hero--exit' : ''}`} style={{ marginBottom: activeAuthRole ? 'var(--sp-6)' : 'var(--sp-8)' }}>
           <div className="login-hero__eyecon">
             <svg viewBox="0 0 120 120" width="100" height="100">
               <circle cx="60" cy="60" r="50" fill="none" stroke="var(--c-crimson)" strokeWidth="1" opacity="0.3" />
@@ -100,86 +209,28 @@ export const LoginScreen = ({ onLogin }) => {
           </div>
           
           <h1 className="t-display" style={{ textAlign: 'center', marginBottom: 'var(--sp-2)', fontSize: '2.4rem' }}>
-            RETINAL<span className="login-hero__star">✦</span>DIAGNOSTICS
+            {t('central.login.title', 'RETINAL✦DIAGNOSTICS').split('✦').map((part, i) => (
+              <React.Fragment key={i}>
+                {part}
+                {i === 0 && <span className="login-hero__star">✦</span>}
+              </React.Fragment>
+            ))}
           </h1>
           <p className="t-mono" style={{ textAlign: 'center', opacity: 0.7, fontSize: 'var(--fs-small)', marginBottom: 'var(--sp-1)' }}>
-            EXPLAINABLE AI FOR DIABETIC RETINOPATHY
+            {t('central.login.subtitle', 'EXPLAINABLE AI FOR DIABETIC RETINOPATHY')}
           </p>
           <p className="t-label" style={{ textAlign: 'center', opacity: 0.5 }}>
-            NETRA SETU PLATFORM v1.0
+            {t('central.login.version', 'NETRA SETU PLATFORM v1.0')}
           </p>
         </div>
 
-
-        {/* Dedicated District Admin Login Card (Matching Reference Image 1) */}
-        {showAdminLogin ? (
-          <div className="login-auth-container">
-            <div className="login-auth-topbar">
-              <span style={{ fontWeight: 600 }}>
-                AUTHENTICATING AS: DISTRICT ADMIN
-              </span>
-              <button
-                type="button"
-                className="login-auth-back-btn"
-                onClick={handleBackToRoles}
-              >
-                ← BACK
-              </button>
-            </div>
-
-            <div className="login-auth-box">
-              <form onSubmit={handleAdminSubmit}>
-                {adminError && (
-                  <div className="login-auth-error">
-                    <span>⚠</span>
-                    <span>{adminError}</span>
-                  </div>
-                )}
-
-                <div className="login-auth-field">
-                  <label className="login-auth-label">USERNAME</label>
-                  <input
-                    type="text"
-                    className="login-auth-input"
-                    value={adminUsername}
-                    onChange={(e) => setAdminUsername(e.target.value)}
-                    required
-                    autoFocus
-                    autoComplete="username"
-                  />
-                </div>
-
-                <div className="login-auth-field">
-                  <label className="login-auth-label">PASSWORD</label>
-                  <input
-                    type="password"
-                    className="login-auth-input"
-                    value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
-                    required
-                    autoComplete="current-password"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  className="login-auth-submit"
-                  disabled={adminLoading}
-                >
-                  {adminLoading ? 'AUTHENTICATING...' : 'INITIATE SESSION ✦'}
-                </button>
-
-                <div className="login-auth-hint">
-                  DEMO CREDENTIALS: <span style={{ fontWeight: 700, color: 'var(--c-crimson)' }}>admin</span> / <span style={{ fontWeight: 700, color: 'var(--c-crimson)' }}>admin123</span>
-                </div>
-              </form>
-            </div>
-          </div>
+        {/* Auth Card or Role Selection */}
+        {activeAuthRole ? (
+          renderAuthCard(activeAuthRole)
         ) : (
-          /* Role Selection Cards */
           <div className="login-roles">
             <p className="t-label" style={{ textAlign: 'center', marginBottom: 'var(--sp-6)', opacity: 0.6 }}>
-              SELECT YOUR ROLE TO PROCEED
+              {t('central.login.selectRole', 'SELECT YOUR ROLE TO PROCEED')}
             </p>
             
             <div className="login-roles__grid">
@@ -211,4 +262,3 @@ export const LoginScreen = ({ onLogin }) => {
     </div>
   );
 };
-

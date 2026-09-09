@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { centralApi } from '../../api/centralApiClient';
 import { Chart, registerables } from 'chart.js';
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
@@ -47,6 +48,7 @@ StatCard.displayName = 'StatCard';
 const PALETTE = ['#14B8A6', '#EAB308', '#F97316', '#A82222', '#7F1D1D'];
 
 export const DashboardPage = () => {
+  const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -102,7 +104,7 @@ export const DashboardPage = () => {
       labels: data.weeklyTrend.map(w => w.week),
       datasets: [
         {
-          label: 'Cases Screened',
+          label: t('central.dashboard.charts.casesScreened', 'Cases Screened'),
           data: data.weeklyTrend.map(w => w.cases),
           borderColor: '#E61A3C',
           backgroundColor: 'rgba(230, 26, 60, 0.1)',
@@ -113,7 +115,7 @@ export const DashboardPage = () => {
           pointRadius: 4,
         },
         {
-          label: 'Referrals',
+          label: t('central.dashboard.charts.referrals', 'Referrals'),
           data: data.weeklyTrend.map(w => w.referrals),
           borderColor: '#FF8800',
           backgroundColor: 'rgba(255, 136, 0, 0.1)',
@@ -134,7 +136,7 @@ export const DashboardPage = () => {
     return {
       labels: data.casesPerPhc.map(p => p.phcName.replace('PHC ', '')),
       datasets: [{
-        label: 'Cases Today',
+        label: t('central.dashboard.charts.casesToday', 'Cases Today'),
         data: data.casesPerPhc.map(p => p.count),
         backgroundColor: data.casesPerPhc.map((_, i) =>
           `rgba(230, 26, 60, ${0.5 + i * 0.15})`
@@ -188,7 +190,7 @@ export const DashboardPage = () => {
         callbacks: {
           label: (context) => {
             const gradeItem = data?.drGradeDistribution[context.dataIndex];
-            return ` ${context.label}: ${context.raw} cases (${gradeItem ? gradeItem.percentage : 0}%)`;
+            return ` ${context.label}: ${context.raw} ${t('central.dashboard.charts.cases', 'cases')} (${gradeItem ? gradeItem.percentage : 0}%)`;
           },
         },
       },
@@ -237,8 +239,8 @@ export const DashboardPage = () => {
     <div className="section">
       <div className="u-flex u-items-center u-justify-between u-mb-6">
         <div>
-          <p className="section__subtitle">DISTRICT ADMIN</p>
-          <h1 className="section__title" style={{ marginBottom: 0 }}>DASHBOARD</h1>
+          <p className="section__subtitle">{t('central.dashboard.subtitle', 'DISTRICT ADMIN')}</p>
+          <h1 className="section__title" style={{ marginBottom: 0 }}>{t('central.dashboard.title', 'DASHBOARD')}</h1>
         </div>
         <span className="t-mono" style={{ opacity: 0.7 }}>
           {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric' })}
@@ -248,32 +250,32 @@ export const DashboardPage = () => {
       {/* Stat Cards — Bento Grid Row 1: Operational & Processing */}
       <div className="bento u-mb-4">
         <div className="bento--span-3">
-          <StatCard label="CASES TODAY" value={data.casesToday} delta="+12% from yesterday" />
+          <StatCard label={t('central.dashboard.stats.casesToday', 'CASES TODAY')} value={data.casesToday} delta="+12% from yesterday" />
         </div>
         <div className="bento--span-3">
-          <StatCard label="THIS WEEK" value={data.casesThisWeek} delta="+8% WoW" />
+          <StatCard label={t('central.dashboard.stats.thisWeek', 'THIS WEEK')} value={data.casesThisWeek} delta="+8% WoW" />
         </div>
         <div className="bento--span-3">
-          <StatCard label="TOTAL PROCESSED" value={data.totalCasesProcessed.toLocaleString()} />
+          <StatCard label={t('central.dashboard.stats.totalProcessed', 'TOTAL PROCESSED')} value={data.totalCasesProcessed.toLocaleString()} />
         </div>
         <div className="bento--span-3">
-          <StatCard label="AVG REVIEW TIME" value={data.averageReviewTurnaroundSeconds} suffix="s" delta="-3s from last week" />
+          <StatCard label={t('central.dashboard.stats.avgReviewTime', 'AVG REVIEW TIME')} value={data.averageReviewTurnaroundSeconds} suffix="s" delta="-3s from last week" />
         </div>
       </div>
 
       {/* Stat Cards — Bento Grid Row 2: AI Quality & Model Reliability */}
       <div className="bento u-mb-6">
         <div className="bento--span-3">
-          <StatCard label="MODEL ACCURACY" value={(data.modelAccuracy * 100).toFixed(1)} suffix="%" />
+          <StatCard label={t('central.dashboard.stats.modelAccuracy', 'MODEL ACCURACY')} value={(data.modelAccuracy * 100).toFixed(1)} suffix="%" />
         </div>
         <div className="bento--span-3">
-          <StatCard label="OVERRIDE RATE" value={(data.overrideRate * 100).toFixed(1)} suffix="%" delta="Target: < 10%" />
+          <StatCard label={t('central.dashboard.stats.overrideRate', 'OVERRIDE RATE')} value={(data.overrideRate * 100).toFixed(1)} suffix="%" delta="Target: < 10%" />
         </div>
         <div className="bento--span-3">
-          <StatCard label="IMAGES REJECTED (QUALITY)" value={data.imagesRejectedQuality || 38} delta="2.9% rate (-0.4%)" />
+          <StatCard label={t('central.dashboard.stats.imagesRejected', 'IMAGES REJECTED (QUALITY)')} value={data.imagesRejectedQuality || 38} delta="2.9% rate (-0.4%)" />
         </div>
         <div className="bento--span-3">
-          <StatCard label="AVG. CONFIDENCE SCORE" value={((data.avgConfidenceScore || 0.924) * 100).toFixed(1)} suffix="%" delta="High reliability tier" />
+          <StatCard label={t('central.dashboard.stats.avgConfidence', 'AVG. CONFIDENCE SCORE')} value={((data.avgConfidenceScore || 0.924) * 100).toFixed(1)} suffix="%" delta="High reliability tier" />
         </div>
       </div>
 
@@ -281,7 +283,7 @@ export const DashboardPage = () => {
       <div className="dashboard-charts-grid">
         {/* Weekly Trend */}
         <div style={{ border: 'var(--border)', padding: 'var(--sp-6)' }}>
-          <h3 className="t-h3 u-mb-4">WEEKLY SCREENING TREND</h3>
+          <h3 className="t-h3 u-mb-4">{t('central.dashboard.charts.weeklyTrend', 'WEEKLY SCREENING TREND')}</h3>
           <div style={{ height: '280px' }}>
             <Line data={weeklyChartData} options={{
               ...chartOptions,
@@ -295,7 +297,7 @@ export const DashboardPage = () => {
 
         {/* PHC Distribution */}
         <div style={{ border: 'var(--border)', padding: 'var(--sp-6)' }}>
-          <h3 className="t-h3 u-mb-4">CASES BY PHC</h3>
+          <h3 className="t-h3 u-mb-4">{t('central.dashboard.charts.casesByPhc', 'CASES BY PHC')}</h3>
           <div style={{ height: '280px' }}>
             <Bar data={phcBarData} options={chartOptions} />
           </div>
@@ -305,7 +307,7 @@ export const DashboardPage = () => {
       {/* DR Grade Distribution — Upgraded Donut Chart with Center KPI */}
       <div className="dashboard-breakdown-grid">
         <div style={{ border: 'var(--border)', padding: 'var(--sp-6)', position: 'relative' }}>
-          <h3 className="t-h3 u-mb-4">DR GRADE DISTRIBUTION</h3>
+          <h3 className="t-h3 u-mb-4">{t('central.dashboard.charts.drGradeDist', 'DR GRADE DISTRIBUTION')}</h3>
           <div style={{ height: '270px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Doughnut data={gradeChartData} options={donutOptions} />
             {/* Center cutout KPI overlay */}
@@ -323,7 +325,7 @@ export const DashboardPage = () => {
                 {totalCases.toLocaleString()}
               </div>
               <div style={{ fontFamily: 'var(--f-mono)', fontSize: '9px', letterSpacing: '0.12em', color: 'var(--c-text-muted)', fontWeight: 700, marginTop: '2px' }}>
-                TOTAL CASES
+                {t('central.dashboard.charts.totalCases', 'TOTAL CASES')}
               </div>
             </div>
           </div>
@@ -335,21 +337,21 @@ export const DashboardPage = () => {
             <thead>
               <tr>
                 <SortHeader
-                  label="GRADE"
+                  label={t('central.dashboard.table.grade', 'GRADE')}
                   field="grade"
                   sortKey={gradeSort.key}
                   sortDir={gradeSort.direction}
                   onSort={handleGradeSort}
                 />
                 <SortHeader
-                  label="CLASSIFICATION"
+                  label={t('central.dashboard.table.classification', 'CLASSIFICATION')}
                   field="label"
                   sortKey={gradeSort.key}
                   sortDir={gradeSort.direction}
                   onSort={handleGradeSort}
                 />
                 <SortHeader
-                  label="COUNT"
+                  label={t('central.dashboard.table.count', 'COUNT')}
                   field="count"
                   sortKey={gradeSort.key}
                   sortDir={gradeSort.direction}
@@ -357,20 +359,20 @@ export const DashboardPage = () => {
                   alignRight={true}
                 />
                 <SortHeader
-                  label="PERCENTAGE"
+                  label={t('central.dashboard.table.percentage', 'PERCENTAGE')}
                   field="percentage"
                   sortKey={gradeSort.key}
                   sortDir={gradeSort.direction}
                   onSort={handleGradeSort}
                   alignRight={true}
                 />
-                <th>DISTRIBUTION</th>
+                <th>{t('central.dashboard.table.distribution', 'DISTRIBUTION')}</th>
               </tr>
             </thead>
             <tbody>
               {sortedGrades.map(d => (
                 <tr key={d.grade}>
-                  <td className="t-mono" style={{ fontWeight: 700 }}>Grade {d.grade}</td>
+                  <td className="t-mono" style={{ fontWeight: 700 }}>{t('central.dashboard.table.gradeVal', 'Grade')} {d.grade}</td>
                   <td className="t-mono">{d.label}</td>
                   <td className="t-mono u-text-right" style={{ fontWeight: 700 }}>{d.count.toLocaleString()}</td>
                   <td className="t-mono u-text-right">{d.percentage}%</td>
