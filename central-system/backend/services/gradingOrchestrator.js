@@ -359,13 +359,22 @@ async function processCase(caseId) {
   // COUNTS that Phase 4 segmentation produced, and branchesAgree compares its
   // grade with Branch A's.
   //
-  // ?? null, not || null: a rule-engine grade of 0 is a real result — "no DR by
-  // ICDR criteria" — and || would convert it to null, silently discarding
-  // Branch B's opinion on exactly the healthy eyes where agreement matters most
-  // for clearing a case. Likewise branch_agreement false is meaningful and must
-  // survive.
-  const ruleEngineGrade = mlResult.ruleEngineGrade ?? null;
-  const branchAgreement = mlResult.branchAgreement ?? null;
+  // fromMatlab, not `?? null`: MATLAB's jsonencode renders an empty array as
+  // JSON [], NOT as null. That arrives here as an empty JS array, which `??`
+  // does not catch because [] is not nullish — and node-postgres then serialises
+  // it as the Postgres ARRAY literal {}, so the insert dies with
+  // `invalid input syntax for type boolean: "{}"`. MATLAB uses [] for both
+  // "no grade" and "no opinion", which are exactly the cases this must map to
+  // SQL NULL, so every value crossing that boundary goes through here.
+  //
+  // Inside fromMatlab it is `?? null` and not `|| null`, because a rule-engine
+  // grade of 0 is a real result — "no DR by ICDR criteria" — and || would
+  // discard Branch B's opinion on precisely the healthy eyes where agreement
+  // matters most for clearing a case. `false` must survive for the same reason.
+  const fromMatlab = (v) => (Array.isArray(v) && v.length === 0 ? null : (v ?? null));
+
+  const ruleEngineGrade = fromMatlab(mlResult.ruleEngineGrade);
+  const branchAgreement = fromMatlab(mlResult.branchAgreement);
 
   // Task 6.3. A reported-vs-detected disagreement is logged rather than
   // suppressed: it can mean an unusual capture, a mislabelled device, or a
@@ -387,13 +396,40 @@ async function processCase(caseId) {
   // sees both grades. A confident disagreement is more alarming than an
   // unconfident one, and it forces full manual review whatever the conformal
   // set says (design doc §1.11, §6.7).
+  // A grade above the rule engine's ceiling has NO second opinion at all: the
+  // rule engine cannot represent it, so branchesAgree correctly returns null
+  // rather than a false agreement or a spurious disagreement. That leaves the
+  // most consequential grade this system can produce — proliferative DR — as the
+  // one case where the dual-branch safety net silently does not apply.
+  //
+  // So it is escalated explicitly, on its own stated reason, rather than by
+  // pretending the branches disagreed. This is what Tanuj's cap was for: every
+  // suspected grade 4 reaches an ophthalmologist. It matters here because NV
+  // recall is 0.4444 — the branch most likely to be wrong about grade 4 is the
+  // only branch that can assess it.
+  const beyondRuleEngine =
+    mlResult.ruleIsLowerBound === true &&
+    Number.isInteger(fromMatlab(mlResult.ruleMaxGrade)) &&
+    grade > fromMatlab(mlResult.ruleMaxGrade);
+
   let tier;
+  let tierReason;
   if (branchAgreement === false) {
     tier = 'C';
+    tierReason = 'branches disagree';
+  } else if (beyondRuleEngine) {
+    tier = 'C';
+    tierReason = `CNN grade ${grade} is above the rule engine's ceiling `
+      + `(${mlResult.ruleMaxGrade}); no second opinion is possible`;
   } else if (branchA.conformalTier) {
     tier = branchA.conformalTier;
+    tierReason = branchA.tierReason || 'conformal prediction set';
   } else {
     tier = assignTier(confidenceScore, branchAgreement);
+    tierReason = 'uncalibrated fallback thresholds';
+  }
+  if (tier === 'C') {
+    console.log(`[gradingOrchestrator] case ${caseId}: Tier C — ${tierReason}`);
   }
 
   // ── Step 3: INSERT INTO grading_results ────────────────────────────────────
@@ -604,7 +640,7 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId,
       ? segResult.nvSuspicionScore : 0};`,
     `branchAGrade = ${Number.isInteger(branchAGrade) ? branchAGrade : '[]'};`,
 
-    `ruleGrade = []; branchAgree = []; evidenceInputs = struct();`,
+    `ruleGrade = []; branchAgree = []; evidenceInputs = struct(); ruleIsLowerBound = false; ruleMaxGrade = [];`,
     `if numel(redQ) == 4 && numel(brightQ) == 4,`,   // trailing comma: the whole
     // expression is joined onto ONE line, and MATLAB needs a separator after an
     // if-condition there or it parses the next statement as part of the test.
@@ -615,7 +651,9 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId,
     // means "Branch B did not run". Collapsing them would send every
     // segmentation failure to the review queue as though something was wrong
     // with the eye.
-    `  branchAgree = branchesAgree(branchAGrade, ruleGrade);`,
+    `  branchAgree = branchesAgree(branchAGrade, ruleGrade, ruleEvidence.isLowerBound);`,
+    `  ruleIsLowerBound = ruleEvidence.isLowerBound;`,
+    `  ruleMaxGrade = ruleEvidence.maxGrade;`,
     // `end;` with the semicolon for the same one-line-join reason as the
     // if-condition above: `end [evidenceText, ...]` parses as indexing into
     // `end` and fails with "Unexpected '['".
@@ -647,6 +685,8 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId,
     `out.ruleEngineGrade = ruleGrade;`,
     `out.branchAgreement = branchAgree;`,
     `out.nvSuspicionScore = nvScore;`,
+    `out.ruleIsLowerBound = ruleIsLowerBound;`,
+    `out.ruleMaxGrade = ruleMaxGrade;`,
     `disp(jsonencode(out));`,
   ].join(' ');
 }

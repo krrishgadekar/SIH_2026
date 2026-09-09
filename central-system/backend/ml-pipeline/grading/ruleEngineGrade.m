@@ -148,6 +148,30 @@ cfg = struct('redFloor', redFloor, 'grade3QuadMin', grade3QuadMin, ...
 % truthfully before it is capped.
 evidence.maxGrade   = maxGrade;
 evidence.cappedFrom = [];
+
+% ── A GRADE AT THE CEILING IS A LOWER BOUND, NOT A DETERMINATION ──────────
+% When the output equals maxGrade, this branch is not saying "the grade is 3".
+% It is saying "3 or worse, and I cannot tell which" -- because everything above
+% maxGrade is unrepresentable here by construction.
+%
+% That distinction decides what branchesAgree may conclude, and getting it wrong
+% is unsafe in both directions:
+%
+%   Treated as "= 3": Branch A saying 3 reads as CONFIRMATION, when the rule
+%   engine never distinguished 3 from 4. The case-detail panel then tells a
+%   reviewer that two independent methods agree on a grade one of them never
+%   asserted.
+%
+%   Treated as "no opinion at all": Branch A saying 0 would read as merely
+%   uncomparable, when in fact the rule engine found severe disease and the two
+%   branches flatly contradict each other -- the single most important
+%   disagreement this design exists to catch.
+%
+% So it is reported as what it is, and branchesAgree applies the bound.
+% rawGrade >= maxGrade, so this covers both a criterion that landed exactly on
+% the ceiling and one that was capped down to it.
+evidence.isLowerBound = (rawGrade >= maxGrade);
+
 if rawGrade > maxGrade
     evidence.cappedFrom = rawGrade;
     evidence.limitation = sprintf(['%s Rule-engine grade %d was CAPPED to %d: ' ...

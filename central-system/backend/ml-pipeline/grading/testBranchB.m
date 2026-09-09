@@ -188,7 +188,44 @@ fprintf('\n===== Branch agreement (Task 5.2) =====\n');
 [a5, ~] = branchesAgree(2, NaN);
 [n,f] = tt(n, f, 'NaN Branch B returns [] — NOT false', isempty(a5), 'NaN handled');
 [a6, ~] = branchesAgree([], []);
-[n,f] = tt(n, f, 'both missing returns []', isempty(a6), 'both missing');
+% ── The rule engine's ceiling grade is a LOWER BOUND ────────────────────────
+% A capped grade means ">= 3, cannot tell which", not "= 3". These assert the
+% asymmetry, which is the whole safety property: consistent-but-unconfirmed and
+% flatly-contradicted must NOT collapse to the same answer.
+fprintf('\n--- lower-bound agreement (rule engine at its ceiling) ---\n');
+
+[aLB1, dLB1] = branchesAgree(3, 3, true);
+[n,f] = tt(n, f, 'CNN 3 vs rule >=3 is NOT agreement -- it is []', ...
+    isempty(aLB1) && dLB1.lowerBound, dLB1.reason);
+
+[aLB2, dLB2] = branchesAgree(4, 3, true);
+[n,f] = tt(n, f, 'CNN 4 vs rule >=3 is NOT disagreement -- also []', ...
+    isempty(aLB2), dLB2.reason);
+
+[aLB3, dLB3] = branchesAgree(0, 3, true);
+[n,f] = tt(n, f, 'CNN 0 vs rule >=3 IS a disagreement -- false, not []', ...
+    islogical(aLB3) && aLB3 == false, dLB3.reason);
+[n,f] = tt(n, f, 'and it says the rule grade may be higher still', ...
+    contains(dLB3.reason, 'at least'), dLB3.reason);
+
+% Without the flag the old behaviour must be unchanged, or every existing
+% caller silently changes meaning.
+[aNB, ~] = branchesAgree(3, 3);
+[n,f] = tt(n, f, 'DEFAULT (no flag): 3 vs 3 still agrees', ...
+    islogical(aNB) && aNB == true, 'backwards compatible');
+
+% The flag comes FROM ruleEngineGrade, so the two must line up in practice.
+[gCeil, evCeil] = ruleEngineGrade([4 3 5 3], [0 0 0 0], 0);
+[n,f] = tt(n, f, 'a severe-NPDR call is flagged as a lower bound', ...
+    gCeil == 3 && evCeil.isLowerBound, sprintf('grade %d', gCeil));
+[~, evMid] = ruleEngineGrade([6 0 0 0], [0 0 0 0], 0);
+[n,f] = tt(n, f, 'a grade-2 call is NOT a lower bound', ...
+    ~evMid.isLowerBound, 'grade 2 is a determination');
+[~, evNv] = ruleEngineGrade([1 1 1 1], [0 0 0 0], 0.9);
+[n,f] = tt(n, f, 'an NV call capped to 3 is a lower bound too', ...
+    evNv.isLowerBound && isequal(evNv.cappedFrom, 4), 'capped from 4');
+
+[n,f] = tt(n, f, 'both missing returns []',isempty(a6), 'both missing');
 
 % ── Summary ─────────────────────────────────────────────────────────────────
 fprintf('\n===== %d/%d passed =====\n\n', n - f, n);
