@@ -1,0 +1,221 @@
+{
+  "summary": {
+    "n": 12,
+    "attentionEnrichment": {
+      "median": 2.023340160057525,
+      "mean": 2.3596396239822264,
+      "min": 0.2897371514237985,
+      "max": 5.2766932634498955,
+      "aboveChance": 9
+    },
+    "occlusionByPrediction": {
+      "referable": {
+        "n": 6,
+        "expectedDirection": "fall",
+        "medianDrop": 0.3881816416978836,
+        "meanDrop": 0.3217201419174671,
+        "correctDirection": 6,
+        "correctFraction": 1.0
+      },
+      "nonReferable": {
+        "n": 6,
+        "expectedDirection": "rise",
+        "medianDrop": -0.050253331661224365,
+        "meanDrop": -0.12098605434099834,
+        "correctDirection": 6,
+        "correctFraction": 1.0
+      }
+    },
+    "occlusionConfidenceDropPooled": {
+      "median": 0.047357916831970215,
+      "mean": 0.1003670437882344,
+      "note": "pooled across both arms and therefore NOT interpretable on its own -- see occlusionByPrediction"
+    },
+    "reviewTimeSeconds": null,
+    "reviewTimeN": 0,
+    "reviewTimeNote": "NOT MEASURED. PS requirement 4's <30 s bar needs a real timer on the review screen populating review_duration_seconds. n = 0 -- no median can be reported and none is invented.",
+    "clinicianPlausibilityNote": "NOT DONE. 'Grad-CAM rated as clinically useful' is a human judgement and cannot be self-assessed."
+  },
+  "cases": [
+    {
+      "image": "IDRiD_396.jpg",
+      "trueGrade": 0,
+      "predGrade": 0,
+      "confidence": 0.47266265749931335,
+      "consistency": {
+        "score": 0.00039385274535571235,
+        "chanceLevel": 0.0002848307291666667,
+        "enrichment": 1.382760724265998,
+        "lesionFractionOfRoi": 0.0002848307291666667
+      },
+      "occludedConfidence": 0.49740394949913025,
+      "confidenceDrop": -0.024741291999816895,
+      "lesionPixels": 42
+    },
+    {
+      "image": "IDRiD_189.jpg",
+      "trueGrade": 4,
+      "predGrade": 3,
+      "confidence": 0.47429344058036804,
+      "consistency": {
+        "score": 0.036883413296089,
+        "chanceLevel": 0.01988817566192137,
+        "enrichment": 1.854539799078069,
+        "lesionFractionOfRoi": 0.01988817566192137
+      },
+      "occludedConfidence": 0.1254890114068985,
+      "confidenceDrop": 0.34880442917346954,
+      "lesionPixels": 2931
+    },
+    {
+      "image": "IDRiD_255.jpg",
+      "trueGrade": 0,
+      "predGrade": 0,
+      "confidence": 0.9509443044662476,
+      "consistency": {
+        "score": 0.001891413504923766,
+        "chanceLevel": 0.0013495551215277778,
+        "enrichment": 1.4015088933770796,
+        "lesionFractionOfRoi": 0.0013495551215277778
+      },
+      "occludedConfidence": 0.9656900763511658,
+      "confidenceDrop": -0.014745771884918213,
+      "lesionPixels": 199
+    },
+    {
+      "image": "IDRiD_216.jpg",
+      "trueGrade": 2,
+      "predGrade": 0,
+      "confidence": 0.5198529958724976,
+      "consistency": {
+        "score": 0.0012701033225159376,
+        "chanceLevel": 0.004383639848305672,
+        "enrichment": 0.2897371514237985,
+        "lesionFractionOfRoi": 0.004383639848305672
+      },
+      "occludedConfidence": 0.8974055647850037,
+      "confidenceDrop": -0.3775525689125061,
+      "lesionPixels": 645
+    },
+    {
+      "image": "IDRiD_397.jpg",
+      "trueGrade": 2,
+      "predGrade": 3,
+      "confidence": 0.5954429507255554,
+      "consistency": {
+        "score": 0.06376863196796138,
+        "chanceLevel": 0.0120849609375,
+        "enrichment": 5.2766932634498955,
+        "lesionFractionOfRoi": 0.0120849609375
+      },
+      "occludedConfidence": 0.09960844367742538,
+      "confidenceDrop": 0.49583450704813004,
+      "lesionPixels": 1782
+    },
+    {
+      "image": "IDRiD_242.jpg",
+      "trueGrade": 2,
+      "predGrade": 3,
+      "confidence": 0.5801676511764526,
+      "consistency": {
+        "score": 0.046271456486995474,
+        "chanceLevel": 0.011650933159722222,
+        "enrichment": 3.971480726278466,
+        "lesionFractionOfRoi": 0.011650933159722222
+      },
+      "occludedConfidence": 0.15219755470752716,
+      "confidenceDrop": 0.4279700964689255,
+      "lesionPixels": 1718
+    },
+    {
+      "image": "IDRiD_267.jpg",
+      "trueGrade": 0,
+      "predGrade": 0,
+      "confidence": 0.9247418642044067,
+      "consistency": {
+        "score": 0.035016102411632936,
+        "chanceLevel": 0.015313042534722222,
+        "enrichment": 2.286684852617248,
+        "lesionFractionOfRoi": 0.015313042534722222
+      },
+      "occludedConfidence": 0.9425458312034607,
+      "confidenceDrop": -0.017803966999053955,
+      "lesionPixels": 2258
+    },
+    {
+      "image": "IDRiD_203.jpg",
+      "trueGrade": 1,
+      "predGrade": 0,
+      "confidence": 0.40946847200393677,
+      "consistency": {
+        "score": 0.0007690421387375917,
+        "chanceLevel": 0.0010741357626023998,
+        "enrichment": 0.7159636290987724,
+        "lesionFractionOfRoi": 0.0010741357626023998
+      },
+      "occludedConfidence": 0.6247758269309998,
+      "confidenceDrop": -0.215307354927063,
+      "lesionPixels": 158
+    },
+    {
+      "image": "IDRiD_284.jpg",
+      "trueGrade": 2,
+      "predGrade": 2,
+      "confidence": 0.6703847050666809,
+      "consistency": {
+        "score": 0.014332892717003718,
+        "chanceLevel": 0.0030042860243055555,
+        "enrichment": 4.770814962705418,
+        "lesionFractionOfRoi": 0.0030042860243055555
+      },
+      "occludedConfidence": 0.24282585084438324,
+      "confidenceDrop": 0.42755885422229767,
+      "lesionPixels": 443
+    },
+    {
+      "image": "IDRiD_290.jpg",
+      "trueGrade": 1,
+      "predGrade": 0,
+      "confidence": 0.7705164551734924,
+      "consistency": {
+        "score": 0.0005752984439905037,
+        "chanceLevel": 0.0005832248263888889,
+        "enrichment": 0.9864093878728338,
+        "lesionFractionOfRoi": 0.0005832248263888889
+      },
+      "occludedConfidence": 0.8462818264961243,
+      "confidenceDrop": -0.07576537132263184,
+      "lesionPixels": 86
+    },
+    {
+      "image": "IDRiD_309.jpg",
+      "trueGrade": 3,
+      "predGrade": 3,
+      "confidence": 0.6375458836555481,
+      "consistency": {
+        "score": 0.10618141146759684,
+        "chanceLevel": 0.048437319801637645,
+        "enrichment": 2.1921405210369813,
+        "lesionFractionOfRoi": 0.048437319801637645
+      },
+      "occludedConfidence": 0.5280842781066895,
+      "confidenceDrop": 0.10946160554885864,
+      "lesionPixels": 7140
+    },
+    {
+      "image": "IDRiD_343.jpg",
+      "trueGrade": 2,
+      "predGrade": 3,
+      "confidence": 0.6856684684753418,
+      "consistency": {
+        "score": 0.06373623799194868,
+        "chanceLevel": 0.019999186197916668,
+        "enrichment": 3.186941576582158,
+        "lesionFractionOfRoi": 0.019999186197916668
+      },
+      "occludedConfidence": 0.5649771094322205,
+      "confidenceDrop": 0.12069135904312134,
+      "lesionPixels": 2949
+    }
+  ]
+}

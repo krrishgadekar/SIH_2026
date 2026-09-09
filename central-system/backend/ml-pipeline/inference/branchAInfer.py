@@ -54,8 +54,12 @@ ML_ROOT = os.path.dirname(HERE)
 sys.path.insert(0, ML_ROOT)
 
 MODEL_DIR = os.path.join(ML_ROOT, "models")
-CKPT_PATH = os.path.join(MODEL_DIR, "Model1", "branchA_v1.pt")
 CALIB_PATH = os.path.join(MODEL_DIR, "calibration_v1.json")
+
+# The checkpoint is resolved by FILENAME, not by a fixed path. The weights are
+# not in git and the folder layout under models/ is not stable -- see
+# modelPaths.py. A hardcoded path here broke once already when a teammate's
+# commit removed the file.
 
 # Cached across calls within one process. Loading EfficientNet-B0 and its
 # weights costs a second or so; a long-lived worker should pay that once.
@@ -97,10 +101,13 @@ def load_model():
     import torch.nn as nn
     import timm
 
-    if not os.path.exists(CKPT_PATH):
-        _fail(f"no model at {CKPT_PATH}")
+    from modelPaths import resolve, CheckpointMissing
+    try:
+        ckpt_path = resolve("classifier")
+    except CheckpointMissing as exc:
+        _fail(str(exc))
 
-    ckpt = torch.load(CKPT_PATH, map_location="cpu", weights_only=False)
+    ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
 
     class DRClassifier(nn.Module):
         """Rebuilt from the checkpoint's own `arch` string:
@@ -226,6 +233,8 @@ def main():
     ap.add_argument("image", nargs="?", help="path to the fundus image")
     ap.add_argument("--gradcam", metavar="PNG",
                     help="also write a Grad-CAM overlay to this path")
+    ap.add_argument("--mc-dropout", type=int, default=20, metavar="N",
+                    help="MC-dropout passes for uncertainty_score (0 disables)")
     args = ap.parse_args()
 
     if not args.image:
@@ -268,6 +277,30 @@ def main():
         }
         if calib.get("warning"):
             out["calibrationWarning"] = calib["warning"]
+
+        # ── Task 6.1: MC-dropout uncertainty ───────────────────────────────
+        # Same process and same preprocessed tensor as the grade. On this model
+        # the convolutional trunk is deterministic and the single dropout sits
+        # after it, so 20 passes cost ~0.1 s -- the trunk runs once.
+        #
+        # A failure here must NOT fail the grade: uncertainty_score orders the
+        # review QUEUE, it does not decide anything clinical. The column stays
+        # NULL and the queue falls back to (1 - confidence), which is what it
+        # already does. NULL means "not measured"; 0.0 would mean "measured, and
+        # maximally certain", and those must never be confused.
+        if args.mc_dropout and args.mc_dropout >= 2:
+            try:
+                from mcDropout import mc_dropout
+                mc = mc_dropout(model, torch.from_numpy(x),
+                                n_passes=args.mc_dropout, temperature=T)
+                out["uncertaintyScore"] = mc["uncertaintyScore"]
+                out["uncertainty"] = mc
+            except Exception as exc:  # noqa: BLE001
+                out["uncertaintyScore"] = None
+                out["uncertaintyError"] = f"{type(exc).__name__}: {exc}"
+                print(f"branchAInfer: MC-dropout failed: {exc}", file=sys.stderr)
+        else:
+            out["uncertaintyScore"] = None
 
         # ── Grad-CAM, in the same process ──────────────────────────────────
         # Same spawn as the grade: the interpreter start and model load

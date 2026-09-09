@@ -1,0 +1,285 @@
+{
+  "n": 52,
+  "camera": "forus_3nethra_v2",
+  "clean": {
+    "n": 52,
+    "status": {
+      "borderline": 40,
+      "retake": 6,
+      "pass": 6
+    },
+    "reason": {
+      "-": 46,
+      "blur": 5,
+      "low_illumination": 1
+    },
+    "focusMin": 0.067362,
+    "focusMedian": 0.28758700000000004,
+    "focusMax": 0.390852,
+    "passedAt0_40": 0
+  },
+  "jpeg10": {
+    "n": 52,
+    "status": {
+      "retake": 52
+    },
+    "reason": {
+      "blur": 50,
+      "low_illumination": 1,
+      "motion_artifact": 1
+    },
+    "focusMin": 0.065571,
+    "focusMedian": 0.100738,
+    "focusMax": 0.164292,
+    "passedAt0_40": 0
+  },
+  "thresholdSweep": [
+    {
+      "threshold": 0.05,
+      "cleanPass": 1.0,
+      "compressedReject": 0.0,
+      "youden": 0.0
+    },
+    {
+      "threshold": 0.06,
+      "cleanPass": 1.0,
+      "compressedReject": 0.0,
+      "youden": 0.0
+    },
+    {
+      "threshold": 0.07,
+      "cleanPass": 0.9807692307692307,
+      "compressedReject": 0.057692307692307696,
+      "youden": 0.038461538461538325
+    },
+    {
+      "threshold": 0.08,
+      "cleanPass": 0.9807692307692307,
+      "compressedReject": 0.21153846153846154,
+      "youden": 0.1923076923076923
+    },
+    {
+      "threshold": 0.09,
+      "cleanPass": 0.9807692307692307,
+      "compressedReject": 0.3269230769230769,
+      "youden": 0.3076923076923077
+    },
+    {
+      "threshold": 0.1,
+      "cleanPass": 0.9615384615384616,
+      "compressedReject": 0.5,
+      "youden": 0.4615384615384617
+    },
+    {
+      "threshold": 0.11,
+      "cleanPass": 0.9615384615384616,
+      "compressedReject": 0.6153846153846154,
+      "youden": 0.5769230769230771
+    },
+    {
+      "threshold": 0.12,
+      "cleanPass": 0.9615384615384616,
+      "compressedReject": 0.7692307692307693,
+      "youden": 0.7307692307692308
+    },
+    {
+      "threshold": 0.13,
+      "cleanPass": 0.9230769230769231,
+      "compressedReject": 0.8653846153846154,
+      "youden": 0.7884615384615385
+    },
+    {
+      "threshold": 0.14,
+      "cleanPass": 0.9038461538461539,
+      "compressedReject": 0.9423076923076923,
+      "youden": 0.8461538461538463
+    },
+    {
+      "threshold": 0.15,
+      "cleanPass": 0.8846153846153846,
+      "compressedReject": 0.9807692307692307,
+      "youden": 0.8653846153846154
+    },
+    {
+      "threshold": 0.16,
+      "cleanPass": 0.8846153846153846,
+      "compressedReject": 0.9807692307692307,
+      "youden": 0.8653846153846154
+    },
+    {
+      "threshold": 0.17,
+      "cleanPass": 0.8846153846153846,
+      "compressedReject": 1.0,
+      "youden": 0.8846153846153846
+    },
+    {
+      "threshold": 0.18,
+      "cleanPass": 0.8653846153846154,
+      "compressedReject": 1.0,
+      "youden": 0.8653846153846154
+    },
+    {
+      "threshold": 0.19,
+      "cleanPass": 0.8461538461538461,
+      "compressedReject": 1.0,
+      "youden": 0.8461538461538463
+    },
+    {
+      "threshold": 0.2,
+      "cleanPass": 0.8461538461538461,
+      "compressedReject": 1.0,
+      "youden": 0.8461538461538463
+    },
+    {
+      "threshold": 0.21,
+      "cleanPass": 0.8269230769230769,
+      "compressedReject": 1.0,
+      "youden": 0.8269230769230769
+    },
+    {
+      "threshold": 0.22,
+      "cleanPass": 0.8269230769230769,
+      "compressedReject": 1.0,
+      "youden": 0.8269230769230769
+    },
+    {
+      "threshold": 0.23,
+      "cleanPass": 0.8076923076923077,
+      "compressedReject": 1.0,
+      "youden": 0.8076923076923077
+    },
+    {
+      "threshold": 0.24,
+      "cleanPass": 0.8076923076923077,
+      "compressedReject": 1.0,
+      "youden": 0.8076923076923077
+    },
+    {
+      "threshold": 0.25,
+      "cleanPass": 0.7692307692307693,
+      "compressedReject": 1.0,
+      "youden": 0.7692307692307692
+    },
+    {
+      "threshold": 0.26,
+      "cleanPass": 0.6923076923076923,
+      "compressedReject": 1.0,
+      "youden": 0.6923076923076923
+    },
+    {
+      "threshold": 0.27,
+      "cleanPass": 0.6346153846153846,
+      "compressedReject": 1.0,
+      "youden": 0.6346153846153846
+    },
+    {
+      "threshold": 0.28,
+      "cleanPass": 0.5192307692307693,
+      "compressedReject": 1.0,
+      "youden": 0.5192307692307692
+    },
+    {
+      "threshold": 0.29,
+      "cleanPass": 0.5,
+      "compressedReject": 1.0,
+      "youden": 0.5
+    },
+    {
+      "threshold": 0.3,
+      "cleanPass": 0.3269230769230769,
+      "compressedReject": 1.0,
+      "youden": 0.32692307692307687
+    },
+    {
+      "threshold": 0.31,
+      "cleanPass": 0.2692307692307692,
+      "compressedReject": 1.0,
+      "youden": 0.26923076923076916
+    },
+    {
+      "threshold": 0.32,
+      "cleanPass": 0.23076923076923078,
+      "compressedReject": 1.0,
+      "youden": 0.23076923076923084
+    },
+    {
+      "threshold": 0.33,
+      "cleanPass": 0.15384615384615385,
+      "compressedReject": 1.0,
+      "youden": 0.15384615384615374
+    },
+    {
+      "threshold": 0.34,
+      "cleanPass": 0.11538461538461539,
+      "compressedReject": 1.0,
+      "youden": 0.11538461538461542
+    },
+    {
+      "threshold": 0.35,
+      "cleanPass": 0.057692307692307696,
+      "compressedReject": 1.0,
+      "youden": 0.05769230769230771
+    },
+    {
+      "threshold": 0.36,
+      "cleanPass": 0.057692307692307696,
+      "compressedReject": 1.0,
+      "youden": 0.05769230769230771
+    },
+    {
+      "threshold": 0.37,
+      "cleanPass": 0.038461538461538464,
+      "compressedReject": 1.0,
+      "youden": 0.03846153846153855
+    },
+    {
+      "threshold": 0.38,
+      "cleanPass": 0.019230769230769232,
+      "compressedReject": 1.0,
+      "youden": 0.019230769230769162
+    },
+    {
+      "threshold": 0.39,
+      "cleanPass": 0.019230769230769232,
+      "compressedReject": 1.0,
+      "youden": 0.019230769230769162
+    },
+    {
+      "threshold": 0.4,
+      "cleanPass": 0.0,
+      "compressedReject": 1.0,
+      "youden": 0.0
+    },
+    {
+      "threshold": 0.41,
+      "cleanPass": 0.0,
+      "compressedReject": 1.0,
+      "youden": 0.0
+    },
+    {
+      "threshold": 0.42,
+      "cleanPass": 0.0,
+      "compressedReject": 1.0,
+      "youden": 0.0
+    },
+    {
+      "threshold": 0.43,
+      "cleanPass": 0.0,
+      "compressedReject": 1.0,
+      "youden": 0.0
+    },
+    {
+      "threshold": 0.44,
+      "cleanPass": 0.0,
+      "compressedReject": 1.0,
+      "youden": 0.0
+    }
+  ],
+  "bestThreshold": {
+    "threshold": 0.17,
+    "cleanPass": 0.8846153846153846,
+    "compressedReject": 1.0,
+    "youden": 0.8846153846153846
+  },
+  "currentThreshold": 0.4
+}

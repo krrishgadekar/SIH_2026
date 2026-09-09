@@ -74,30 +74,67 @@ end
 % eyelash/eyelid, not just a vessel in the retinal interior)
 darkMask = gray < 20;
 
-% Find connected components that touch any border pixel.
-% Approach: flood-fill from a 1-pixel-wide border frame set to true.
-borderSeed = false(H, W);
-borderSeed(1,:) = true; borderSeed(H,:) = true;
-borderSeed(:,1) = true; borderSeed(:,W) = true;
+% ══ WHAT THIS USED TO MEASURE, AND WHY IT WAS WRONG ═══════════════════════
+% The previous version counted every dark connected component TOUCHING THE
+% IMAGE BORDER, over the whole frame area. In a fundus photograph the black
+% surround around the retinal circle is exactly that: dark, border-touching,
+% and large. So the score was dominated by how much empty frame the camera
+% leaves around the retina — it measured FRAMING, not occlusion.
+%
+% Measured: 52 IDRiD images (4288x2848, wide black side-bands) all scored
+% 0.3086-0.3106, while datasets/2.jpg (tightly cropped) scores 0.14. The 0.20
+% threshold was set just above that single tight image, so every image from a
+% differently-framed camera failed as 'eyelash_occlusion' — 46 of 52 clean
+% research-grade photographs, once the focus threshold stopped masking it.
+%
+% Note the two numbers, 0.14 and 0.31, are both from perfectly good images.
+% No threshold on this quantity could have separated occlusion from framing.
+%
+% ══ WHAT IT MEASURES NOW ══════════════════════════════════════════════════
+% Dark pixels INSIDE the expected retinal disc, as a fraction of that disc.
+% An eyelash or eyelid intrudes into the retina; the surround does not. This
+% is framing-invariant: a tightly cropped image and a letterboxed one score
+% the same, which is the property the old metric lacked.
+%
+% The disc is the CONVEX HULL of the bright region, not the bright region
+% itself. That matters for the case this check exists to catch: a dark bar
+% across the retina is excluded from the bright region, so measuring "dark
+% inside the bright area" would shrink the region around the occlusion and
+% report nothing. The hull spans the bar, because retina remains on both
+% sides of it, and the bar is then counted as the intrusion it is.
+%
+% gray > 7 is the same "inside the retina" rule ben_graham crops with and the
+% Grad-CAM ROI safeguard uses, so the term means one thing across the project.
+brightMask = gray > 7;
+brightMask = imclose(brightMask, strel('disk', 7));
 
-% Only border pixels that are ALSO dark can seed the fill
-borderSeed = borderSeed & darkMask;
+% Small specks are dropped, but the hull is then taken over ALL remaining
+% bright regions rather than only the largest.
+%
+% That distinction is the whole test. A bar across the retina SPLITS the
+% bright region into two components; keeping only the largest would hull just
+% one half, place the bar outside the hull, and report nothing. Measured on a
+% synthetic bar, largest-component-only moved the score from 0.0143 to 0.0165
+% between a 2% and a 30% occlusion — i.e. it was blind to exactly the thing it
+% exists to detect. Taking the union spans the gap, and the bar is counted.
+%
+% 1% of frame area removes sensor noise and stray highlights while keeping any
+% retinal fragment large enough to matter.
+brightMask = bwareaopen(brightMask, round(0.01 * numel(gray)));
 
-% Grow seeds through the dark mask using bwselect / imdilate approach:
-% imfill with a custom seed is complex; instead use bwlabel + border-touch check.
-CC = bwconncomp(darkMask, 8);
-borderTouchingArea = 0;
-for k = 1:CC.NumObjects
-    pixelList = CC.PixelIdxList{k};
-    % Convert linear indices to [row, col]
-    [rows, cols] = ind2sub([H, W], pixelList);
-    touchesBorder = any(rows == 1) || any(rows == H) || ...
-                    any(cols == 1) || any(cols == W);
-    if touchesBorder
-        borderTouchingArea = borderTouchingArea + numel(pixelList);
+if ~any(brightMask(:))
+    % No retina found at all. That is not an occlusion measurement — assessFOV
+    % is the check that should fail here — so this reports 0 rather than
+    % inventing a number from an image it could not interpret.
+    result.occlusionScore = 0;
+else
+    discMask = bwconvhull(brightMask);
+    discArea = sum(discMask(:));
+    if discArea == 0
+        result.occlusionScore = 0;
+    else
+        result.occlusionScore = sum(darkMask(:) & discMask(:)) / discArea;
     end
 end
-
-result.occlusionScore = borderTouchingArea / numel(gray);
 
 end

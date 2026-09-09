@@ -49,6 +49,52 @@ v = var(filtered(:));
 %   fine vessel detail), so their Laplacian variance sits ~50-60, far below
 %   natural-image benchmarks. The constant is camera-family-dependent; if a
 %   camera preset provides its own focusNormConst, use that instead of 70.
+%
+% ══ THAT CALIBRATION WAS FITTED TO ONE IMAGE, AND IT DID NOT TRANSFER ══════
+%   The constant above was chosen so that a SINGLE image — datasets/2.jpg, at
+%   1002x867 — scores 0.80. Measured later on 52 held-out IDRiD fundus
+%   photographs (4288x2848), the same score lands at median 0.288, max 0.391.
+%
+%   The old focusThreshold of 0.40 sat ABOVE the maximum any of those clean
+%   images reached, so the gate rejected 52 of 52 research-grade photographs as
+%   'blur'. Shipped that way, no capture would ever pass and no case would ever
+%   reach grading. The threshold is now 0.17 (cameraPresets.json), measured:
+%   88.5% of clean images pass and 100% of JPEG-quality-10 images are rejected.
+%   See central-system/backend/ml-pipeline/experiments/qualityGateCompression.py.
+%
+%   ── THE UNDERLYING CAUSE: THIS METRIC IS RESOLUTION-DEPENDENT ────────────
+%   Laplacian variance is computed per pixel, so the same scene at a different
+%   sensor resolution gives a different number. Downscaling an IDRiD image to
+%   1002px wide — matching datasets/2.jpg — roughly DOUBLES its score
+%   (e.g. 0.256 → 0.514). The constant fitted on a small image therefore cannot
+%   be right for a large one.
+%
+%   ── WHY NORMALISING THE RESOLUTION IS *NOT* THE FIX ─────────────────────
+%   The obvious repair is to resize to a canonical size before filtering. It
+%   was tried and MUST NOT be adopted: downscaling averages away exactly the
+%   high-frequency artefacts this gate needs to see. Measured, resizing to
+%   1024px collapsed the separation between clean and JPEG-10 images from 2.8x
+%   to 1.2x, and compression rejection fell from 100% to 9.6%.
+%
+%   So the resolution sensitivity is real and is deliberately LEFT IN, because
+%   removing it removes the signal. The consequence is that the constant and
+%   the threshold are only valid for a given camera's native resolution.
+%
+%   ── WHICH IS WHY PER-CAMERA PRESETS MATTER, AND ARE NOT IMPLEMENTED ─────
+%   Two sources of genuinely good images differ by 2.8x on this metric
+%   (datasets/2.jpg 56.1 vs IDRiD median 20.1 Laplacian variance). A single
+%   global threshold cannot be right for both. cameraPresets.json currently
+%   holds only "default", so every call passing a real camera id silently falls
+%   back to it and the id is ignored without anyone being told.
+%
+%   ── WHAT 0.17 IS AND IS NOT ─────────────────────────────────────────────
+%   It is measured, not guessed, and it is a large improvement on a value that
+%   rejected everything. It is NOT validated for the target hardware: n=52 from
+%   one dataset captured on a Kowa VX-10, a mydriatic desk unit, not the
+%   portable cameras this system is for. Those are best-case images, so 0.17
+%   may still be too strict for a usable portable capture. It also separates
+%   clean-from-compressed, not usable-from-unusable. Re-fit it on real captures
+%   before any deployment.
 result.score = min(1, v / 70);
 
 end

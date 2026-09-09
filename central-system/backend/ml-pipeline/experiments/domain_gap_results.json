@@ -1,0 +1,223 @@
+{
+  "baseline": {
+    "n": 52,
+    "accuracy": 0.5576923076923077,
+    "sensitivity": 0.8275862068965517,
+    "specificity": 0.9130434782608695,
+    "quadraticKappa": 0.8270005253020487,
+    "meanConfidence": 0.6642520353198051,
+    "tierA": 16,
+    "tierB": 21,
+    "tierC": 15
+  },
+  "vignette": {
+    "0.25": {
+      "n": 52,
+      "accuracy": 0.5961538461538461,
+      "sensitivity": 0.8275862068965517,
+      "specificity": 0.9130434782608695,
+      "quadraticKappa": 0.83477493380406,
+      "meanConfidence": 0.6731476451341922,
+      "tierA": 18,
+      "tierB": 21,
+      "tierC": 13
+    },
+    "0.5": {
+      "n": 52,
+      "accuracy": 0.5961538461538461,
+      "sensitivity": 0.8275862068965517,
+      "specificity": 0.9130434782608695,
+      "quadraticKappa": 0.8361057608124671,
+      "meanConfidence": 0.6713176197730578,
+      "tierA": 18,
+      "tierB": 21,
+      "tierC": 13
+    },
+    "1.0": {
+      "n": 52,
+      "accuracy": 0.5192307692307693,
+      "sensitivity": 0.7586206896551724,
+      "specificity": 0.9565217391304348,
+      "quadraticKappa": 0.8256496227996647,
+      "meanConfidence": 0.6679884774180559,
+      "tierA": 21,
+      "tierB": 17,
+      "tierC": 14
+    }
+  },
+  "colour_shift": {
+    "0.25": {
+      "n": 52,
+      "accuracy": 0.5384615384615384,
+      "sensitivity": 0.7931034482758621,
+      "specificity": 0.9130434782608695,
+      "quadraticKappa": 0.8107124284971399,
+      "meanConfidence": 0.6699497080766238,
+      "tierA": 15,
+      "tierB": 21,
+      "tierC": 16
+    },
+    "0.5": {
+      "n": 52,
+      "accuracy": 0.5769230769230769,
+      "sensitivity": 0.8275862068965517,
+      "specificity": 0.9130434782608695,
+      "quadraticKappa": 0.8300953726598376,
+      "meanConfidence": 0.6711161812910666,
+      "tierA": 16,
+      "tierB": 21,
+      "tierC": 15
+    },
+    "1.0": {
+      "n": 52,
+      "accuracy": 0.5576923076923077,
+      "sensitivity": 0.8275862068965517,
+      "specificity": 0.8260869565217391,
+      "quadraticKappa": 0.7898989898989899,
+      "meanConfidence": 0.659983784533464,
+      "tierA": 13,
+      "tierB": 20,
+      "tierC": 19
+    }
+  },
+  "resolution_loss": {
+    "0.25": {
+      "n": 52,
+      "accuracy": 0.5576923076923077,
+      "sensitivity": 0.7931034482758621,
+      "specificity": 0.9130434782608695,
+      "quadraticKappa": 0.7980582524271845,
+      "meanConfidence": 0.6712073299747247,
+      "tierA": 16,
+      "tierB": 21,
+      "tierC": 15
+    },
+    "0.5": {
+      "n": 52,
+      "accuracy": 0.5769230769230769,
+      "sensitivity": 0.7931034482758621,
+      "specificity": 0.9130434782608695,
+      "quadraticKappa": 0.7990654205607477,
+      "meanConfidence": 0.675786018371582,
+      "tierA": 17,
+      "tierB": 21,
+      "tierC": 14
+    },
+    "1.0": {
+      "n": 52,
+      "accuracy": 0.5769230769230769,
+      "sensitivity": 0.8275862068965517,
+      "specificity": 0.8695652173913043,
+      "quadraticKappa": 0.81751184418319,
+      "meanConfidence": 0.6888736406197915,
+      "tierA": 20,
+      "tierB": 21,
+      "tierC": 11
+    }
+  },
+  "defocus": {
+    "0.25": {
+      "n": 52,
+      "accuracy": 0.5769230769230769,
+      "sensitivity": 0.7931034482758621,
+      "specificity": 0.9130434782608695,
+      "quadraticKappa": 0.8147158382326741,
+      "meanConfidence": 0.6796074882149696,
+      "tierA": 17,
+      "tierB": 21,
+      "tierC": 14
+    },
+    "0.5": {
+      "n": 52,
+      "accuracy": 0.5384615384615384,
+      "sensitivity": 0.7931034482758621,
+      "specificity": 0.8695652173913043,
+      "quadraticKappa": 0.7984843265587324,
+      "meanConfidence": 0.6845808751308001,
+      "tierA": 20,
+      "tierB": 21,
+      "tierC": 11
+    },
+    "1.0": {
+      "n": 52,
+      "accuracy": 0.5192307692307693,
+      "sensitivity": 0.8275862068965517,
+      "specificity": 0.8695652173913043,
+      "quadraticKappa": 0.795730145175064,
+      "meanConfidence": 0.6869021304524862,
+      "tierA": 20,
+      "tierB": 22,
+      "tierC": 10
+    }
+  },
+  "jpeg": {
+    "0.25": {
+      "n": 52,
+      "accuracy": 0.5576923076923077,
+      "sensitivity": 0.8275862068965517,
+      "specificity": 0.8695652173913043,
+      "quadraticKappa": 0.7938367273382592,
+      "meanConfidence": 0.6629191614114321,
+      "tierA": 14,
+      "tierB": 22,
+      "tierC": 16
+    },
+    "0.5": {
+      "n": 52,
+      "accuracy": 0.5192307692307693,
+      "sensitivity": 0.8275862068965517,
+      "specificity": 0.8695652173913043,
+      "quadraticKappa": 0.7829942618675013,
+      "meanConfidence": 0.6544879927084997,
+      "tierA": 16,
+      "tierB": 21,
+      "tierC": 15
+    },
+    "1.0": {
+      "n": 52,
+      "accuracy": 0.19230769230769232,
+      "sensitivity": 1.0,
+      "specificity": 0.2608695652173913,
+      "quadraticKappa": 0.16252577825788084,
+      "meanConfidence": 0.6652137768956331,
+      "tierA": 1,
+      "tierB": 32,
+      "tierC": 19
+    }
+  },
+  "combined": {
+    "0.25": {
+      "n": 52,
+      "accuracy": 0.5961538461538461,
+      "sensitivity": 0.8275862068965517,
+      "specificity": 0.9130434782608695,
+      "quadraticKappa": 0.8149305555555556,
+      "meanConfidence": 0.6964027881622314,
+      "tierA": 19,
+      "tierB": 22,
+      "tierC": 11
+    },
+    "0.5": {
+      "n": 52,
+      "accuracy": 0.5192307692307693,
+      "sensitivity": 0.8275862068965517,
+      "specificity": 0.8695652173913043,
+      "quadraticKappa": 0.7827676240208877,
+      "meanConfidence": 0.641964370241532,
+      "tierA": 16,
+      "tierB": 22,
+      "tierC": 14
+    },
+    "1.0": {
+      "n": 52,
+      "accuracy": 0.3076923076923077,
+      "sensitivity": 0.9310344827586207,
+      "specificity": 0.782608695652174,
+      "quadraticKappa": 0.5387344766410409,
+      "meanConfidence": 0.42375031744058317,
+      "tierA": 1,
+      "tierB": 6,
+      "tierC": 45
+    }
+  }
+}
