@@ -1,0 +1,24 @@
+# Ignore every subfolder's contents, keep this file and the README tracked.
+#
+# This is the Task 0.4 rule, and it is deliberately a blanket one rather than a
+# list of dataset names. The root .gitignore also names specific folders
+# (datasets/drive/, datasets/idrid/ ...), but those entries are lowercase and
+# the actual download unzips as `DRIVE/`. On Windows that still matches, because
+# the filesystem is case-insensitive; on Linux or macOS it does NOT, and a
+# teammate would commit twenty real patient fundus photographs without git
+# saying a word.
+#
+# A pattern that only works on some of the team's machines is worse than none,
+# because it appears to work right up until it doesn't. Match everything here
+# and let the exceptions be explicit.
+*/
+
+# ...except the two files that document what should be here.
+!README.md
+!.gitignore
+
+# Original archives, whatever they are named.
+*.zip
+*.tar
+*.tar.gz
+*.7z

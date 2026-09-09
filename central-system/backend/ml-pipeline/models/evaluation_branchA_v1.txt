@@ -1,0 +1,70 @@
+===========================================================
+  Branch A evaluation -- branchA_v1
+  2026-09-09 16:13:11 UTC
+===========================================================
+Test images        : 628
+Predictions from   : supplied predictions (no inference run)
+Preprocessing      : unknown -- predictions were supplied, not computed here
+
+--- Referable DR (grade >= 2) -----------------------------
+Sensitivity        : 0.8603  (95% CI 0.8141 - 0.8965)   [target > 0.90]
+Specificity        : 0.9382  (95% CI 0.9082 - 0.9588)   [target > 0.85]
+PPV                : 0.9141  (95% CI 0.8733 - 0.9426)
+NPV                : 0.8978  (95% CI 0.8629 - 0.9247)
+  measured at prevalence 0.433 (272 referable of 628)
+  TP 234  FN 38  TN 334  FP 22
+
+Targets are judged on the LOWER confidence bound, not the point
+estimate -- a measured 0.91 over 60 images does not support a
+claim of >0.90.
+  sensitivity target met : no
+  specificity target met : YES
+
+--- Agreement across all 5 grades -------------------------
+Quadratic-weighted kappa : 0.8688
+Plain accuracy           : 0.7404
+
+--- Confusion matrix (rows = truth, cols = prediction) ----
+           pred0  pred1  pred2  pred3  pred4    recall
+  true0     288      5      3      0      0     0.973
+  true1       6     35     17      1      1     0.583
+  true2       7     24     93     46      5     0.531
+  true3       1      1      0     25     16     0.581
+  true4       1      4      7     18     24     0.444
+
+--- Neovascularization (grade 4), reported separately -----
+NV recall          : 0.444  (measured on 54 grade-4 cases)
+
+--- Calibration -------------------------------------------
+Temperature        : 1.5311
+  fitted on 626 supplied calibration predictions
+ECE before         : 0.1021
+ECE after          : 0.0545   (improvement +0.0476)
+Mean confidence    : 0.8426 -> 0.7612  (accuracy 0.7404)
+Sensitivity, specificity, kappa and the confusion matrix are
+unchanged by temperature scaling -- it is monotone, so it cannot
+reorder a row. Only the confidence values move.
+
+Reliability diagram (bin: n, mean confidence, accuracy)
+  [0.0,0.1)      0        --        --
+  [0.1,0.2)      0        --        --
+  [0.2,0.3)      1    0.2955    0.0000
+  [0.3,0.4)      9    0.3634    0.2222
+  [0.4,0.5)     30    0.4553    0.4000
+  [0.5,0.6)     55    0.5476    0.5273
+  [0.6,0.7)     54    0.6519    0.5185
+  [0.7,0.8)     56    0.7494    0.6250
+  [0.8,0.9)     74    0.8488    0.5000
+  [0.9,1.0]    349    0.9794    0.9226
+
+--- model_versions ----------------------------------------
+These three columns are the continual-learning promotion gate.
+  version_id             = branchA_v1
+  validation_sensitivity = 0.860294
+  validation_specificity = 0.938202
+  validation_kappa       = 0.868803
+
+Every number above describes THIS test split only. It is not a claim
+about performance on a population the split does not represent -- a
+different camera, a different clinic, a different prevalence.
+===========================================================

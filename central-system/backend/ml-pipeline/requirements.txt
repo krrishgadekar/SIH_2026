@@ -1,0 +1,31 @@
+# requirements.txt
+# DR Screening ML Pipeline — Python dependencies
+# Install with:
+#   conda run -n dr_screening python -m pip install -r requirements.txt
+#
+# PyTorch (CUDA 12.1 build) must be installed FIRST separately:
+#   conda run -n dr_screening python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+# Deep learning core
+torch>=2.2.0           # installed via CUDA wheel, see above
+torchvision>=0.17.0    # installed via CUDA wheel, see above
+torchaudio>=2.2.0      # installed via CUDA wheel, see above
+timm>=0.9.16           # pretrained model zoo (EfficientNet, ResNet variants)
+segmentation-models-pytorch>=0.3.3  # U-Net and other segmentation architectures
+
+# Image augmentation
+albumentations>=1.4.0
+
+# Computer vision
+opencv-python>=4.9.0
+
+# Data / numerics
+pandas>=2.2.0
+numpy>=1.26.0
+scipy>=1.12.0
+
+# ML utilities
+scikit-learn>=1.4.0
+
+# Visualization
+matplotlib>=3.8.0

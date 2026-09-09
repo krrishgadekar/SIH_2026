@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { QualityResultPanel } from './QualityResultPanel';
 import { CaptureMetadataForm } from './CaptureMetadataForm';
 import { PatientQuestionnaireForm } from './PatientQuestionnaireForm';
@@ -9,6 +10,7 @@ import { mockAiPredictions } from '../../api/mockData';
 import demoFundusImg from '../../assets/hero.png';
 
 export const CaptureScreen = () => {
+  const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const patientId = searchParams.get('patientId') || 'UNKNOWN_PATIENT';
@@ -137,24 +139,24 @@ export const CaptureScreen = () => {
   return (
     <div className="section">
       <div className="u-flex u-justify-between u-items-center u-mb-6">
-        <h1 className="t-h1">IMAGE CAPTURE</h1>
+        <h1 className="t-h1">{t('capture.title')}</h1>
         <div className="t-mono" style={{ opacity: 0.6 }}>
-          PATIENT: {patientId}
+          {t('capture.patient')} {patientId}
         </div>
       </div>
 
       <div className="stepper u-mb-6">
-        <div className={`stepper__step ${activeStep === 1 ? 'active' : ''} ${activeStep > 1 ? 'completed' : ''}`}>1. CAPTURE</div>
-        <div className={`stepper__step ${activeStep === 2 ? 'active' : ''} ${activeStep > 2 ? 'completed' : ''}`}>2. QUALITY GATE</div>
-        <div className={`stepper__step ${activeStep === 3 ? 'active' : ''}`}>3. METADATA & SYNC</div>
+        <div className={`stepper__step ${activeStep === 1 ? 'active' : ''} ${activeStep > 1 ? 'completed' : ''}`}>{t('capture.steps.capture')}</div>
+        <div className={`stepper__step ${activeStep === 2 ? 'active' : ''} ${activeStep > 2 ? 'completed' : ''}`}>{t('capture.steps.quality')}</div>
+        <div className={`stepper__step ${activeStep === 3 ? 'active' : ''}`}>{t('capture.steps.metadata')}</div>
       </div>
 
       <div className="grid grid--2">
         {/* Left Column: Image Area */}
         <div className="panel u-p-4 hash-fill" style={{ minHeight: '500px' }}>
           <div className="u-flex u-justify-between u-mb-2">
-            <span className="t-label">LIVE FEED / PREVIEW</span>
-            <span className="t-label">{imageFile ? 'CAPTURED' : 'READY'}</span>
+            <span className="t-label">{t('capture.preview')}</span>
+            <span className="t-label">{imageFile ? t('capture.statusCaptured') : t('capture.statusReady')}</span>
           </div>
           
           <input 
@@ -172,14 +174,14 @@ export const CaptureScreen = () => {
               <>
                 <div className="capture-zone__placeholder">
                   <div className="capture-zone__placeholder-icon">◎</div>
-                  <div className="t-mono u-mb-3">CLICK TO INITIATE CAPTURE SEQUENCE</div>
+                  <div className="t-mono u-mb-3">{t('capture.clickToInitiate')}</div>
                   <button 
                     type="button" 
                     className="btn btn--outline" 
                     style={{ fontSize: '0.72rem', padding: '6px 14px', zIndex: 10, cursor: 'pointer' }}
                     onClick={handleLoadDemoImage}
                   >
-                    ✦ LOAD SAMPLE RETINAL SCAN
+                    {t('capture.loadSample')}
                   </button>
                 </div>
                 <div className="capture-zone__crosshair"></div>
@@ -190,12 +192,12 @@ export const CaptureScreen = () => {
           {imageFile && activeStep === 1 && (
             <div className="u-mt-4">
               <div className="u-flex u-justify-between u-items-center u-mb-3" style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)' }}>
-                <span style={{ color: 'var(--c-cream-dark)', letterSpacing: '0.05em' }}>MOCK TEST SCENARIO:</span>
+                <span style={{ color: 'var(--c-cream-dark)', letterSpacing: '0.05em' }}>{t('capture.mockScenario')}</span>
                 <div style={{ display: 'flex', gap: '6px' }}>
                   {[
-                    { id: 'pass', label: 'PASS (GRADE 1)' },
-                    { id: 'borderline', label: 'BORDERLINE (GRADE 2)' },
-                    { id: 'retake', label: 'RETAKE (BLUR)' }
+                    { id: 'pass', label: t('capture.scenarioPass') },
+                    { id: 'borderline', label: t('capture.scenarioBorderline') },
+                    { id: 'retake', label: t('capture.scenarioRetake') }
                   ].map(s => (
                     <button
                       key={s.id}
@@ -220,9 +222,9 @@ export const CaptureScreen = () => {
                 </div>
               </div>
               <div className="u-flex u-justify-between">
-                <button className="btn btn--outline" onClick={handleRetake} disabled={isAnalyzing}>RETAKE</button>
+                <button className="btn btn--outline" onClick={handleRetake} disabled={isAnalyzing}>{t('capture.btnRetake')}</button>
                 <button className="btn" onClick={runQualityCheck} disabled={isAnalyzing}>
-                  {isAnalyzing ? 'ANALYZING... ✦' : 'RUN QUALITY CHECK ✦'}
+                  {isAnalyzing ? t('capture.btnAnalyzing') : t('capture.btnAnalyze')}
                 </button>
               </div>
             </div>
@@ -233,14 +235,12 @@ export const CaptureScreen = () => {
         <div className="panel capture-context-panel">
           {activeStep === 1 && (
             <div className="capture-instructions">
-              <h2 className="t-h3" style={{ color: 'var(--c-crimson)' }}>INSTRUCTIONS</h2>
+              <h2 className="t-h3" style={{ color: 'var(--c-crimson)' }}>{t('capture.instructionsTitle')}</h2>
               <div className="capture-instructions__divider" />
               <ul className="capture-instructions__list">
-                <li><span className="capture-instructions__num">01</span> Align patient head on chin rest.</li>
-                <li><span className="capture-instructions__num">02</span> Adjust height until pupil is centered in feed.</li>
-                <li><span className="capture-instructions__num">03</span> Ensure room lighting is sufficiently dim.</li>
-                <li><span className="capture-instructions__num">04</span> Instruct patient to focus on internal green target.</li>
-                <li><span className="capture-instructions__num">05</span> Initiate capture when focus indicator is solid.</li>
+                {t('capture.instructions', { returnObjects: true }).map((instruction, idx) => (
+                  <li key={idx}><span className="capture-instructions__num">0{idx + 1}</span> {instruction}</li>
+                ))}
               </ul>
             </div>
           )}
@@ -258,7 +258,7 @@ export const CaptureScreen = () => {
                 <PatientQuestionnaireForm onChange={setQuestionnaire} />
               </div>
               <div className="u-mt-6 u-text-right">
-                 <button className="btn btn--success" onClick={handleSubmit}>QUE FOR SYNC ✦</button>
+                 <button className="btn btn--success" onClick={handleSubmit}>{t('quality.btnQue')}</button>
               </div>
             </div>
           )}

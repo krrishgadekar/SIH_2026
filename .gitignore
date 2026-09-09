@@ -1,33 +1,141 @@
-# Dependencies
+# ── Node.js ───────────────────────────────────────────────────────────────────
 node_modules/
-.pnp
-.pnp.js
-
-# Production build
-dist/
-build/
-
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+.npm
+.pnp
+.pnp.js
 
-# Editor & OS files
-.vscode/
+# ── Environment / secrets ─────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.production
+
+# ── SQLite (local PHC database — runtime artefact, never commit) ──────────────
+*.sqlite
+*.sqlite3
+*.db
+# WAL sidecars (localDb.js sets journal_mode = WAL); *.sqlite does not match these
+*.sqlite-wal
+*.sqlite-shm
+
+# ── Patient-derived imagery — NEVER commit any of this ────────────────────────
+# Captures written by the PHC app, and the central server's media tree plus
+# Grad-CAM overlays. All of it is derived from patient fundus photographs and
+# falls under the same handling rule as the raw captures.
+phc-local-app/backend/uploads/
+phc-local-app/backend/captures/
+phc-local-app/backend/storage/
+central-system/backend/media/
+central-system/backend/explainability-outputs/
+
+# ── Dataset images ────────────────────────────────────────────────────────────
+# datasets/.gitignore already handles this with */
+# but belt-and-suspenders at the root level:
+datasets/aptos2019/
+datasets/idrid/
+datasets/drive/
+datasets/messidor2/
+
+# ── MATLAB artefacts ──────────────────────────────────────────────────────────
+# Autosave backups created by the MATLAB editor
+*.asv
+*.m~
+
+# Trained network / model weight files (can be hundreds of MB)
+# Store these in a shared drive or object storage, not git.
+central-system/backend/ml-pipeline/models/*.mat
+central-system/backend/ml-pipeline/models/*.onnx
+central-system/backend/ml-pipeline/models/*.pt
+central-system/backend/ml-pipeline/models/*.h5
+# Keep the README that documents where models live
+!central-system/backend/ml-pipeline/models/README.md
+
+# MATLAB Compiler standalone executable output (Task 8.1)
+*.exe
+*.app
+*.ctf
+requiredMCRProducts.txt
+
+# ── Simulink ─────────────────────────────────────────────────────────────────
+# Build cache and derived files. The .slx itself IS committed — it is the
+# Task 3.8 deliverable — but it is rebuilt by buildDistrictScreeningModel.m,
+# which is the reviewable source of truth for it.
+simulink-model/slprj/
+*.slxc
+# Regenerated on every run of referenceQueueingModel.m
+simulink-model/simulation-results.csv
+
+# ── Test scaffolding ─────────────────────────────────────────────────────────
+# Written by scripts/seedTestCase.js. Points at a case_id that exists in exactly
+# one local database, so it is meaningless to anyone else.
+test_case_id.txt
+
+# ── Python (bridge scripts, preprocessing helpers) ────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+logs/
+*.log
+
+# ── OS artefacts ─────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# ── IDE / editor ──────────────────────────────────────────────────────────────
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 .idea/
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-.DS_Store
-Thumbs.db
+
+# ── Build / dist ──────────────────────────────────────────────────────────────
+dist/
+build/
+.next/
+out/
+
+# Task verification scripts — developer tooling, run locally, not part of the
+# deliverable. Kept on disk (and in git history up to 95222e9) so each task can
+# still be re-verified; simply not carried in the repo.
+verify_task*.js
+
+# MATLAB Compiler build output (Task 8.1). Rebuildable with
+# buildQualityGateExe.m; a 1.4 MB binary plus generated logs does not belong
+# in the repo, and the .cmd wrapper is machine-specific (it hardcodes the
+# local MATLAB Runtime path).
+phc-local-app/backend/quality-gate-matlab/dist/
+
+# Traced copy of Branch A for MATLAB import (Task: PyTorch converter test).
+# Rebuildable in seconds with traceModel1ForMatlab.py, and a 16 MB binary that
+# duplicates weights already tracked in branchA_v1.pt.
+central-system/backend/ml-pipeline/models/Model1/branchA_v1_traced.pt
+
+# Model1 prediction CSVs — a bridge from the shipped .npy files into MATLAB,
+# regenerated in seconds by exportModel1Predictions.py. The .npy originals are
+# the source of truth and are tracked.
+central-system/backend/ml-pipeline/models/Model1/*.csv
+
+# PyTorch->MATLAB import experiment artifacts (traced models, probe tensors).
+# All regenerable; the traced .pt files duplicate weights already tracked.
+central-system/backend/ml-pipeline/models/Model1/*_traced*.pt
+central-system/backend/ml-pipeline/models/Model1/probe_*.csv

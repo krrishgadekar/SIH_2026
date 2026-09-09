@@ -115,6 +115,88 @@ Stack: Node.js + Express for both backends (matches what the team already knows)
 
 ---
 
+## Problem-statement coverage map
+
+*Added 2026-09-08 after auditing the repo against the PS. Keep this current —
+it is the only place the five numbered PS requirements are traceable to tasks,
+and four of the rows below existed as requirements with no task at all until
+this audit.*
+
+| PS requirement | Tasks | State |
+|---|---|---|
+| **1.** Quality assessment (focus, illumination, FOV) | 1.1–1.5 | ✅ done |
+| **1.** Recapture feedback for ungradeable | 1.5, 3.1, 3.2 | ✅ done |
+| **1.** CLAHE + illumination normalization | 2.1 | ✅ done |
+| **1.** Denoising | **2.1b** | ✅ built + verified (all microaneurysm-scale blobs survive) |
+| **1.** *Adaptive* enhancement for borderline | **2.8** | ✅ built, plumbed PHC→central, and live in the pipeline |
+| **2.** Optic disc / fovea localization | 4.5 | ⚠️ classical CV built + verified; regressor refinement blocked on IDRiD |
+| **2.** Vessel segmentation | 4.1 | ⚠️ Frangi half built + verified (10.4% coverage); U-Net blocked on DRIVE |
+| **2.** Microaneurysm detection (**sub-pixel**) | 4.2 | ⬜ not started |
+| **2.** Exudate segmentation | 4.3 | ⬜ not started |
+| **2.** Hemorrhage *classification* (distinct from MA) | 4.2 | ⬜ not started |
+| **2.** Neovascularization | 4.4 | ⚠️ suspicion score built + verified; deliberate deviation from "detection" — see task |
+| **3.** ICDR 0–4 grading | 2.2–2.4 | ⚠️ architecture only; model is an untrained stub |
+| **3.** >90% sens / >85% spec, referable | **9.1** | ❌ no harness existed to measure it |
+| **4.** Grad-CAM | 2.6 | ✅ built (meaningless until a real model lands) |
+| **4.** Lesion-level evidence vs clinical criteria | 5.1, 7.1 | ⚠️ rule engine built + 33 unit tests; needs Phase 4 lesion counts to run |
+| **4.** Calibrated confidence | 2.5, 6.2 | ⚠️ math verified, T=1 placeholder |
+| **4.** Automated annotated reports | **7.3** | ❌ column existed, nothing wrote to it |
+| **4.** <30 s ophthalmologist validation | **9.4** | ❌ never measured |
+| **5.** Simulink workflow simulation | **3.8** | ⬜ moved up from 8.4; blocked on Task 0.0 |
+| *Expected solution:* outperforms any single technique | **9.2** | ❌ nothing built to compare against |
+| *Expected solution:* validation vs published benchmarks | 9.1, 9.3 | ❌ not started |
+| *Tools:* Computer Vision, Medical Imaging toolboxes | **4.6** | ✅ both genuinely used — CV for the annotated overlays, Medical Imaging for DICOM fundus input (`readFundusImage.m`) |
+
+**Bold** task numbers were added or moved by this audit. They were named
+requirements with nowhere to land — the kind of gap that stays invisible until
+the demo, because nothing fails when a task that does not exist is not done.
+
+---
+
+## ⚠️ Task 0.0 — Install the missing MATLAB products (BLOCKING)
+
+Checked on the dev machine (MATLAB R2026a, 2026-09-08). Five products the
+problem statement names as required tools are **licensed but not installed**:
+
+| Product | Installed | Licensed | Blocks |
+|---|---|---|---|
+| Simulink | ❌ | ✅ | Task 3.8 — PS requirement 5, a separately graded deliverable |
+| SimEvents | ❌ | ✅ | Task 3.8 |
+| Computer Vision Toolbox | ❌ | ✅ | Phase 4 segmentation |
+| Medical Imaging Toolbox | ❌ | ✅ | Phase 4 segmentation |
+| Statistics and Machine Learning Toolbox | ❌ | ✅ | Task 6.2 conformal quantiles |
+| Deep Learning Toolbox Model for ResNet-50 | ❌ | n/a | Tasks 2.2/2.3 transfer learning |
+| **MATLAB Compiler** | ✅ *(installed 2026-09-09)* | ✅ | Task 8.1 — done; exe built and verified |
+
+*(MATLAB Compiler added 2026-09-09 while doing Task 8.1: `license('test','Compiler')`
+returns 1 and `exist('mcc','file')` returns 0 — the same licensed-but-absent
+pattern as the rest. Install with
+`mpm install --release=R2026a --products=MATLAB_Compiler`.)*
+
+`licensed = 1, installed = 0` for all five — this is a **download, not a
+procurement problem**. Install via the MATLAB installer / Add-On Explorer.
+Verify afterwards with:
+
+```
+matlab -batch "ver"
+```
+
+Two consequences if this is left undone:
+
+1. **Task 3.8 (Simulink) cannot start at all.** It is 1 of the PS's 5 numbered
+   requirements and is listed again in the expected-solution bullets.
+2. **Transfer learning is impossible without the ResNet-50 support package.**
+   `imagePretrainedNetwork("resnet50")` errors without it. The current
+   `branchA_v1.mat` stub works around this with `Weights="none"` (random
+   weights), which is fine for plumbing and useless for training — see
+   `docs/model-handoff-guide.md` §0.
+
+Two of these products (Computer Vision, Medical Imaging) currently have **zero
+usage anywhere in the codebase**. They are named tools in the PS, so find a
+genuine use in Phase 4 rather than a decorative one — see Task 4.6.
+
+---
+
 ## Phase 0 — Setup (do this together, first)
 
 **Task 0.1 — Scaffold both backends**
@@ -180,6 +262,29 @@ Stack: Node.js + Express for both backends (matches what the team already knows)
 - Build: circular retinal-region crop + Gaussian-blur background subtraction (the standard APTOS-winning-solutions preprocessing step).
 - Connects to: called in sequence by `gradingOrchestrator.js` (Task 2.6) before any model runs.
 
+**Task 2.1b — Denoising** *(added 2026-09-08 — was missing)*
+- File: `central-system/backend/ml-pipeline/preprocessing/denoiseRetinal.m`
+- **Why this exists:** PS requirement 1 names three enhancement steps —
+  "CLAHE, illumination normalization, **denoising**". Task 2.1 built the first
+  two and no denoising step existed anywhere in the codebase. This closes a
+  named requirement gap, not a nice-to-have.
+- Build: `function outImg = denoiseRetinal(img, method)`. Default to
+  edge-preserving denoising that does **not** erase microaneurysms — they are
+  a few pixels across and are exactly what a naive Gaussian or median filter
+  destroys. Prefer `imdiffusefilt` (anisotropic diffusion) or `imnlmfilt`
+  (non-local means), both Image Processing Toolbox, over `medfilt2`.
+- **Ordering matters:** denoise BEFORE `claheEnhance`, since CLAHE amplifies
+  whatever noise survives. The chain becomes
+  `benGrahamCrop → denoiseRetinal → claheEnhance → illuminationNormalize`.
+  Changing the chain changes what the model sees, so if Branch A has already
+  been trained on the old chain, it must be retrained — coordinate with whoever
+  owns training before merging this (`docs/model-handoff-guide.md` §2).
+- **Definition of Done:** on a known lesion-bearing IDRiD image, run the lesion
+  count before and after denoising and confirm microaneurysm-scale structures
+  survive. A denoiser that improves apparent image quality while removing the
+  smallest lesions is a net loss for this system — verify, don't assume.
+- Connects to: `gradingOrchestrator.js`, and the training preprocessing chain.
+
 **Task 2.2 — Branch A training data prep**
 - File: `central-system/backend/ml-pipeline/training/trainBranchAClassifier.m` (this file will hold both prep and training logic)
 - Build: load APTOS 2019 + IDRiD grading subset images, apply Ben Graham preprocessing, resize to your chosen input size (384–512px), split 70/15/15 stratified by grade (design doc §13). Cache the processed tensors so you don't reprocess on every run.
@@ -209,6 +314,35 @@ Stack: Node.js + Express for both backends (matches what the team already knows)
 - File: `central-system/backend/services/gradingOrchestrator.js`
 - Build: a function `processCase(caseId)` that: loads the case's image path from the `cases` table, calls preprocessing (Task 2.1) → Branch A (Task 2.4) → temperature scaling (Task 2.5) → Grad-CAM (Task 2.6), then writes a row into `grading_results` and `explainability_outputs`. Call MATLAB the same way as Task 1.3 (Engine API), or via a single MATLAB script that chains all the steps and returns one JSON blob to keep the Node↔MATLAB boundary simple.
 - Connects to: this is the center of the whole backend — `ingestionService.js` (Task 3.2) triggers it after a case arrives.
+
+**Task 2.8 — Adaptive enhancement for borderline images** *(added 2026-09-08 — was missing)*
+- File: `central-system/backend/ml-pipeline/preprocessing/adaptiveEnhance.m`
+- **Why this exists:** PS requirement 1 says "apply adaptive enhancement …
+  **for borderline images**". Today the quality gate correctly labels an image
+  `borderline`, the design doc calls that state "borderline-enhanced" — and
+  then `gradingOrchestrator.js` runs the **identical** preprocessing chain for
+  `pass` and `borderline` alike. The word "adaptive" is currently
+  unimplemented: borderline is detected and then ignored. This is a real
+  behavioural gap, not a documentation one.
+- Build: `function outImg = adaptiveEnhance(img, qualityScores)` — take the
+  sub-score struct the quality gate already computes (`focusScore`,
+  `illuminationScore`, `fovScore`, `glareScore`, `motionScore`,
+  `occlusionScore`; these are computed and currently used only for logging) and
+  vary the enhancement by which dimension is weak:
+  - low `illuminationScore` → stronger illumination normalization, higher CLAHE
+    clip limit;
+  - low `focusScore` → mild unsharp masking (`imsharpen`) before CLAHE;
+  - high `glareScore` → attenuate saturated regions before contrast boosting,
+    so CLAHE does not amplify the glare itself.
+- **Plumbing prerequisite:** the sub-scores currently die at the PHC — they are
+  logged by `captureHandler.js` and never transmitted. They must be carried
+  through `POST /api/v1/cases` and stored (add a `quality_scores JSONB` column
+  to `cases`) before this function has anything to switch on. Do that first;
+  otherwise this task silently has no input.
+- **Definition of Done:** the same borderline image processed with and without
+  adaptive enhancement produces visibly different output, and the difference is
+  in the dimension the gate flagged — not a global change applied regardless.
+- Connects to: `gradingOrchestrator.js`, branching on `cases.quality_status`.
 
 ---
 
@@ -250,6 +384,48 @@ Stack: Node.js + Express for both backends (matches what the team already knows)
 - Build: `GET /api/v1/admin/dashboard` returning simple counts (cases today per PHC, average review time) computed with plain SQL aggregate queries — no need for anything fancier at this stage.
 - Connects to: admin frontend's dashboard page.
 
+**Task 3.8 — Simulink district screening model** *(moved 2026-09-08 from Task 8.4 — PULLED FORWARD)*
+- Files: `simulink-model/districtScreeningSimEvents.slx`,
+  `simulink-model/buildDistrictScreeningModel.m`,
+  `simulink-model/README.md`
+- **Why this moved.** It was Task 8.4 — dead last, below the checkpoint, behind
+  segmentation, dual-branch grading, calibration, explainability safeguards and
+  continual learning. But it is **PS requirement 5 of 5**, and it is named a
+  second time in the expected-solution bullets ("a Simulink model optimizing
+  screening resource allocation"). Scheduling a fifth of the graded problem
+  last means it is the thing that silently dies if anything slips.
+  It also **has no dependency on the ML pipeline whatsoever** — its inputs are
+  arrival rates, bandwidth tiers and reviewer capacity, all modelled
+  assumptions (design doc §7). So it is the one major deliverable that can be
+  built fully in parallel, by someone else, while the model trains. There is no
+  reason for it to be last except that it was written last.
+- **BLOCKED BY Task 0.0** — Simulink and SimEvents are licensed but not
+  installed. Nothing here can run until they are.
+- Build: SimEvents discrete-event model per design doc §7 —
+  - Entity Generator: patient image arrivals, rate configurable per PHC.
+  - Queue + Server pair: network transmission, service time a function of
+    bandwidth (model the poor-connectivity tiers explicitly — that is the
+    rural-deployment point the PS is asking about).
+  - Priority Queue + Resource Pool: ophthalmologist review, ~30 s service time
+    for Tier B and several minutes for Tier C, with **Tier C pre-empting
+    Tier B** on the same reviewer pool.
+  - Scale to the PS's stated figure: a district program serving **100,000+
+    patients annually**. Report where the bottleneck lands at that volume.
+- Build it with a **committed build script** (`buildDistrictScreeningModel.m`,
+  using `new_system` / `add_block` / `add_line`), not only by hand in the GUI.
+  A `.slx` is an opaque binary: it cannot be meaningfully diffed or code
+  reviewed, and merge conflicts on it are unresolvable. The script is the
+  reviewable source of truth; the `.slx` is a build artifact.
+- Outputs: queue length over time, average wait, bottleneck location, and a
+  plain-language resource recommendation, exported to `.mat`/`.csv` for
+  `analyticsAggregator.js` to read into the admin Resource Recommendations panel.
+- **Definition of Done:** the model runs across at least two contrasting
+  scenarios (e.g. 3 PHCs / 1 ophthalmologist vs 10 PHCs / 2 ophthalmologists)
+  and the recommendation changes accordingly. A model that emits the same
+  advice regardless of input is not a model.
+- **Say so explicitly in the demo:** bandwidth and sync-timing parameters are
+  modelled assumptions, not measured field data (design doc §16).
+
 ---
 
 ## ✅ CHECKPOINT — Sept 10 internal round target
@@ -268,6 +444,29 @@ If everything above this line works end to end — capture → local quality gat
 **Task 4.2 — Red-lesion segmentation (microaneurysms, hemorrhages)**
 - File: `central-system/backend/ml-pipeline/segmentation/lesionSegmentationRedLesion.m`, training in `trainLesionUnets.m`
 - Build: U-Net trained on IDRiD's 81-image segmentation subset (microaneurysm + hemorrhage masks only). Prune candidates that fall entirely within the vessel mask (Task 4.1) before finalizing. Use transfer learning from the vessel model's encoder weights, since 81 images alone is too small to train from scratch (design doc §16). Output: lesion mask + quadrant-mapped counts (divide the image into 4 quadrants relative to the optic disc–fovea axis from Task 4.5, count lesions per quadrant).
+- **Sub-pixel microaneurysm centroids — REQUIRED, not optional** *(clarified 2026-09-08)*.
+  The PS names "sub-pixel microaneurysm detection" twice, including in its
+  closing line ("this problem demands clinical validation rigor, sub-pixel
+  microaneurysm detection, and clinically meaningful explainability"). A U-Net
+  mask is pixel-resolution by construction, so the mask alone does **not**
+  satisfy this. Add an explicit refinement step: for each connected component
+  in the red-lesion mask, compute an intensity-weighted centroid (first-order
+  image moments over the local patch) to get a fractional-pixel `(x, y)`.
+  Store the sub-pixel coordinates, not just the counts.
+- **Separate microaneurysms from hemorrhages in the output** *(clarified 2026-09-08)*.
+  The PS lists "microaneurysm detection" and "hemorrhage classification" as two
+  distinct deliverables. Training one combined red-lesion class is still the
+  right call given 81 images (design doc §6.6), but the two must be
+  **distinguishable in the output** or a named requirement looks unmet. Split
+  them post-hoc by connected-component area and circularity — microaneurysms
+  are small and round, dot/blot hemorrhages larger and more irregular — and
+  report `lesion_counts` with separate `microaneurysms` and `hemorrhages` keys,
+  as `api-contracts.md` already specifies. Be honest in the writeup that the
+  split is a morphological rule applied after a single-class segmentation, not
+  two independently trained and validated detectors.
+- **Definition of Done additions:** FROC curve (sensitivity vs false positives
+  per image) for microaneurysm detection — that is the convention this
+  literature uses, and a Dice score alone will be read as evasive.
 - Connects to: quadrant counts feed `branchB_ruleEngine.m` (Task 5.1) directly.
 
 **Task 4.3 — Bright-lesion segmentation (exudates, cotton-wool spots)**
@@ -278,12 +477,75 @@ If everything above this line works end to end — capture → local quality gat
 **Task 4.4 — Neovascularization suspicion score**
 - File: `central-system/backend/ml-pipeline/segmentation/neovascularizationSuspicion.m`
 - Build: NOT a segmentation model. Compute vessel density, branching complexity, and tortuosity from the vessel mask (Task 4.1), restricted to a ring around the optic disc and major arcades. Combine into a single 0–1 suspicion score via a simple weighted formula — no training data exists to justify anything fancier (design doc §1.12). Output feeds `grading_results` and, if high, forces Branch B toward grade 4 regardless of what Branch A says.
+- **Deliberate deviation from the PS wording — argue it, do not hide it** *(flagged 2026-09-08)*.
+  The PS says "neovascularization **detection**". This task delivers a
+  *suspicion score* instead, because no available dataset has pixel-level NV
+  annotations and claiming a validated detector would be a claim the data
+  cannot support (design doc §1.12, §16). That is the right call and it should
+  stay. But an unexplained gap between "detection" and "suspicion score" reads
+  as something the team could not do, rather than something it chose. So:
+  state it explicitly in the PPT, give NV its own recall number rather than
+  folding it into an aggregate that hides the weakness, and label the output
+  "possible proliferative pattern — urgent review", never "neovascularization
+  detected". Route it straight to urgent human review, which is what makes the
+  honest version clinically useful anyway.
 - Connects to: `branchB_ruleEngine.m`.
 
 **Task 4.5 — Optic disc / fovea localization**
 - File: `central-system/backend/ml-pipeline/segmentation/opticDiscFovea.m`
 - Build: classical CV first pass (`imfindcircles` for the bright, roughly-circular optic disc region), refined by a small regression CNN fine-tuned on IDRiD's 516-image localization subset for sub-pixel-accurate centers. Fovea estimated from its typical position relative to the optic disc plus the vessel arcade geometry.
 - Connects to: gives the quadrant-mapping axis that Tasks 4.2 and 4.3 need.
+
+**Task 4.6 — Put the two unused named toolboxes to genuine work** — DONE (2026-09-09)
+- **Computer Vision Toolbox: already genuine, nothing added.** Used in
+  `generateEvidenceReport.m` (`insertObjectAnnotation`, `insertShape` for the
+  Task 7.3 annotated lesion overlay) and `verifyPhase4.m` (`labeloverlay`).
+  Both are the right tool for drawing annotations onto a clinical image.
+- **Medical Imaging Toolbox: was entirely unused; now used for DICOM.**
+  New `preprocessing/readFundusImage.m` — `isdicom` / `medicalImage` /
+  `dicominfo`. Three reasons it is not decorative:
+  1. Desktop fundus cameras (Topcon, Zeiss, Canon) export DICOM under the
+     Ophthalmic Photography IOD. **The pipeline could not read those files at
+     all**, so a PHC with a clinical-grade camera could not have submitted an
+     image.
+  2. DICOM names the device that took the photograph — better evidence than the
+     worker's dropdown, recorded for the Task 6.3 cross-check.
+  3. It carries `ImageLaterality`, the exact field Task 7.3 found missing.
+- Wired into `gradingOrchestrator`'s MATLAB chain in place of `imread`;
+  `.dcm` added to the central allowed extensions.
+- **Honestly incomplete:** the PHC quality gate still uses `imread`, so a DICOM
+  cannot yet complete the capture→sync path end to end. Wiring it there puts a
+  Medical Imaging dependency inside the Task 8.1 compiled bundle — a licensing
+  and bundle-size decision, not a coding one. Nothing consumes `.laterality`
+  yet either; no column was added under cover of this task.
+- The DICOM device is deliberately **not** substituted for `reportedDeviceId`:
+  `classifyCameraFamily` matches against known device keys, so a free-text
+  vendor string would match nothing and silently turn the Task 6.3 mismatch
+  check into a no-op.
+- Verified: `testReadFundusImage.m`, 21 checks, against a DICOM the test writes
+  with real ophthalmic tags. Not a vendor file — those carry private tags and
+  unusual layouts only real samples expose.
+
+**Task 4.6 (original spec)** *(added 2026-09-08)*
+- **Why this exists:** the PS names six tools. **Computer Vision Toolbox** and
+  **Medical Imaging Toolbox** currently have *zero* usage anywhere in the
+  codebase. Judges do check the tool list, and Phase 4 is the natural and
+  honest place for both — this is not about bolting on a decorative call.
+- Computer Vision Toolbox, genuine uses in this phase:
+  - `labeloverlay` / `insertObjectAnnotation` for the annotated lesion overlays
+    that Task 7.3's report needs;
+  - `bboxOverlapRatio` and the `evaluateSemanticSegmentation` / FROC-style
+    metrics machinery for Task 4.2's lesion-level evaluation;
+  - point/blob detectors as the classical-CV candidate generator feeding the
+    red-lesion U-Net, which is what design doc §6.6 already describes.
+- Medical Imaging Toolbox, genuine uses:
+  - `medicalImage` objects for consistent handling and metadata;
+  - its segmentation metrics (Dice, Jaccard, Hausdorff) for Phase 4 evaluation,
+    rather than hand-rolling them.
+- **Definition of Done:** each toolbox is used somewhere it is actually the
+  right tool, and you can say in one sentence why, per call site. If the only
+  honest answer is "to tick the box", leave it out and say in the PPT that you
+  did not need it — that reads better than a decorative dependency.
 
 ---
 
@@ -322,7 +584,23 @@ If everything above this line works end to end — capture → local quality gat
 
 ## Phase 7 — Explainability Safeguards & Continual Learning
 
-**Task 7.1 — Grad-CAM safeguards**
+**Task 7.1 — Grad-CAM safeguards** — DONE (2026-09-09), inactive pending 4.2/4.3
+- Both files had been 0-byte stubs since Task 0.
+- `lesionAttentionConsistency.m` reports the score WITH its chance level (the
+  lesion area fraction) and an enrichment ratio, and computes the flag itself.
+  A bare overlap fraction is not interpretable: "70% of attention on lesions"
+  is excellent at 5% lesion area and worthless at 70%, where noise scores the
+  same. No lesions gives NaN, never 0 — a grade-0 eye correctly has none.
+- `counterfactualOcclusionTest.m` removes the lesion and re-runs Branch A; no
+  confidence drop means the grade did not rest on the lesions. Inpaints from
+  surrounding retina by default, because a black fill is out-of-distribution
+  and its drop measures the artefact, so that version passes for a broken
+  model. Offline only — it doubles the cost of the slowest pipeline step.
+- **Not wired into the orchestrator.** Both need a lesion MASK, so
+  `lesion_attention_consistency_score` stays NULL until Tasks 4.2/4.3 land.
+- Verified by `testPhase7Explainability.m` (57 checks).
+
+**Task 7.1 (original spec)**
 - Files: `central-system/backend/ml-pipeline/explainability/lesionAttentionConsistency.m`, `counterfactualOcclusionTest.m`
 - Build: `lesionAttentionConsistency.m` computes overlap between Grad-CAM's heatmap energy and the lesion masks (Tasks 4.2/4.3) — a simple IoU-style score, restricted to the retinal ROI. `counterfactualOcclusionTest.m` masks the top lesion region and reruns Branch A, checking the predicted probability actually drops — run this offline during validation, not per-request in production.
 - Connects to: consistency score gets stored in `explainability_outputs.lesion_attention_consistency_score` and shown on the ophthalmologist's case detail screen.
@@ -332,19 +610,234 @@ If everything above this line works end to end — capture → local quality gat
 - Build: a scheduled job (cron-style) that checks the `corrections` table for new entries since the last run, and once a threshold is hit, kicks off a retraining pass (a MATLAB script variant of `trainBranchAClassifier.m` that fine-tunes from the current checkpoint using original data + weighted corrections), evaluates the result against the held-out validation set, and only writes a new `model_versions` row with `promoted = true` if it doesn't regress on sensitivity/specificity/kappa.
 - Connects to: reads `corrections`, writes `model_versions`, and — if promoted — updates which `.mat` file `branchA_cnnClassifier.m` loads.
 
+**Task 7.3 — Automated annotated report** — DONE (2026-09-09)
+- File: `central-system/backend/ml-pipeline/explainability/generateEvidenceReport.m`,
+  plus `segmentation/fundusQuadrants.m` for the quadrant convention.
+- **Live end to end**: runs inside the existing MATLAB round-trip in
+  `gradingOrchestrator.js`, writes `explainability_outputs.evidence_summary_text`,
+  and is returned by `GET /api/v1/cases/:caseId`. Verified against a real
+  MATLAB run in `verify_task33.js`.
+- Templated from counts, never generated prose. The ICDR criterion is not
+  restated — it calls `ruleEngineGrade` (5.1) and prints that branch's own
+  criterion and limitation, so there is no second copy of the rule text to
+  drift from the one that decides the grade.
+- With no lesion counts (4.2/4.3 unbuilt) it says segmentation has not been
+  run rather than printing "0 microaneurysms". api-contracts.md updated:
+  `evidenceSummaryText` is no longer a null-until-shipped field.
+- `fundusQuadrants.m` dissolves the laterality gap `opticDiscFovea.m` flagged:
+  no left/right-eye field exists anywhere, and none is needed, because the
+  fovea is temporal to the disc in both eyes. Two real bugs were caught by its
+  tests — see the commit.
+
+**Task 7.3 (original spec)** *(added 2026-09-08 — was missing)*
+- File: `central-system/backend/ml-pipeline/explainability/generateEvidenceReport.m`
+- **Why this exists:** PS requirement 4 asks for "**automated annotated
+  reports**" alongside Grad-CAM and calibrated confidence. Nothing in the
+  codebase generates one. The `explainability_outputs.evidence_summary_text`
+  column exists and is never written to — the requirement was schema'd and then
+  never built.
+- Build: `function [reportPath, summaryText] = generateEvidenceReport(caseId, ...)`
+  producing (a) a one-paragraph structured summary and (b) an annotated image.
+  The summary is **templated from the lesion counts, not free-form prose** —
+  it must be reproducible and translatable, and a generated sentence that
+  editorialises about a diagnosis is exactly what §16 says this system must not
+  do. Target shape, matching the example already in `api-contracts.md`:
+  > "6 microaneurysms (superior-temporal: 3, inferior-nasal: 3), 2 dot
+  > hemorrhages. Severe-NPDR criteria not met."
+- The annotated image marks lesion locations and quadrant boundaries over the
+  fundus photo (`insertObjectAnnotation`, Computer Vision Toolbox — see Task 4.6).
+- **State the criterion that was and was not met**, as in the example. Naming
+  the rule the case failed to meet is what makes the report auditable against
+  ICDR/ETDRS rather than a bare assertion, and it is the same rule text Branch B
+  (Task 5.1) already encodes — reuse it, do not restate it in a second place
+  that can drift.
+- **Definition of Done:** report generated for a graded case, written to
+  `evidence_summary_text`, and returned by `GET /api/v1/cases/:caseId`. Every
+  number in the sentence traces to a stored lesion count — no figure appears in
+  the text that is not in the database.
+- Connects to: Tasks 4.2/4.3 (counts), 5.1 (criteria), and the ophthalmologist
+  case-detail screen.
+
+---
+
+## Phase 9 — Clinical Validation & Benchmarking *(added 2026-09-08 — was missing)*
+
+**This phase is the PS's "expected solution" section.** Every bullet the PS
+lists as an expected deliverable is measured here. Without it the project can
+build everything and still not be able to *state* what it achieved — and the
+headline claims are all numbers, not features. `evaluateMetrics.m` was in the
+directory structure from Task 0 and has been empty the whole time.
+
+**Task 9.1 — Evaluation harness** — ✅ DONE (2026-09-09)
+- Files: `evaluateMetrics.m` (harness), `computeDrMetrics.m` (the metric maths,
+  split out so it is pure and testable with no model), `testEvaluateMetrics.m`
+  (86 checks, all passing).
+- The metric arithmetic is verified against an 8-case confusion matrix whose
+  sensitivity, specificity, kappa (0.84375) and ECE (0.2875) were worked out by
+  hand and written into the test *before* the code was run against them.
+- **No accuracy number exists yet.** The harness is correct; it has never been
+  pointed at a trained model, because Branch A is still the stub and no grading
+  dataset (APTOS/IDRiD/Messidor-2) is downloaded. Nothing in this repo currently
+  supports quoting a sensitivity figure for the system.
+- File: `central-system/backend/ml-pipeline/training/evaluateMetrics.m`
+- Build: `function metrics = evaluateMetrics(net, testImds, opts)` reporting, on
+  the held-out test split (never the calibration fold):
+  - **sensitivity and specificity for referable DR (grade ≥ 2)** — the PS's
+    >90% / >85% headline, *with confidence intervals*;
+  - **quadratic-weighted kappa** across all 5 grades;
+  - per-grade confusion matrix, and NV recall reported separately (design doc §16);
+  - reliability diagram + expected calibration error, before and after
+    temperature scaling — this is what evidences "calibrated confidence scores"
+    in PS requirement 4.
+- Definition of Done: writes a `.mat` + a human-readable summary, and populates
+  the `model_versions` validation columns. Those columns are the continual-
+  learning promotion gate (§6.11), so this task is what makes that gate real.
+
+**Task 9.2 — Integrated pipeline vs single-technique baseline** — DONE (2026-09-09), never run on real predictions
+- Files: `compareToBaseline.m`, `testCompareToBaseline.m` (34 checks).
+- **The thing this task is really about:** the integrated pipeline DEFERS
+  disagreements to a human. Branch A alone defers nothing. Comparing their
+  accuracies directly flatters the integrated system automatically — deferring
+  is how you raise accuracy without improving anything, and a pipeline
+  answering only the easiest 30% would post a spectacular number while being
+  useless.
+- So the report always carries coverage, and the headline is a **matched-
+  coverage** comparison: Branch A forced to defer its own least-confident cases
+  until coverage matches, then re-scored. That is the baseline at its best, not
+  a straw man. If the integrated pipeline wins only at unmatched coverage, the
+  summary says deferral did the work, not the second branch.
+- Also reports **disagreement lift** = P(Branch A wrong | branches disagree) /
+  P(Branch A wrong), measurable on any labelled split with no review capacity
+  needed. That is the dual-branch design's actual claim and is stronger
+  evidence than the accuracy delta: a lift near 1 means the flag fires at
+  random and costs reviewer time for nothing.
+- Verdicts rest on **non-overlapping confidence intervals**, never point
+  estimates, and a loss is checked before a win so a mixed result cannot have
+  its good half quoted.
+- Two bugs the tests caught: the verdict originally checked only sensitivity
+  for a loss, so an arm that collapsed on specificity (0.50 vs 1.00, intervals
+  far apart) was reported as "no difference"; and the first loss fixture failed
+  to distinguish the two arms at all.
+- **No comparative claim is supported today** — Branch A is a stub and no
+  lesion counts exist, so this has never seen real predictions.
+
+**Task 9.2 (original spec)**
+- File: `central-system/backend/ml-pipeline/training/compareToBaseline.m`
+- **Why this exists:** the PS's expected solution asks for "validation against
+  published benchmarks showing **the integrated pipeline outperforms any single
+  technique approach**". That is a comparative claim, and nothing in the plan
+  produced anything to compare against. As written, the project could not have
+  substantiated its own headline result.
+- Build: evaluate three configurations on the identical test split —
+  1. Branch A CNN alone (the single-technique baseline);
+  2. Branch B rule engine alone, on segmentation output;
+  3. the integrated pipeline (dual-branch + agreement check + calibration + tiering).
+  Report the same metric set from Task 9.1 for each.
+- Also report **branch agreement rate**, and — where review capacity allows
+  measuring it — how often a flagged disagreement corresponded to a real
+  grading error caught on review. That is the direct evidence for the
+  two-branch design (design doc §1.11, §14), and it is more persuasive than the
+  accuracy delta alone.
+- **Report the result honestly even if the integrated pipeline does not win.**
+  A measured negative is a finding; a fabricated positive is misconduct, and it
+  will not survive a technically literate question.
+
+**Task 9.3 — External validation and the domain-generalization-gap experiment**
+- Build: evaluate the same frozen model on progressively less similar data —
+  IDRiD test split → Messidor-2 → a synthetic portable-camera-perturbed set
+  (vignetting, colour shift, resolution degradation applied to a clean test
+  set). Then report how much of the gap camera-fingerprint calibration
+  (Task 6.3) recovers.
+- This is the flagship result in design doc §14: it is a direct, quantified
+  answer to the PS's own stated concern about portable-camera image quality.
+- Cross-dataset degradation is **expected** — present it as the experiment
+  working, not as a failure to hide (design doc §16).
+
+**Task 9.4 — Explainability validation, including the <30 s claim**
+- Build: PS requirement 4 sets a specific, measurable bar — ophthalmologist
+  validation "in under 30 seconds". `ophthalmologist_reviews.review_duration_seconds`
+  already exists; nothing currently populates it from a real timer.
+  - Instrument the review screen to record actual time-to-decision and report
+    the distribution, not a single average.
+  - Report lesion-attention consistency and the counterfactual occlusion test
+    (Task 7.1) as quantitative measures.
+  - Add a small clinician plausibility rating (2–3 reviewers, "would this
+    evidence help you decide") — the PS asks for Grad-CAM "rated as clinically
+    useful", which is a human judgement and cannot be self-assessed.
+- Definition of Done: a reported median review time with n stated. If n is 3
+  demo reviews, say n = 3 — a real number with a small n is defensible; an
+  unqualified "under 30 seconds" is not.
+
 ---
 
 ## Phase 8 — Deployment Hardening
 
-**Task 8.1 — MATLAB Compiler packaging for the local quality gate**
-- Build: package `qualityGateMain.m` as a standalone executable via MATLAB Compiler + MATLAB Runtime, so the PHC machine doesn't need a MATLAB license. Swap `qualityGateClient.js` (Task 1.3) from calling the Engine API to shelling out to the compiled executable.
+**Task 8.1 — MATLAB Compiler packaging** — DONE (2026-09-09), **BUILT AND VERIFIED**
+- Files: `qualityGateCli.m` (the mcc entry point), `qualityGateAssetPath.m`,
+  `buildQualityGateExe.m`, dual-backend `qualityGateClient.js`.
+- **Built and run.** MATLAB Compiler 26.1 was installed and `qualityGate.exe`
+  (1.37 MB) produced. It returns byte-identical scores to a direct MATLAB call
+  (`focusScore 0.80108660159872658`), and Node drives it end to end through
+  `qualityGateClient` with `QUALITY_GATE_EXE` set.
+- **Still unproven, and it is the part that matters for deployment:** the exe
+  has never run on a machine *without* MATLAB. Here it borrows
+  `mclmcrrt26_1.dll` from the full install via a wrapper `.cmd`. That does
+  genuinely verify the CTF bundling — the exe reads `cameraPresets.json` out of
+  the archive — but the **MATLAB Runtime R2026a is a separate ~GB install that
+  has not been done anywhere**, and it is what each PHC actually needs.
+- **Measured, correcting an earlier claim.** Warm, same image:
+  `matlab -batch` **~9.1 s** vs the exe **~4.6 s** — about 2x, saving ~4.5 s per
+  capture. Earlier comments in three files claimed "~50 ms"; that was asserted,
+  never measured, and wrong by two orders of magnitude. The Runtime still
+  initialises on every invocation because every call is a fresh process. The
+  licence saving, not the speed, is the real reason to do this.
+- `-R -nojvm` was tried and **measured slower** (~6.5 s vs ~4.4 s) and dropped;
+  `-R -nodisplay` is Linux-only and printed a stderr warning on every call.
+- `QUALITY_GATE_EXE=<path>` switches Node to the compiled backend; unset, or
+  pointing at a missing file, it falls back to `matlab -batch` with a warning.
+  Both paths share one parser, because the exe emits the identical JSON.
+- Two packaging traps handled: `mfilename('fullpath')` resolves into the CTF
+  archive when deployed, so `cameraPresets.json` is found via
+  `qualityGateAssetPath`; and `mcc` cannot trace a `fileread` dependency, so
+  the JSON is bundled with `-a`.
+- Side benefit worth naming: arguments now cross as **argv rather than being
+  interpolated into a MATLAB expression**, so a filename containing a quote is
+  inert instead of executable.
+- Verified: `verify_task81.js` (Node↔exe contract, compiled backend stood in
+  by a stub) and `testQualityGateDeploy.m` (17 checks). Neither is evidence the
+  compiled binary works.
 
-**Task 8.2 — Chunked/resumable sync upload**
-- Update `syncManager.js` (Task 3.4) and add `POST /api/v1/cases/:id/chunks` to `central-system/backend/routes/cases.js` for large-image transfer under poor bandwidth.
+**Task 8.2 — Chunked/resumable sync upload** — DONE (2026-09-09)
+- Files: `central-system/backend/services/chunkedUploadService.js`, four routes in
+  `routes/cases.js`, chunked path in `phc-local-app/backend/services/syncManager.js`.
+- Session key is the PHC's own capture id, so a client that crashes mid-upload
+  resumes without having kept a server-issued token. `GET .../chunks` reports
+  what the server holds; the client sends only the gaps.
+- Two levels of checksum: per chunk on arrival, and the whole file before
+  ingestion. The second catches a set of individually-valid chunks that
+  assemble wrong — which would otherwise be a subtly-corrupt fundus image that
+  decodes fine and gets graded.
+- Completion is idempotent: a repeat returns the original `caseId` rather than
+  creating a second case for one scan.
+- Verified by `verify_task82_83.js`.
 
-**Task 8.3 — Proper job queue for grading**
-- Replace the synchronous call in `ingestionService.js` (Task 3.3) with a real queue (e.g. a simple in-memory or Redis-backed job queue) so central grading doesn't block the ingestion request under load.
+**Task 8.3 — Proper job queue for grading** — DONE (2026-09-09)
+- File: `central-system/backend/services/gradingQueue.js`, wired into
+  `routes/cases.js` and `server.js`.
+- POST /cases went from tens of seconds (a full MATLAB run held the PHC's
+  connection open) to milliseconds. **Contract change:** a case is always
+  `processing` when the POST returns; clients poll `GET /:caseId/status`.
+  api-contracts.md and `verify_task33.js` updated accordingly.
+- Bounded retries with backoff for transient failures; permanent error codes
+  are not retried at all.
+- **`recoverStranded()` is the load-bearing part.** The queue is in memory, so a
+  restart would otherwise leave every queued case on `processing` forever with
+  no retry, no error and no log line — a worse and far less visible failure than
+  the blocking request this replaces. `server.js` calls it at boot; the database
+  is the queue of record.
+- Verified by `verify_task82_83.js`.
 
-**Task 8.4 — Simulink district model**
-- File: `simulink-model/districtScreeningSimEvents.slx`
-- Build: the discrete-event model from design doc §7 — entity generator for patient arrivals, a queue/server pair for network transmission, a resource pool for ophthalmologist review capacity. Wire its output into `analyticsAggregator.js`'s resource-recommendation numbers.
+**Task 8.4 — Simulink district model** → **MOVED to Task 3.8** *(2026-09-08)*
+- Pulled above the checkpoint. It is PS requirement 5 of 5, it is named again in
+  the expected-solution bullets, and it has no dependency on the ML pipeline —
+  so it can be built in parallel rather than last. See Task 3.8.

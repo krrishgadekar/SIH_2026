@@ -1,0 +1,58 @@
+{
+  "expo": {
+    "name": "RetinaSaarthi",
+    "slug": "retina-saarthi",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1A7F8E"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.retinasaarthi.phc"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1A7F8E"
+      },
+      "package": "com.retinasaarthi.phc",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_NETWORK_STATE",
+        "INTERNET"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "RetinaSaarthi needs camera access to capture retinal images for screening."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "RetinaSaarthi needs photo library access to upload retinal images."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow RetinaSaarthi to access your photos.",
+          "savePhotosPermission": "Allow RetinaSaarthi to save photos."
+        }
+      ]
+    ]
+  }
+}
