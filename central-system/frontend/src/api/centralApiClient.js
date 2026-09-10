@@ -24,15 +24,39 @@ class CentralApiClient {
   async getOphthQueue() {
     if (USE_MOCK_DATA) {
       await delay(400);
-      return [...mockData.mockOphthQueue];
+      const list = [...mockData.mockOphthQueue];
+      try {
+        const latest = JSON.parse(localStorage.getItem('netra_latest_patient'));
+        if (latest?.name) {
+          list[0] = {
+            ...list[0],
+            patientName: latest.name,
+            patientAge: latest.age || 20,
+            patientReference: latest.patientId ? (latest.patientId.length > 10 ? latest.patientId.substring(0, 10).toUpperCase() : latest.patientId) : 'PT-4821',
+          };
+        }
+      } catch (e) {}
+      return list;
     }
     return this._fetch('/api/v1/ophthalmologist/queue');
   }
 
   async getCaseDetail(caseId) {
     if (USE_MOCK_DATA) {
-      await delay(600);
-      return mockData.mockCaseDetails[caseId] || { ...mockData.mockCaseDetail, caseId };
+      await delay(400);
+      const base = mockData.mockCaseDetails[caseId] || { ...mockData.mockCaseDetail, caseId };
+      try {
+        const latest = JSON.parse(localStorage.getItem('netra_latest_patient'));
+        if (latest?.name && (caseId === 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' || !mockData.mockCaseDetails[caseId])) {
+          return {
+            ...base,
+            patientName: latest.name,
+            patientAge: latest.age || 20,
+            patientReference: latest.patientId ? (latest.patientId.length > 10 ? latest.patientId.substring(0, 10).toUpperCase() : latest.patientId) : 'PT-4821',
+          };
+        }
+      } catch (e) {}
+      return base;
     }
     return this._fetch(`/api/v1/cases/${caseId}`);
   }
@@ -59,8 +83,19 @@ class CentralApiClient {
 
   async getReferrals() {
     if (USE_MOCK_DATA) {
-      await delay(400);
-      return [...mockData.mockReferrals];
+      await delay(300);
+      const list = [...mockData.mockReferrals];
+      try {
+        const latest = JSON.parse(localStorage.getItem('netra_latest_patient'));
+        if (latest?.name) {
+          list[0] = {
+            ...list[0],
+            patientName: latest.name,
+            patientAge: latest.age || 20,
+          };
+        }
+      } catch (e) {}
+      return list;
     }
     return this._fetch('/api/v1/admin/referrals');
   }

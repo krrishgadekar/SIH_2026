@@ -194,7 +194,25 @@ const ReferralTracker = ({ status }) => {
 export const PatientTimelinePage = () => {
   const { t } = useTranslation();
   const [diffView, setDiffView] = useState(false);
-  const patient = mockPatientData;
+  const patient = (() => {
+    try {
+      const latest = JSON.parse(localStorage.getItem('netra_latest_patient'));
+      if (latest?.name) {
+        return {
+          id: latest.patientId ? (latest.patientId.length > 12 ? latest.patientId.substring(0, 12).toUpperCase() : latest.patientId) : 'PT-4821',
+          name: latest.name,
+          age: latest.age || 20,
+          history: mockPatientData.history
+        };
+      }
+    } catch (e) {}
+    return {
+      id: 'PT-4821',
+      name: 'Krrish',
+      age: 20,
+      history: mockPatientData.history
+    };
+  })();
 
   const renderLesions = (current, previous) => {
     return (

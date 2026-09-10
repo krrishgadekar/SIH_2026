@@ -99,6 +99,7 @@ export const ReviewQueuePage = () => {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       list = list.filter(item =>
+        (item.patientName && item.patientName.toLowerCase().includes(q)) ||
         (item.patientReference && item.patientReference.toLowerCase().includes(q)) ||
         (item.phcName && item.phcName.toLowerCase().includes(q)) ||
         (item.caseId && item.caseId.toLowerCase().includes(q))
@@ -320,7 +321,12 @@ export const ReviewQueuePage = () => {
               >
                 <td className="t-mono" style={{ opacity: 0.4 }}>{item.priorityRank}</td>
                 <td>
-                  <span className="t-mono" style={{ fontWeight: 700 }}>{item.patientReference}</span>
+                  <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-h)' }}>
+                    {item.patientName || item.patientReference}
+                  </div>
+                  <div className="t-mono" style={{ fontSize: '11px', opacity: 0.6 }}>
+                    {item.patientReference} {item.patientAge ? `• ${item.patientAge}Y` : ''}
+                  </div>
                 </td>
                 <td className="t-mono">{item.phcName}</td>
                 <td><TierBadge tier={item.conformalTier} /></td>
