@@ -318,6 +318,12 @@ def main():
                 info = save_overlay(cam, base, args.gradcam)
                 out["gradcam"] = info
                 out["gradcamClass"] = cam_class
+                # The RAW cam, at its own 12x12 resolution -- 144 floats, small
+                # enough to travel in the JSON. Task 7.1 scores attention
+                # against a lesion mask and needs the map itself; the overlay
+                # PNG has already been colour-mapped and alpha-blended with the
+                # fundus, so recovering the map from it is not possible.
+                out["gradcamMap"] = [[float(v) for v in row] for row in cam]
                 out["gradcamPath"] = args.gradcam
                 if info.get("mostlyOutsideRetina"):
                     out["gradcamWarning"] = (

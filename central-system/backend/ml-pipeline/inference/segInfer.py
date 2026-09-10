@@ -382,6 +382,7 @@ def main():
 
         vessel = vessels(bgr)
         red, bright, od_masked, red512, bright512, box = lesions(bgr, disc)
+        rgb512_for_roi, _ = _crop512(bgr)
 
         # Counting and quadrant assignment both happen in CROP-512, the space
         # the ICDR thresholds were calibrated in, so the landmarks are mapped
@@ -429,7 +430,28 @@ def main():
 
         if args.outdir:
             base = os.path.splitext(os.path.basename(args.image))[0]
+            # Lesion union and retina, at Branch A's 384 geometry.
+            #
+            # Task 7.1 compares Grad-CAM against a lesion mask, and the two live
+            # in different spaces: the CAM is 12x12 over ben_graham's crop at
+            # 384, the masks above are in ORIGINAL image pixels. Both of these
+            # are written in the CAM's own frame so the comparison needs no
+            # re-derivation of the crop geometry on the MATLAB side, where
+            # getting it wrong would silently score attention against a
+            # misaligned mask and still return a plausible number.
+            #
+            # NEAREST on the way down: a binary mask must stay binary.
+            union384 = cv2.resize((red512 | bright512).astype(np.uint8),
+                                  (384, 384), interpolation=cv2.INTER_NEAREST)
+            from gradcam import retinal_mask
+            roi512 = retinal_mask(cv2.cvtColor(rgb512_for_roi, cv2.COLOR_RGB2BGR))
+            roi384 = cv2.resize(roi512.astype(np.uint8), (384, 384),
+                                interpolation=cv2.INTER_NEAREST)
             out["masks"] = {
+                "lesion384": save_mask(union384.astype(bool),
+                                       os.path.join(args.outdir, base + "_lesion384.png")),
+                "roi384": save_mask(roi384.astype(bool),
+                                    os.path.join(args.outdir, base + "_roi384.png")),
                 "vessel": save_mask(vessel, os.path.join(args.outdir, base + "_vessel.png")),
                 "red":    save_mask(red,    os.path.join(args.outdir, base + "_red.png")),
                 "bright": save_mask(bright, os.path.join(args.outdir, base + "_bright.png")),

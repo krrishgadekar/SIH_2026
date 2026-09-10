@@ -318,7 +318,7 @@ async function processCase(caseId) {
 
   const expr = buildMatlabExpr(imagePath, gradcamPath, qualityScores,
                                cameraDeviceId, caseId, segResult,
-                               branchA.drGradeCnn);
+                               branchA.drGradeCnn, branchA.gradcamMap);
   let raw;
   try {
     raw = await spawnMatlabBatch(expr);
@@ -476,12 +476,16 @@ async function processCase(caseId) {
   // computed — so the column falls back to NULL and the frontend renders "not
   // yet available" rather than a URL to a file that is not there.
   await pool.query(`
-    INSERT INTO explainability_outputs (case_id, gradcam_path, evidence_summary_text)
-    VALUES ($1, $2, $3)
+    INSERT INTO explainability_outputs
+      (case_id, gradcam_path, evidence_summary_text,
+       lesion_attention_consistency_score)
+    VALUES ($1, $2, $3, $4)
     ON CONFLICT (case_id) DO UPDATE SET
-      gradcam_path          = EXCLUDED.gradcam_path,
-      evidence_summary_text = EXCLUDED.evidence_summary_text
-  `, [caseId, branchA.gradcamPath ?? null, mlResult.evidenceSummaryText ?? null]);
+      gradcam_path                       = EXCLUDED.gradcam_path,
+      evidence_summary_text              = EXCLUDED.evidence_summary_text,
+      lesion_attention_consistency_score = EXCLUDED.lesion_attention_consistency_score
+  `, [caseId, branchA.gradcamPath ?? null, mlResult.evidenceSummaryText ?? null,
+      fromMatlab(mlResult.lesionAttentionConsistency)]);
 
   // ── Step 4b: INSERT INTO segmentation_outputs ──────────────────────────────
   // This table has existed since the initial schema with exactly the columns
@@ -570,8 +574,23 @@ function matlabVector(arr) {
   return `[${arr.join(' ')}]`;
 }
 
+/**
+ * matlabMatrix(rows) — an MxN MATLAB literal, or [] when absent/ragged.
+ *
+ * [] rather than zeros(): an all-zero Grad-CAM is a real and meaningful state
+ * (no positive evidence survived the ReLU), so it must not be the value that
+ * also means "no heatmap was produced".
+ */
+function matlabMatrix(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) return '[]';
+  const width = rows[0].length;
+  if (!rows.every((r) => Array.isArray(r) && r.length === width
+                         && r.every((v) => Number.isFinite(v)))) return '[]';
+  return `[${rows.map((r) => r.join(' ')).join('; ')}]`;
+}
+
 function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId,
-                         caseIdForReport, segResult, branchAGrade) {
+                         caseIdForReport, segResult, branchAGrade, gradcamMap) {
   const p  = toMatlabStr;
   const preDir   = p(PREPROCESSING_DIR);
   const gradDir  = p(GRADING_DIR);
@@ -628,16 +647,28 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId,
     // samples from the cameras in question; until then the device is recorded
     // as evidence rather than acted on.
     `ppOpts = struct('reportedDeviceId', '${toMatlabStr(cameraDeviceId || '')}');`,
-    `[preprocessed, ppSteps] = preprocessForBranchA(img, qualityScores, ppOpts);`,
+    // ── Task 6.3: camera family, called DIRECTLY ──────────────────────────
+    // This used to run the whole preprocessForBranchA chain (crop, denoise,
+    // adaptive enhance, camera profile) and then classifyBranchA on the result.
+    // Every one of those outputs was DISCARDED: Branch A grades in Python, and
+    // the orchestrator never read mlResult.grade, .calibratedProbs or
+    // .confidenceScore. The only survivor was ppSteps.cameraFamily.
+    //
+    // So it ran the untrained MATLAB stub on every case, for seconds, to
+    // produce a grade nothing consumed — and left a stub one careless edit away
+    // from becoming load-bearing again.
+    //
+    // classifyCameraFamily is what actually produced the camera family inside
+    // that chain, so it is called directly. Note this changes nothing about
+    // Task 6.3's real status: the per-family calibration PROFILE was only ever
+    // applied to those discarded pixels, so the family is detected and surfaced
+    // as a mismatch signal, and no correction reaches the model. Reconnecting it
+    // would feed the network an input distribution it was not trained on.
+    `[cameraFamily, cameraDetail] = classifyCameraFamily(img, ppOpts.reportedDeviceId);`,
 
     // ── CNN classification (loads net via persistent var in classifyBranchA)
-    `cnnResult = classifyBranchA(preprocessed);`,
 
     // ── Temperature calibration
-    `tempData = load('${modDir}/temperature_v1.mat', 'T');`,
-    `calibratedProbs = applyTemperature(cnnResult.probabilities, tempData.T);`,
-    `[confidenceScore, gradeIdx1] = max(calibratedProbs);`,  // 1-indexed
-    `calibGrade = gradeIdx1 - 1;`,                           // 0-indexed DR grade
 
     // ── Grad-CAM (load net separately — can't access classifyBranchA's persistent)
     // NO GRAD-CAM HERE ANY MORE.
@@ -700,6 +731,28 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId,
     // `end` and fails with "Unexpected '['".
     `end;`,
 
+    // ── Task 7.1: lesion-attention consistency ────────────────────────────
+    // The last always-NULL column. lesionAttentionConsistency has been built
+    // and unit-tested since 2026-09-09 but never ran on a real case, because it
+    // needs a lesion MASK and there was no segmenter. There is now.
+    //
+    // Everything arrives pre-aligned in Branch A's 384 frame: segInfer writes
+    // the lesion union and the retinal ROI at that geometry, and the raw 12x12
+    // CAM comes in as a literal. So the only thing done here is the upsample,
+    // and no crop geometry is re-derived on this side — re-deriving it is how a
+    // misaligned mask would score attention against the wrong pixels and still
+    // return a perfectly plausible number.
+    `camMap = ${matlabMatrix(gradcamMap)};`,
+    `lesion384Path = '${toMatlabStr((segResult && segResult.masks && segResult.masks.lesion384) || '')}';`,
+    `roi384Path = '${toMatlabStr((segResult && segResult.masks && segResult.masks.roi384) || '')}';`,
+    `lesionAttention = [];`,
+    `if ~isempty(camMap) && isfile(lesion384Path) && isfile(roi384Path),`,
+    `  lesionMask = imread(lesion384Path) > 127;`,
+    `  roiMask = imread(roi384Path) > 127;`,
+    `  camFull = imresize(camMap, size(lesionMask), 'bilinear');`,
+    `  lesionAttention = lesionAttentionConsistency(camFull, lesionMask, roiMask);`,
+    `end;`,
+
     // ── Task 7.3: the evidence report, now with real lesion content ────────
     // With counts present this produces the lesion-level sentence; with none it
     // still says segmentation has not been run rather than inventing "0
@@ -709,16 +762,13 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId,
 
     // ── Output JSON
     `out.evidenceSummaryText = evidenceText;`,
-    `out.grade = calibGrade;`,
-    `out.confidenceScore = double(confidenceScore);`,
-    `out.calibratedProbs = calibratedProbs;`,
     // Task 4.6: recorded so a DICOM submission is traceable to the device and
     // eye the camera itself reported, rather than only to what a worker typed.
     `out.sourceFormat = imgMeta.format;`,
     `out.dicomDeviceModel = imgMeta.deviceModel;`,
     `out.imageLaterality = imgMeta.laterality;`,
-    `out.cameraFamily = ppSteps.cameraFamily;`,
-    `out.cameraMismatch = ~isempty(ppSteps.cameraDetail) && ppSteps.cameraDetail.mismatch;`,
+    `out.cameraFamily = cameraFamily;`,
+    `out.cameraMismatch = ~isempty(cameraDetail) && cameraDetail.mismatch;`,
 
     // Branch B. jsonencode maps an empty MATLAB array to JSON null, which is
     // exactly what the schema wants for "did not run" — so [] survives the
@@ -728,6 +778,7 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId,
     `out.nvSuspicionScore = nvScore;`,
     `out.ruleIsLowerBound = ruleIsLowerBound;`,
     `out.ruleMaxGrade = ruleMaxGrade;`,
+    `out.lesionAttentionConsistency = lesionAttention;`,
     `disp(jsonencode(out));`,
   ].join(' ');
 }
