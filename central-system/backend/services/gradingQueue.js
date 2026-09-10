@@ -66,7 +66,20 @@ const RETRY_BASE_MS = parseInt(process.env.GRADING_RETRY_BASE_MS || '2000', 10);
 // Error codes that must NOT be retried: no number of attempts will make a
 // missing file appear. Retrying these wastes the queue's time and delays every
 // case behind them.
-const PERMANENT = new Set(['image_not_found', 'invalid_image_type', 'case_not_found']);
+// Retrying cannot help any of these.
+//
+// The two *_unavailable codes are about the ENVIRONMENT, not the case: a
+// missing interpreter fails identically for every case and every attempt. They
+// matter more than they look, because the model stages run before MATLAB, so
+// each pointless retry re-runs Branch A and four segmentation models — about
+// 35 s of inference to rediscover that an executable is still absent.
+//
+// A non-zero EXIT is deliberately NOT here: that can be a licence hiccup or a
+// locked file, which a retry does fix.
+const PERMANENT = new Set([
+  'image_not_found', 'invalid_image_type', 'case_not_found',
+  'matlab_unavailable', 'python_unavailable',
+]);
 
 const queue = [];              // caseIds waiting for a worker
 const queued = new Set();      // membership test for the above (dedupe)

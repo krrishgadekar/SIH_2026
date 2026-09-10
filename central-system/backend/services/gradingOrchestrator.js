@@ -74,6 +74,27 @@ const TIMEOUT_MS        = parseInt(process.env.MATLAB_TIMEOUT_MS || '120000', 10
 // stored path was correct and the file was really there and the frontend could
 // still never have loaded it.
 
+/**
+ * unavailable(code, message)
+ *
+ * An error tagged so gradingQueue can classify it as PERMANENT.
+ *
+ * "The interpreter could not be spawned" is not a transient failure. Retrying
+ * in two seconds cannot make a missing executable exist, and the retry is not
+ * free: since the Python stages run BEFORE MATLAB (the rule engine needs their
+ * output), a MATLAB spawn failure previously cost a full Branch A run plus four
+ * segmentation models on each of three attempts — roughly 35 s of model
+ * inference to reach a conclusion available in milliseconds.
+ *
+ * Only SPAWN failures are permanent. A non-zero exit stays retryable: that can
+ * be a licence-server hiccup or a locked file, which a retry genuinely fixes.
+ */
+function unavailable(code, message) {
+  const err = new Error(message);
+  err.code = code;
+  return err;
+}
+
 // ── MATLAB bridge (shared with qualityGateClient pattern) ─────────────────────
 function spawnMatlabBatch(expr) {
   return new Promise((resolve, reject) => {
@@ -90,7 +111,7 @@ function spawnMatlabBatch(expr) {
         `matlab -batch exited ${code}.\nstderr: ${stderr.trim()}`));
       resolve(stdout.trim());
     });
-    proc.on('error', (err) => reject(new Error(
+    proc.on('error', (err) => reject(unavailable('matlab_unavailable',
       `Failed to spawn MATLAB (set MATLAB_EXECUTABLE?): ${err.message}`)));
   });
 }
@@ -140,7 +161,7 @@ function runBranchAInference(imagePath, gradcamPath) {
       }
     });
 
-    proc.on('error', (err) => reject(new Error(
+    proc.on('error', (err) => reject(unavailable('python_unavailable',
       `Failed to spawn Python (set PYTHON_EXECUTABLE?): ${err.message}`)));
   });
 }
@@ -323,7 +344,12 @@ async function processCase(caseId) {
   try {
     raw = await spawnMatlabBatch(expr);
   } catch (err) {
-    throw new Error(`Grading pipeline MATLAB call failed: ${err.message}`);
+    // Re-wrap for context but CARRY THE CODE. Without this the classification
+    // above is lost at the boundary and every failure looks transient again —
+    // the wrapper is exactly where a permanent error quietly becomes a
+    // three-attempt one.
+    throw unavailable(err.code,
+      `Grading pipeline MATLAB call failed: ${err.message}`);
   }
 
   // Parse JSON from stdout (may have MATLAB startup text before '{')
