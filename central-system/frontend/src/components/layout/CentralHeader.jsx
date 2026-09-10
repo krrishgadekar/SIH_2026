@@ -39,15 +39,15 @@ const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) => {
   const [saveToast, setSaveToast] = useState(null);
 
   // Editable profile state
-  const [profile, setProfile] = useState({
-    name: 'Dr. Rajesh Sharma',
-    designation: 'District Health Officer (DHO)',
-    officerId: 'DHO-MH-PUN-042',
-    district: 'Pune District (Rural & Peri-Urban Zone)',
+  const [profile, setProfile] = useState(() => ({
+    name: userProfile?.fullName || (isOphth ? 'Dr. Krrish Gadekar' : 'Krrish Gadekar'),
+    designation: userProfile?.designation || (isOphth ? 'Chief Retina Specialist / Lead Ophthalmologist' : 'District Health Officer (DHO)'),
+    officerId: userProfile?.officerId || 'DHO-MH-PUN-042',
+    district: userProfile?.district || 'Pune District (Rural & Peri-Urban Zone)',
     assignedPhcs: '7 PHCs Active (Kharadi, Wagholi, Hadapsar, Lohegaon, Alandi, Saswad, Khed)',
-    email: 'r.sharma.dho@health.maharashtra.gov.in',
-    phone: '+91 98230 44821',
-  });
+    email: userProfile?.email || 'krrishgadekar@gmail.com',
+    phone: userProfile?.phone || '+91 98230 44821',
+  }));
 
   const [newPassword, setNewPassword] = useState('');
 
@@ -158,7 +158,9 @@ const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) => {
                   gap: '8px'
                 }}
               >
-                <span className="t-label" style={{ opacity: 0.5 }}>{userProfile?.fullName || 'PG'}</span>
+                <span className="t-label" style={{ opacity: 0.9, fontWeight: 700, color: 'var(--c-crimson)' }}>
+                  {userProfile?.fullName || 'Dr. Krrish Gadekar'}
+                </span>
                 <span style={{ fontSize: '10px', opacity: 0.8 }}>✎</span>
               </button>
             </>
@@ -169,7 +171,7 @@ const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) => {
           {/* Role Badge: Untouched static badge for OPHTH, active Profile Drawer for ADMIN */}
           <div className="app-header__role-badge">
             {isOphth ? (
-              <span className="t-label" style={{ opacity: 0.5 }}>
+              <span className="t-label" style={{ opacity: 0.7, fontWeight: 600 }}>
                 ◉ OPHTH
               </span>
             ) : (
@@ -177,8 +179,12 @@ const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) => {
                 className="app-header__role-btn t-label"
                 onClick={() => setShowProfileDrawer(true)}
                 title="Open District Admin Profile & Settings"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                ⬡ ADMIN
+                <span>⬡ ADMIN:</span>
+                <span style={{ fontWeight: 700, color: 'var(--c-crimson)' }}>
+                  {userProfile?.fullName || 'Krrish Gadekar'}
+                </span>
               </button>
             )}
           </div>

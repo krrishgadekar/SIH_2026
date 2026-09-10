@@ -47,13 +47,50 @@ const RoleRouter = () => {
   const [role, setRole] = useState(() => {
     return localStorage.getItem('netra_user_role') || null;
   });
-  const [userProfile, setUserProfile] = useState(null);
+  const [userProfile, setUserProfile] = useState(() => {
+    const saved = localStorage.getItem('netra_user_profile');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    const currentRole = localStorage.getItem('netra_user_role') || 'ophthalmologist';
+    const isDoc = currentRole === 'ophthalmologist';
+    return {
+      username: 'krrish',
+      fullName: isDoc ? 'Dr. Krrish Gadekar' : 'Krrish Gadekar',
+      phone: '+91 98230 44821',
+      location: isDoc ? 'District Civil Hospital, Pune' : 'Pune District Health Office',
+      email: 'krrishgadekar@gmail.com',
+      designation: isDoc ? 'Chief Retina Specialist / Lead Ophthalmologist' : 'District Health Officer (DHO)',
+      officerId: 'DHO-MH-PUN-042',
+      district: 'Pune District (Rural & Peri-Urban Zone)',
+      role: currentRole
+    };
+  });
   const navigate = useNavigate();
 
   const handleLogin = (selectedRole, username) => {
     localStorage.setItem('netra_user_role', selectedRole);
     setRole(selectedRole);
-    setUserProfile({ username: username || '', fullName: '', phone: '', location: '' });
+    const isDoc = selectedRole === 'ophthalmologist';
+    const cleanUser = username && username.trim() ? username.trim() : 'krrish';
+    const isKrrish = cleanUser.toLowerCase().includes('krrish') || cleanUser.toLowerCase() === 'doctor' || cleanUser.toLowerCase() === 'admin';
+    const formattedName = isKrrish 
+      ? (isDoc ? 'Dr. Krrish Gadekar' : 'Krrish Gadekar')
+      : cleanUser;
+
+    const profile = {
+      username: cleanUser,
+      fullName: formattedName,
+      phone: '+91 98230 44821',
+      location: isDoc ? 'District Civil Hospital, Pune' : 'Pune District Health Office',
+      email: 'krrishgadekar@gmail.com',
+      designation: isDoc ? 'Chief Retina Specialist / Lead Ophthalmologist' : 'District Health Officer (DHO)',
+      officerId: 'DHO-MH-PUN-042',
+      district: 'Pune District (Rural & Peri-Urban Zone)',
+      role: selectedRole
+    };
+    localStorage.setItem('netra_user_profile', JSON.stringify(profile));
+    setUserProfile(profile);
     if (selectedRole === 'ophthalmologist') {
       navigate('/ophth/queue');
     } else {
@@ -64,12 +101,13 @@ const RoleRouter = () => {
   const handleLogout = () => {
     localStorage.removeItem('netra_user_role');
     setRole(null);
-    setUserProfile(null);
     navigate('/');
   };
 
   const handleUpdateProfile = (newProfile) => {
-    setUserProfile(newProfile);
+    const merged = { ...userProfile, ...newProfile };
+    localStorage.setItem('netra_user_profile', JSON.stringify(merged));
+    setUserProfile(merged);
   };
 
   return (

@@ -31,13 +31,13 @@ export const LoginScreen = ({ onLogin }) => {
   const [activeAuthRole, setActiveAuthRole] = useState(null); // 'admin' | 'ophthalmologist' | null
 
   // Admin login state
-  const [adminUsername, setAdminUsername] = useState('admin');
+  const [adminUsername, setAdminUsername] = useState('krrish');
   const [adminPassword, setAdminPassword] = useState('admin123');
   const [adminError, setAdminError] = useState(null);
   const [adminLoading, setAdminLoading] = useState(false);
 
   // Ophthalmologist login state
-  const [ophthUsername, setOphthUsername] = useState('doctor');
+  const [ophthUsername, setOphthUsername] = useState('krrish');
   const [ophthPassword, setOphthPassword] = useState('doctor123');
   const [ophthError, setOphthError] = useState(null);
   const [ophthLoading, setOphthLoading] = useState(false);
@@ -116,7 +116,7 @@ export const LoginScreen = ({ onLogin }) => {
     const error = isAdmin ? adminError : ophthError;
     const loading = isAdmin ? adminLoading : ophthLoading;
     const handleSubmit = isAdmin ? handleAdminSubmit : handleOphthSubmit;
-    const demoUser = isAdmin ? 'admin' : 'doctor';
+    const demoUser = 'krrish';
     const demoPass = isAdmin ? 'admin123' : 'doctor123';
 
     return (
