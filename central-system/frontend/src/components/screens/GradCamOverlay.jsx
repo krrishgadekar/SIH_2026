@@ -124,6 +124,9 @@ export const GradCamOverlay = ({ showOverlay, caseData }) => {
     ctx.globalCompositeOperation = 'source-over';
   }, [dimensions, caseData]);
 
+  const [opacity, setOpacity] = useState(0.75);
+  const [overlayMode, setOverlayMode] = useState('jet'); // 'jet' | 'contour' | 'centroids'
+
   // Draw Grad-CAM overlay
   useEffect(() => {
     const canvas = overlayRef.current;
@@ -138,22 +141,50 @@ export const GradCamOverlay = ({ showOverlay, caseData }) => {
 
     // Hotspots — areas of high attention
     const hotspots = [
-      { x: 290, y: 190, r: 50, intensity: 0.8 },
-      { x: 320, y: 310, r: 40, intensity: 0.7 },
-      { x: 340, y: 250, r: 60, intensity: 0.5 },
-      { x: 270, y: 280, r: 35, intensity: 0.6 },
-      { x: 310, y: 195, r: 25, intensity: 0.9 },
+      { x: 290, y: 190, r: 52, intensity: 0.9 },
+      { x: 320, y: 310, r: 44, intensity: 0.85 },
+      { x: 340, y: 250, r: 58, intensity: 0.65 },
+      { x: 270, y: 280, r: 36, intensity: 0.7 },
+      { x: 310, y: 195, r: 28, intensity: 0.95 },
     ];
 
-    hotspots.forEach(spot => {
-      const grad = ctx.createRadialGradient(spot.x, spot.y, 0, spot.x, spot.y, spot.r);
-      grad.addColorStop(0, `rgba(255, 0, 0, ${spot.intensity * 0.6})`);
-      grad.addColorStop(0.3, `rgba(255, 80, 0, ${spot.intensity * 0.4})`);
-      grad.addColorStop(0.6, `rgba(255, 200, 0, ${spot.intensity * 0.2})`);
-      grad.addColorStop(1, 'rgba(0, 0, 255, 0)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, width, height);
-    });
+    if (overlayMode === 'jet') {
+      hotspots.forEach(spot => {
+        const grad = ctx.createRadialGradient(spot.x, spot.y, 0, spot.x, spot.y, spot.r);
+        grad.addColorStop(0, `rgba(230, 20, 20, ${spot.intensity * opacity})`);
+        grad.addColorStop(0.35, `rgba(255, 110, 0, ${spot.intensity * opacity * 0.75})`);
+        grad.addColorStop(0.7, `rgba(255, 220, 0, ${spot.intensity * opacity * 0.4})`);
+        grad.addColorStop(1, 'rgba(0, 50, 200, 0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+      });
+    } else if (overlayMode === 'contour') {
+      hotspots.forEach(spot => {
+        ctx.strokeStyle = `rgba(255, 220, 50, ${opacity})`;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(spot.x, spot.y, spot.r * 0.7, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.strokeStyle = `rgba(255, 50, 50, ${opacity * 0.8})`;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(spot.x, spot.y, spot.r * 0.4, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+    } else {
+      // Centroids mode
+      hotspots.forEach(spot => {
+        ctx.fillStyle = `rgba(255, 40, 40, ${opacity})`;
+        ctx.beginPath();
+        ctx.arc(spot.x, spot.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      });
+    }
 
     // Circular mask
     ctx.globalCompositeOperation = 'destination-in';
@@ -164,24 +195,85 @@ export const GradCamOverlay = ({ showOverlay, caseData }) => {
     ctx.fillStyle = maskGrad;
     ctx.fillRect(0, 0, width, height);
     ctx.globalCompositeOperation = 'source-over';
-  }, [showOverlay, dimensions]);
+  }, [showOverlay, dimensions, opacity, overlayMode]);
 
   return (
-    <div className="gradcam-viewer">
-      <canvas ref={canvasRef} className="gradcam-viewer__fundus" />
-      <canvas
-        ref={overlayRef}
-        className={`gradcam-viewer__overlay ${showOverlay ? 'gradcam-viewer__overlay--visible' : ''}`}
-      />
-      {/* Crosshair */}
-      <div className="capture-zone__crosshair" />
-      {/* Corner brackets */}
-      <div className="gradcam-viewer__brackets">
-        <span className="gradcam-viewer__bracket gradcam-viewer__bracket--tl" />
-        <span className="gradcam-viewer__bracket gradcam-viewer__bracket--tr" />
-        <span className="gradcam-viewer__bracket gradcam-viewer__bracket--bl" />
-        <span className="gradcam-viewer__bracket gradcam-viewer__bracket--br" />
+    <div>
+      <div className="gradcam-viewer" style={{ position: 'relative' }}>
+        <canvas ref={canvasRef} className="gradcam-viewer__fundus" />
+        <canvas
+          ref={overlayRef}
+          className={`gradcam-viewer__overlay ${showOverlay ? 'gradcam-viewer__overlay--visible' : ''}`}
+        />
+        {/* Crosshair */}
+        <div className="capture-zone__crosshair" />
+        {/* Corner brackets */}
+        <div className="gradcam-viewer__brackets">
+          <span className="gradcam-viewer__bracket gradcam-viewer__bracket--tl" />
+          <span className="gradcam-viewer__bracket gradcam-viewer__bracket--tr" />
+          <span className="gradcam-viewer__bracket gradcam-viewer__bracket--bl" />
+          <span className="gradcam-viewer__bracket gradcam-viewer__bracket--br" />
+        </div>
       </div>
+
+      {showOverlay && (
+        <div style={{
+          marginTop: '12px',
+          padding: '10px 14px',
+          background: 'rgba(10, 10, 10, 0.85)',
+          border: '1px solid var(--c-crimson)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '10px'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="t-mono" style={{ fontSize: '11px', color: 'var(--c-crimson)', fontWeight: 700 }}>
+              HEATMAP OPACITY:
+            </span>
+            <input
+              type="range"
+              min="0.2"
+              max="1.0"
+              step="0.05"
+              value={opacity}
+              onChange={(e) => setOpacity(parseFloat(e.target.value))}
+              style={{ width: '90px', accentColor: 'var(--c-crimson)', cursor: 'pointer' }}
+            />
+            <span className="t-mono" style={{ fontSize: '11px', opacity: 0.8 }}>
+              {Math.round(opacity * 100)}%
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              type="button"
+              className={`badge ${overlayMode === 'jet' ? 'badge--fail' : 'badge--neutral'}`}
+              style={{ cursor: 'pointer', padding: '3px 8px', fontSize: '10px' }}
+              onClick={() => setOverlayMode('jet')}
+            >
+              JET HEATMAP
+            </button>
+            <button
+              type="button"
+              className={`badge ${overlayMode === 'contour' ? 'badge--fail' : 'badge--neutral'}`}
+              style={{ cursor: 'pointer', padding: '3px 8px', fontSize: '10px' }}
+              onClick={() => setOverlayMode('contour')}
+            >
+              CONTOURS
+            </button>
+            <button
+              type="button"
+              className={`badge ${overlayMode === 'centroids' ? 'badge--fail' : 'badge--neutral'}`}
+              style={{ cursor: 'pointer', padding: '3px 8px', fontSize: '10px' }}
+              onClick={() => setOverlayMode('centroids')}
+            >
+              CENTROIDS
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
