@@ -33,6 +33,11 @@ const PORT = parseInt(process.env.PORT || '5000', 10);
 
 const app = express();
 
+// CORS first, before json parsing and before every route, so it also covers
+// /media (mask and Grad-CAM images the frontend fetches) and so a preflight
+// OPTIONS is answered without being dragged through the body parser.
+app.use(require('./middleware/cors')());
+
 app.use(express.json());
 
 // GET /health is what the PHC sync manager polls as its network heartbeat
