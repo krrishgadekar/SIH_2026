@@ -475,25 +475,66 @@ async function processCase(caseId) {
   // Grad-CAM failure does not fail the grade — the clinical output is already
   // computed — so the column falls back to NULL and the frontend renders "not
   // yet available" rather than a URL to a file that is not there.
-  // Segmentation mask paths come straight from segInfer's own report of what it
-  // wrote, rather than being reconstructed from a naming convention here. A
-  // path built by guessing the filename is a path that 404s the moment the
-  // convention changes on one side only.
-  const masks = (segResult && segResult.masks) || {};
-
   await pool.query(`
-    INSERT INTO explainability_outputs
-      (case_id, gradcam_path, evidence_summary_text,
-       vessel_mask_path, lesion_red_path, lesion_bright_path)
-    VALUES ($1, $2, $3, $4, $5, $6)
+    INSERT INTO explainability_outputs (case_id, gradcam_path, evidence_summary_text)
+    VALUES ($1, $2, $3)
     ON CONFLICT (case_id) DO UPDATE SET
       gradcam_path          = EXCLUDED.gradcam_path,
-      evidence_summary_text = EXCLUDED.evidence_summary_text,
-      vessel_mask_path      = EXCLUDED.vessel_mask_path,
-      lesion_red_path       = EXCLUDED.lesion_red_path,
-      lesion_bright_path    = EXCLUDED.lesion_bright_path
-  `, [caseId, branchA.gradcamPath ?? null, mlResult.evidenceSummaryText ?? null,
-      masks.vessel ?? null, masks.red ?? null, masks.bright ?? null]);
+      evidence_summary_text = EXCLUDED.evidence_summary_text
+  `, [caseId, branchA.gradcamPath ?? null, mlResult.evidenceSummaryText ?? null]);
+
+  // ── Step 4b: INSERT INTO segmentation_outputs ──────────────────────────────
+  // This table has existed since the initial schema with exactly the columns
+  // Phase 4 produces — lesion_counts, nv_suspicion_score, vessel_map_path,
+  // optic_disc_x/y, fovea_x/y — and nothing had ever written to it. The
+  // case-detail API SELECTs from it, so lesionCounts and nvSuspicionScore were
+  // reaching the frontend as null on every case even once segmentation ran.
+  //
+  // Paths come from segInfer's own report of what it wrote, not from
+  // reconstructing a filename here: a path built by guessing the convention is
+  // a path that 404s the day one side of the convention changes.
+  if (segResult) {
+    const masks = segResult.masks || {};
+
+    // nv_suspicion_score stays NULL, deliberately. neovascularizationSuspicion.m
+    // exists but nothing runs it — segInfer produces a vessel mask and no NV
+    // score, and the orchestrator passes 0 into the rule engine only so the
+    // grade-4 branch stays shut. Writing that 0 here would claim the score was
+    // MEASURED and came out at zero, which is a different statement from "no
+    // detector ran". Unmeasured is NULL everywhere else in this project.
+    await pool.query(`
+      INSERT INTO segmentation_outputs
+        (case_id, lesion_counts, nv_suspicion_score, vessel_map_path,
+         lesion_masks_path, optic_disc_x, optic_disc_y, fovea_x, fovea_y)
+      VALUES ($1, $2, NULL, $3, $4, $5, $6, $7, $8)
+      ON CONFLICT (case_id) DO UPDATE SET
+        lesion_counts     = EXCLUDED.lesion_counts,
+        vessel_map_path   = EXCLUDED.vessel_map_path,
+        lesion_masks_path = EXCLUDED.lesion_masks_path,
+        optic_disc_x      = EXCLUDED.optic_disc_x,
+        optic_disc_y      = EXCLUDED.optic_disc_y,
+        fovea_x           = EXCLUDED.fovea_x,
+        fovea_y           = EXCLUDED.fovea_y
+    `, [caseId,
+        JSON.stringify({
+          red: segResult.redPerQuadrant ?? null,
+          bright: segResult.brightPerQuadrant ?? null,
+          redTotal: segResult.redLesions?.count ?? null,
+          brightTotal: segResult.brightLesions?.count ?? null,
+          minAreaPx: segResult.redLesions?.minAreaFilter ?? null,
+          // The counting procedure travels WITH the counts. These numbers are
+          // only comparable to the ICDR thresholds because they were produced
+          // the same way, and a reader six months from now cannot recover that
+          // from four integers.
+          procedure: segResult.countingProcedure ?? null,
+        }),
+        masks.vessel ?? null,
+        // One column for both lesion masks: the schema predates there being two
+        // models. Stored as JSON rather than picking one and dropping the other.
+        JSON.stringify({ red: masks.red ?? null, bright: masks.bright ?? null }),
+        segResult.opticDisc?.x ?? null, segResult.opticDisc?.y ?? null,
+        segResult.fovea?.x ?? null, segResult.fovea?.y ?? null]);
+  }
 
   // lesion_attention_consistency_score stays NULL on purpose (Task 7.1).
   // lesionAttentionConsistency is built and unit-tested, but it needs a lesion
