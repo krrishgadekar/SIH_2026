@@ -155,6 +155,26 @@ the variable only to narrow it.
 `SMS_DRY_RUN=1` keeps Twilio from sending real messages. Leave it on unless you
 have credentials and intend to demo live SMS.
 
+### Frontend variables (Vite)
+
+Both frontends are env-driven and **default to mock data**, so they show
+fabricated results until told otherwise. Set these in Vercel's project settings,
+or in a `.env` beside the frontend for a local `npm run dev`:
+
+```ini
+VITE_USE_MOCK_DATA=false
+VITE_CENTRAL_API_BASE=http://localhost:5000
+VITE_LOCAL_API_BASE=http://localhost:4000        # PHC app only
+```
+
+`VITE_USE_MOCK_DATA` must be the **string** `false`. Anything else — unset,
+empty, `0`, `False` — leaves mock data on, because the check is
+`=== 'true'` with a default of `true`. If the UI still shows data after you stop
+both backends, this is why.
+
+The PHC app also carries `VITE_ML_API_ENDPOINT`, defaulting to a separate ngrok
+FastAPI service. That is **not this pipeline** — see section 10.
+
 ---
 
 ## 6. Database
@@ -325,7 +345,7 @@ them.
 | Case stuck on `processing` | queue died mid-flight | restart central backend; recovery re-queues |
 | Case goes straight to `error` in ~7 s | MATLAB or Python missing — classified permanent, not retried | check `MATLAB_EXECUTABLE` / `PYTHON_EXECUTABLE` |
 | Browser: CORS / network error, server log silent | request blocked before reaching Express | section 8.4 |
-| Frontend shows data with backends stopped | `USE_MOCK_DATA = true` | frontend-side change, not backend |
+| Frontend shows data with backends stopped | mock data still on | set `VITE_USE_MOCK_DATA=false` — exactly that string |
 | Grading takes ~12 s | expected — 5 models + MATLAB | not a fault |
 
 ---
@@ -345,11 +365,13 @@ Stated so these read as decisions rather than bugs on demo day:
 - **The PHC quality gate cannot read DICOM.** It still uses `imread`, so a
   `.dcm` cannot complete capture → sync end to end. The central pipeline reads
   DICOM fine.
-- **`USE_MOCK_DATA = true`** in both frontends. Until that flips, the UI shows
-  fabricated data and never calls these backends.
-- **`ML_API_ENDPOINT`** in the PHC frontend points at a separate ngrok FastAPI
-  service, not this pipeline. If that is what demos, none of Branch B, the
-  conformal tiering, the evidence report or Grad-CAM appears on screen.
+- **Mock data is the DEFAULT in both frontends.** They are env-driven now, but
+  `USE_MOCK_DATA` falls back to `true` when `VITE_USE_MOCK_DATA` is unset. A
+  frontend deployed without that variable shows fabricated results and never
+  calls these backends — and looks perfectly healthy doing it.
+- **`VITE_ML_API_ENDPOINT`** in the PHC frontend defaults to a separate ngrok
+  FastAPI service, not this pipeline. If that is what demos, none of Branch B,
+  the conformal tiering, the evidence report or Grad-CAM appears on screen.
 
 ---
 
