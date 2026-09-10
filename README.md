@@ -62,7 +62,13 @@ npm run dev
 ```
 Open **[http://localhost:5174](http://localhost:5174)** in your browser.
 
-*Note: Both applications come pre-configured with interactive clinical mock datasets (`USE_MOCK_DATA = true`), enabling full offline testing without external database dependencies.*
+*Note: Both applications come pre-configured with interactive clinical mock datasets (`USE_MOCK_DATA = true`), enabling full offline testing and cloud preview deployments without external database dependencies.*
+
+### 3. Vercel Cloud Deployment
+Both frontend clients are deployed on Vercel for instant browser access during presentations:
+- **Central Hospital System (`central_sys`)**: Specialist review portal and district health admin surveillance.
+- **PHC Local Station (`phc_app`)**: Rural clinic patient registration, retinal capture, and edge triage client.
+- **Full Offline Mock Support**: With `USE_MOCK_DATA=true` (default), the cloud apps run fully client-side with interactive clinical cases, Grad-CAM visualizations, and multi-language support without requiring live backend servers.
 
 ---
 
@@ -71,3 +77,4 @@ Open **[http://localhost:5174](http://localhost:5174)** in your browser.
 * High-contrast brutalist aesthetics with dark-room clinical palette (`#E63B2E` / `#0A0A0A`).
 * Interactive canvas waves depicting retinal pulse frequencies.
 * Monospace telemetry logs and tactile cyber-clinical controls.
+
