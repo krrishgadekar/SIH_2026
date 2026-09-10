@@ -15,6 +15,18 @@ export const CaptureScreen = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const patientId = searchParams.get('patientId') || 'UNKNOWN_PATIENT';
+  const patientName = searchParams.get('name') || (() => {
+    try {
+      const p = JSON.parse(localStorage.getItem('netra_latest_patient'));
+      return p?.name;
+    } catch (e) { return null; }
+  })() || 'Krrish';
+  const patientAge = searchParams.get('age') || (() => {
+    try {
+      const p = JSON.parse(localStorage.getItem('netra_latest_patient'));
+      return p?.age;
+    } catch (e) { return null; }
+  })() || '20';
   
   const [activeStep, setActiveStep] = useState(1);
   const [imageFile, setImageFile] = useState(null);
@@ -114,6 +126,8 @@ export const CaptureScreen = () => {
     try {
       await localApi.saveCaptureMetadata(qualityResult?.captureId || `CAPT-${Date.now()}`, {
         patientId,
+        patientName,
+        patientAge,
         metadata,
         questionnaire,
         aiPrediction: qualityResult?.aiPrediction,
@@ -132,7 +146,9 @@ export const CaptureScreen = () => {
       {/* ── Title Bar ── */}
       <div className="cs-titlebar">
         <h1 className="t-h1 cs-title">{t('capture.title', 'IMAGE CAPTURE')}</h1>
-        <span className="cs-patient-id">{t('capture.patient', 'PATIENT:')} {patientId}</span>
+        <span className="cs-patient-id">
+          {t('capture.patient', 'PATIENT:')} <strong style={{ color: 'var(--c-crimson, #CC0000)' }}>{patientName.toUpperCase()}</strong> ({patientId}) {patientAge ? `• ${patientAge}Y` : ''}
+        </span>
       </div>
 
       {/* ── Stepper ── */}
