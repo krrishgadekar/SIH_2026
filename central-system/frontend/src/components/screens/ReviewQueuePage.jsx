@@ -52,13 +52,58 @@ const ConfidenceBar = ({ value }) => {
   );
 };
 
+// A case is "new" for badge purposes for this long after capture — long enough
+// to still be on screen when someone jumps from the PHC app to this queue to
+// find what they just submitted, short enough that it stops meaning anything
+// once the queue has moved on.
+const NEW_BADGE_WINDOW_MS = 5 * 60 * 1000;
+
+/**
+ * relativeTime(iso, now) -> "just now" | "2 min ago" | "3 hr ago" | ...
+ *
+ * Takes `now` as a parameter rather than calling Date.now() internally so a
+ * ticking `now` state (see the setInterval below) is what actually drives
+ * re-renders — otherwise "2 min ago" would freeze at whatever it said when
+ * the queue last fetched, even while sitting on screen for the next 10 minutes.
+ */
+function relativeTime(iso, now) {
+  if (!iso) return '';
+  const diffMs = now - new Date(iso).getTime();
+  const diffSec = Math.round(diffMs / 1000);
+  if (diffSec < 5) return 'just now';
+  if (diffSec < 60) return `${diffSec} sec ago`;
+  const diffMin = Math.round(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} min ago`;
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 24) return `${diffHr} hr ago`;
+  const diffDay = Math.round(diffHr / 24);
+  return `${diffDay}d ago`;
+}
+
 export const ReviewQueuePage = () => {
   const { t } = useTranslation();
   const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, tier-c, tier-b, disagreement
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
+  // Default is newest-first (by capture time), NOT clinical priority. This is
+  // deliberate: under demo/presentation pressure "find the case I just
+  // submitted" matters more than the priority ranking a real ophthalmologist
+  // would want by default. Clicking the "#" (priority) column header still
+  // re-sorts by the original urgency ranking — that ordering isn't removed,
+  // just no longer the default.
+  const [sortConfig, setSortConfig] = useState({ key: 'capturedAt', direction: 'desc' });
+  const [now, setNow] = useState(() => Date.now());
   const navigate = useNavigate();
+
+  // Ticks the "X min ago" labels and the NEW badge window forward even when no
+  // new data has arrived from the 5s queue poll — without this, a case's
+  // relative time would freeze at whatever it said on the last fetch that
+  // actually changed the queue array (React only re-renders on a new
+  // reference), which is misleading on a screen someone is watching live.
+  useEffect(() => {
+    const tick = setInterval(() => setNow(Date.now()), 15000);
+    return () => clearInterval(tick);
+  }, []);
 
   // Search and filter state (matching ReferralTrackerPage pattern)
   const [searchQuery, setSearchQuery] = useState('');
@@ -66,10 +111,21 @@ export const ReviewQueuePage = () => {
   const [gradeFilter, setGradeFilter] = useState('all');
 
   useEffect(() => {
-    centralApi.getOphthQueue().then(data => {
-      setQueue(data);
-      setLoading(false);
-    });
+    let cancelled = false;
+    const fetchQueue = () => {
+      centralApi.getOphthQueue().then(data => {
+        if (cancelled) return;
+        setQueue(data);
+        setLoading(false);
+      });
+    };
+    // Grading happens asynchronously behind a sync (PHC -> central) that can
+    // take up to ~10-30s after a capture, so a one-shot fetch on mount can
+    // easily land before a case is ready and then never update — this page
+    // has to keep checking, not just load once.
+    fetchQueue();
+    const interval = setInterval(fetchQueue, 5000);
+    return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
   // Extract unique PHC names for dropdown
@@ -301,6 +357,7 @@ export const ReviewQueuePage = () => {
           <thead>
             <tr>
               <SortHeader width="40px" label={t('central.queue.table.colPriority', '#')} sortKey="priorityRank" currentSort={sortConfig} onRequestSort={requestSort} />
+              <SortHeader label={t('central.queue.table.colCaptured', 'CAPTURED')} sortKey="capturedAt" currentSort={sortConfig} onRequestSort={requestSort} />
               <th>{t('central.queue.table.colPatientRef', 'PATIENT REF')}</th>
               <th>{t('central.queue.table.colPhc', 'PHC')}</th>
               <SortHeader label={t('central.queue.table.colTier', 'TIER')} sortKey="conformalTier" currentSort={sortConfig} onRequestSort={requestSort} />
@@ -308,18 +365,35 @@ export const ReviewQueuePage = () => {
               <SortHeader label={t('central.queue.table.colRuleEngine', 'RULE ENGINE')} sortKey="drGradeRuleEngine" currentSort={sortConfig} onRequestSort={requestSort} />
               <SortHeader label={t('central.queue.table.colAgreement', 'AGREEMENT')} sortKey="branchAgreement" currentSort={sortConfig} onRequestSort={requestSort} />
               <SortHeader label={t('central.queue.table.colConfidence', 'CONFIDENCE')} sortKey="confidenceScore" currentSort={sortConfig} onRequestSort={requestSort} />
-              <th>{t('central.queue.table.colCaptured', 'CAPTURED')}</th>
             </tr>
           </thead>
           <tbody>
-            {sortedQueue.map((item, idx) => (
+            {sortedQueue.map((item, idx) => {
+              const isNew = item.capturedAt && (now - new Date(item.capturedAt).getTime()) < NEW_BADGE_WINDOW_MS;
+              return (
               <tr
                 key={item.caseId}
                 className="clickable"
                 onClick={() => navigate(`/ophth/case/${item.caseId}`)}
-                style={item.branchAgreement === false ? { borderLeft: '3px solid var(--c-crimson-dark)' } : {}}
+                style={{
+                  ...(item.branchAgreement === false ? { borderLeft: '3px solid var(--c-crimson-dark)' } : {}),
+                  ...(isNew ? { background: 'rgba(46, 160, 67, 0.08)' } : {}),
+                }}
               >
                 <td className="t-mono" style={{ opacity: 0.4 }}>{item.priorityRank}</td>
+                <td title={new Date(item.capturedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}>
+                  <div className="u-flex u-items-center u-gap-2">
+                    <span className="t-mono" style={{ fontWeight: 700 }}>{relativeTime(item.capturedAt, now)}</span>
+                    {isNew && (
+                      <span
+                        className="badge badge--pass"
+                        style={{ fontSize: '10px', padding: '1px 6px', animation: 'pulse-badge 1.6s ease-in-out infinite' }}
+                      >
+                        NEW
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td>
                   <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-h)' }}>
                     {item.patientName || item.patientReference}
@@ -364,11 +438,9 @@ export const ReviewQueuePage = () => {
                   )}
                 </td>
                 <td><ConfidenceBar value={item.confidenceScore} /></td>
-                <td className="t-mono" style={{ fontSize: 'var(--fs-tiny)', opacity: 0.5 }}>
-                  {new Date(item.capturedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

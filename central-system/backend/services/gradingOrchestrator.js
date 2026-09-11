@@ -48,6 +48,20 @@ const path       = require('path');
 const fs         = require('fs');
 const pool       = require('../db/pgClient');
 const mediaPaths = require('./mediaPaths');
+const matlabFallback = require('./matlabFallback');
+
+// Task: MATLAB workaround for a dev machine with no MATLAB install (no
+// license, no disk space). When true, MATLAB genuinely failing to SPAWN
+// (ENOENT — the interpreter is not on this machine) falls back to
+// matlabFallback.js's JS port of the rule engine / branch-agreement /
+// evidence-report logic instead of failing the whole case to 'error'. Branch A
+// (the CNN grade, Python) and Phase 4 segmentation (also Python) are
+// completely unaffected either way — only the MATLAB-only stages (Branch B's
+// grading call site, the camera cross-check, lesion-attention consistency)
+// are substituted. Set MATLAB_ALLOW_FALLBACK=0 to disable this and get the
+// original hard-fail behaviour back (e.g. on a machine that has MATLAB and
+// wants a real MATLAB error to actually fail the case).
+const ALLOW_MATLAB_FALLBACK = process.env.MATLAB_ALLOW_FALLBACK !== '0';
 
 // ── Path constants ────────────────────────────────────────────────────────────
 const ML_ROOT          = path.resolve(__dirname, '..', 'ml-pipeline');
@@ -340,27 +354,36 @@ async function processCase(caseId) {
   const expr = buildMatlabExpr(imagePath, gradcamPath, qualityScores,
                                cameraDeviceId, caseId, segResult,
                                branchA.drGradeCnn, branchA.gradcamMap);
-  let raw;
-  try {
-    raw = await spawnMatlabBatch(expr);
-  } catch (err) {
-    // Re-wrap for context but CARRY THE CODE. Without this the classification
-    // above is lost at the boundary and every failure looks transient again —
-    // the wrapper is exactly where a permanent error quietly becomes a
-    // three-attempt one.
-    throw unavailable(err.code,
-      `Grading pipeline MATLAB call failed: ${err.message}`);
-  }
-
-  // Parse JSON from stdout (may have MATLAB startup text before '{')
-  const jsonStart = raw.indexOf('{');
-  if (jsonStart === -1)
-    throw new Error(`No JSON in MATLAB output.\nRaw:\n${raw}`);
   let mlResult;
   try {
-    mlResult = JSON.parse(raw.slice(jsonStart));
+    const raw = await spawnMatlabBatch(expr);
+
+    // Parse JSON from stdout (may have MATLAB startup text before '{')
+    const jsonStart = raw.indexOf('{');
+    if (jsonStart === -1)
+      throw new Error(`No JSON in MATLAB output.\nRaw:\n${raw}`);
+    try {
+      mlResult = JSON.parse(raw.slice(jsonStart));
+    } catch (err) {
+      throw new Error(`MATLAB JSON parse failed: ${err.message}\nRaw: ${raw.slice(jsonStart, jsonStart+300)}`);
+    }
   } catch (err) {
-    throw new Error(`MATLAB JSON parse failed: ${err.message}\nRaw: ${raw.slice(jsonStart, jsonStart+300)}`);
+    if (ALLOW_MATLAB_FALLBACK && err.code === 'matlab_unavailable') {
+      console.warn(`[gradingOrchestrator] case ${caseId}: MATLAB is not installed on `
+        + 'this machine — using the JS fallback (matlabFallback.js) for Branch B / '
+        + 'evidence report / camera check. On a machine with MATLAB this code path '
+        + 'is never taken.');
+      mlResult = matlabFallback.runMatlabFallback({
+        imagePath, segResult, branchAGrade: branchA.drGradeCnn,
+      });
+    } else {
+      // Re-wrap for context but CARRY THE CODE. Without this the classification
+      // above is lost at the boundary and every failure looks transient again —
+      // the wrapper is exactly where a permanent error quietly becomes a
+      // three-attempt one.
+      throw unavailable(err.code,
+        `Grading pipeline MATLAB call failed: ${err.message}`);
+    }
   }
 
   const grade = branchA.drGradeCnn;

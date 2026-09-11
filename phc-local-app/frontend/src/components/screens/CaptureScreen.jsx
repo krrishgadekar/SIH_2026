@@ -68,19 +68,44 @@ export const CaptureScreen = () => {
 
   const runQualityCheck = async () => {
     if (!imageFile) return;
-    
+
     setIsAnalyzing(true);
     try {
+      // ── 1. Real local quality gate (phc-local-app/backend POST /captures) ──
+      // Attempted first, regardless of USE_MOCK_DATA's effect on the ngrok
+      // path below. Returns null on ANY failure (network down, patient not
+      // registered locally, backend not running, unexpected shape) — never
+      // throws — so a flaky/unavailable backend degrades silently into the
+      // existing mock-scenario experience below rather than an error screen.
+      const realCapture = await localApi.submitCapture(
+        patientId, imageFile, metadata.cameraDeviceId || 'unknown');
+
       let data = null;
 
       if (!USE_MOCK_DATA) {
         try {
           const formData = new FormData();
           formData.append('file', imageFile);
-          const response = await fetch(ML_API_ENDPOINT, { method: 'POST', body: formData });
-          if (response.ok) data = await response.json();
+          // This is a call to an external tunnel (ngrok), not the local
+          // backend — on a bad venue connection, or if the tunnel is down,
+          // fetch() has no default timeout and can hang indefinitely. Without
+          // this AbortController, that leaves "RUN QUALITY CHECK" stuck on
+          // "ANALYZING..." forever, disabled, with no way to proceed — even
+          // though the real local quality gate above already succeeded.
+          // Reproduced by simulating a hung connection: the button froze with
+          // no error and no recovery until this timeout was added.
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 6000);
+          try {
+            const response = await fetch(ML_API_ENDPOINT, {
+              method: 'POST', body: formData, signal: controller.signal,
+            });
+            if (response.ok) data = await response.json();
+          } finally {
+            clearTimeout(timeoutId);
+          }
         } catch (apiErr) {
-          console.warn("ML API call failed, falling back to mock data:", apiErr);
+          console.warn("ML API call failed or timed out, falling back to mock data:", apiErr);
         }
       }
 
@@ -90,16 +115,35 @@ export const CaptureScreen = () => {
         data.input.filename = imageFile.name;
         data.processedAt = new Date().toISOString();
       }
-      
-      const apiStatus = data.imageQuality?.status || 'poor';
-      let uiStatus = 'retake';
-      if (apiStatus === 'good') uiStatus = 'pass';
-      if (apiStatus === 'borderline') uiStatus = 'borderline';
+
+      // ── 2. Merge: the REAL local gate's verdict wins when we have one ──────
+      // qualityStatus is already 'pass' | 'retake' | 'borderline' per the
+      // contract — no mapping needed, unlike the ngrok/mock shape below.
+      // Severity/confidence still come from the ngrok/mock branch above: the
+      // local quality gate only judges image quality, never DR severity —
+      // that grading happens centrally, not at the PHC.
+      let uiStatus, issues, captureIdToUse, retakeCount;
+      if (realCapture) {
+        uiStatus = realCapture.qualityStatus;
+        issues = realCapture.qualityReason ? [realCapture.qualityReason] : [];
+        captureIdToUse = realCapture.captureId;
+        retakeCount = realCapture.retakeCount;
+      } else {
+        const apiStatus = data.imageQuality?.status || 'poor';
+        uiStatus = 'retake';
+        if (apiStatus === 'good') uiStatus = 'pass';
+        if (apiStatus === 'borderline') uiStatus = 'borderline';
+        issues = data.imageQuality?.issues || [];
+        captureIdToUse = `CAPT-${Date.now()}`;
+        retakeCount = undefined;
+      }
 
       setQualityResult({
-        captureId: `CAPT-${Date.now()}`,
+        captureId: captureIdToUse,
+        isRealCapture: !!realCapture,
+        retakeCount,
         qualityStatus: uiStatus,
-        issues: data.imageQuality?.issues || [],
+        issues,
         qualityScore: data.imageQuality?.qualityScore,
         aiPrediction: data
       });
@@ -122,8 +166,59 @@ export const CaptureScreen = () => {
 
   const handleAcceptQuality = () => setActiveStep(3);
 
+  // Best-effort translation from this screen's UI-shaped state into the two
+  // real contract payloads (api-contracts.md). The UI forms were not built to
+  // match the contract field-for-field (no glycemicControl/symptoms/
+  // lightingEnvironment/workerUsabilityRating inputs exist), so this fills
+  // reasonable neutral defaults for anything not collected. Submission is
+  // best-effort (submitQuestionnaire/submitCaptureMetadata never throw) —
+  // worst case a mismatched enum gets a 400 from the backend and is logged,
+  // never shown to the user.
+  const toRealQuestionnairePayload = (q) => ({
+    riskFactors: {
+      yearsSinceDiagnosis: ['lt1', '1to5', '5to10', 'gt10'].includes(q.yearsSinceDiagnosis)
+        ? q.yearsSinceDiagnosis
+        : (Number(q.yearsSinceDiagnosis) >= 10 ? 'gt10'
+          : Number(q.yearsSinceDiagnosis) >= 5 ? '5to10'
+          : Number(q.yearsSinceDiagnosis) >= 1 ? '1to5' : 'lt1'),
+      glycemicControl: 'moderate',
+      bloodPressure: ['normal', 'high', 'unknown'].includes(q.bloodPressure) ? q.bloodPressure : 'unknown',
+      pregnant: null,
+    },
+    symptoms: {
+      blurredVision: false,
+      floaters: false,
+      suddenVisionChange: false,
+      eyePain: false,
+    },
+    language: null,
+  });
+
+  const toRealCaptureMetadataPayload = (m) => ({
+    cameraDeviceReported: m.cameraDeviceId || 'unknown',
+    pupilStatus: m.pupilDilation ? 'dilated' : 'non_dilated',
+    lightingEnvironment: 'indoor_clinic',
+    observedIssues: Array.isArray(m.issuesNoticed) && m.issuesNoticed.length
+      ? m.issuesNoticed.filter((i) =>
+          ['glare', 'blink_or_moved', 'out_of_focus', 'media_opacity', 'eyelash_obstruction'].includes(i))
+      : ['none_noticed'],
+    workerUsabilityRating: 'clear',
+  });
+
   const handleSubmit = async () => {
     try {
+      // Real submissions, best-effort, only when we actually have a real
+      // captureId from the local backend (flow #2). These never throw and
+      // never block navigation — they just populate the real pipeline behind
+      // the scenes when possible.
+      if (qualityResult?.isRealCapture && qualityResult?.captureId) {
+        await localApi.submitQuestionnaire(qualityResult.captureId, toRealQuestionnairePayload(questionnaire));
+        await localApi.submitCaptureMetadata(qualityResult.captureId, toRealCaptureMetadataPayload(metadata));
+      }
+
+      // Unchanged: the mock local-queue entry the demo's Local Queue Table and
+      // result modal are built around. Always runs, regardless of whether the
+      // real submissions above succeeded.
       await localApi.saveCaptureMetadata(qualityResult?.captureId || `CAPT-${Date.now()}`, {
         patientId,
         patientName,

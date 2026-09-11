@@ -18,7 +18,7 @@
     "namePlaceholder": "e.g. Sunita Devi",
     "age": "Age",
     "agePlaceholder": "e.g. 54",
-    "contact": "Contact Number (Optional)",
+    "contact": "Contact Number (Required)",
     "contactPlaceholder": "+91...",
     "btnRegistering": "REGISTERING...",
     "btnInitiate": "INITIATE CAPTURE ✦",

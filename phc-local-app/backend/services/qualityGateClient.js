@@ -46,6 +46,22 @@ const { spawn }  = require('child_process');
 const path       = require('path');
 const fs         = require('fs');
 
+const { runQualityGateFallback } = require('./qualityGateFallback');
+
+// Task: MATLAB workaround for dev machines with no MATLAB install and no
+// compiled QUALITY_GATE_EXE (no license, no disk space for MATLAB — this is
+// exactly that machine). When true, a MATLAB spawn failure (ENOENT — the
+// interpreter genuinely could not be launched) falls back to a pure-JS
+// re-implementation of the same decision logic (qualityGateFallback.js)
+// instead of failing the capture with 503. Set QUALITY_GATE_ALLOW_FALLBACK=0
+// to disable this and get the original hard-fail behaviour back.
+//
+// This does NOT change behaviour on a machine that actually has MATLAB or a
+// compiled exe: both are tried first, exactly as before, and a REAL MATLAB
+// error (bad image, license problem, non-zero exit) is never routed to the
+// fallback — only "the interpreter could not be spawned at all" is.
+const ALLOW_JS_FALLBACK = process.env.QUALITY_GATE_ALLOW_FALLBACK !== '0';
+
 // Absolute path to the quality-gate-matlab/ folder so MATLAB can addpath it.
 const MATLAB_GATE_DIR = path.resolve(__dirname, '..', 'quality-gate-matlab');
 
@@ -205,6 +221,13 @@ async function runQualityGate(imagePath, cameraDeviceId) {
   try {
     raw = await spawnMatlabBatch(expr);
   } catch (err) {
+    if (ALLOW_JS_FALLBACK && err.message.includes("Failed to spawn matlab -batch")) {
+      console.warn(
+        '[qualityGateClient] MATLAB is not installed on this machine — using the '
+        + 'JS quality-gate fallback (qualityGateFallback.js) instead. On a machine '
+        + 'with MATLAB (or QUALITY_GATE_EXE) this code path is never taken.');
+      return runQualityGateFallback(imagePath);
+    }
     throw new Error(`Quality gate MATLAB call failed: ${err.message}`);
   }
 
