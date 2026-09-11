@@ -167,22 +167,59 @@ export const QualityResultPanel = ({ result, onRetake, onAccept }) => {
       </div>
 
       {/* ── 5. Action Row: Retake & Accept Buttons ── */}
-      <div className="qrp-actions">
-        <button
-          type="button"
-          className="btn btn--outline qrp-retake-btn"
-          onClick={onRetake}
-        >
-          <span className="qrp-btn-icon">↺</span> RETAKE
-        </button>
-        <button
-          type="button"
-          className="btn btn--success qrp-accept-btn"
-          onClick={onAccept}
-        >
-          ACCEPT & CONTINUE →
-        </button>
-      </div>
+      {isRetake ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
+          <div style={{
+            padding: '12px 14px',
+            background: 'rgba(230, 20, 20, 0.1)',
+            border: '2px solid var(--c-crimson)',
+            boxShadow: '2px 2px 0px #000',
+          }}>
+            <div style={{ color: 'var(--c-crimson)', fontWeight: 800, fontSize: '11px', fontFamily: 'var(--font-mono)' }}>
+              ✕ INSTANT RETAKE ADVISORY
+            </div>
+            <div style={{ marginTop: '6px', fontSize: '12px', lineHeight: 1.4, color: 'var(--text-h)' }}>
+              {result.issues && result.issues.length > 0 
+                ? result.issues.map(iss => qualityReasonMessages[iss] || iss).join('. ')
+                : 'Image is blurry and falls below diagnostic threshold. Stabilize camera on chin-rest and retake.'}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            className="btn btn--danger btn--lg"
+            onClick={onRetake}
+            style={{ width: '100%', justifyContent: 'center', fontWeight: 800, padding: '12px', fontSize: '13px' }}
+          >
+            <span style={{ marginRight: '6px' }}>↺</span> RETAKE IMAGE (RESOLVE DEFECT)
+          </button>
+          <button
+            type="button"
+            className="btn btn--outline"
+            onClick={onAccept}
+            style={{ opacity: 0.5, fontSize: '10px', padding: '6px', borderStyle: 'dashed' }}
+          >
+            OVERRIDE QUALITY GATE & PROCEED ANYWAY
+          </button>
+        </div>
+      ) : (
+        <div className="qrp-actions">
+          <button
+            type="button"
+            className="btn btn--outline qrp-retake-btn"
+            onClick={onRetake}
+          >
+            <span className="qrp-btn-icon">↺</span> RETAKE
+          </button>
+          <button
+            type="button"
+            className="btn btn--success qrp-accept-btn"
+            onClick={onAccept}
+          >
+            ACCEPT & CONTINUE →
+          </button>
+        </div>
+      )}
 
     </div>
   );

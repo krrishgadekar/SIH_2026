@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { drGradeLabels, overrideReasonCategories } from '../../api/mockData';
 
 export const DecisionControls = ({ caseData, onSubmit, submitted }) => {
@@ -7,13 +7,51 @@ export const DecisionControls = ({ caseData, onSubmit, submitted }) => {
   const [overrideCategory, setOverrideCategory] = useState('');
   const [overrideText, setOverrideText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  // Live review SLA timer (< 30s target)
+  useEffect(() => {
+    if (submitted) return;
+    const interval = setInterval(() => {
+      setElapsedSeconds(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [submitted]);
+
+  // Keyboard shortcut listener: Press C to confirm, O to override, Enter to submit
+  useEffect(() => {
+    if (submitted) return;
+    const handleKeyDown = (e) => {
+      const tag = document.activeElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        if (e.key === 'Enter' && e.ctrlKey) {
+          handleSubmit();
+        }
+        return;
+      }
+
+      if (e.key === 'c' || e.key === 'C') {
+        e.preventDefault();
+        setDecision('confirm');
+      } else if (e.key === 'o' || e.key === 'O') {
+        e.preventDefault();
+        setDecision('override');
+      } else if (e.key === 'Enter' && decision) {
+        e.preventDefault();
+        handleSubmit();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [submitted, decision, overrideCategory, overrideGrade, overrideText]);
 
   const handleSubmit = async () => {
     if (!decision) return;
     setSubmitting(true);
 
     const reviewData = {
-      ophthalmologistId: 'OPHTH-001', // In real app, from auth
+      ophthalmologistId: 'OPHTH-001',
       decision,
       overrideReasonCategory: decision === 'override' ? overrideCategory : null,
       overrideReasonText: decision === 'override' && overrideText ? overrideText : null,
@@ -23,16 +61,44 @@ export const DecisionControls = ({ caseData, onSubmit, submitted }) => {
       ...(decision === 'override' && overrideGrade !== ''
         ? { correctedGrade: Number(overrideGrade) }
         : {}),
+      overrideGrade: decision === 'override' && overrideGrade ? parseInt(overrideGrade, 10) : null,
+      reviewDurationSeconds: elapsedSeconds,
     };
 
     await onSubmit(reviewData);
     setSubmitting(false);
   };
 
+  const timerFormatted = `${String(Math.floor(elapsedSeconds / 60)).padStart(2, '0')}:${String(elapsedSeconds % 60).padStart(2, '0')}`;
+
   return (
     <div className="decision-controls" style={{ border: 'var(--border)' }}>
-      <div style={{ padding: 'var(--sp-4) var(--sp-6)', borderBottom: 'var(--border)', background: 'var(--c-black)', color: 'var(--c-crimson)' }}>
-        <h3 className="t-h3" style={{ margin: 0 }}>CLINICAL DECISION</h3>
+      <div style={{
+        padding: 'var(--sp-4) var(--sp-6)',
+        borderBottom: 'var(--border)',
+        background: 'var(--c-black)',
+        color: 'var(--c-crimson)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '8px'
+      }}>
+        <h3 className="t-h3" style={{ margin: 0, color: 'var(--c-crimson)' }}>
+          CLINICAL DECISION &amp; SAFETY AUDIT
+        </h3>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span className="t-mono" style={{
+            fontSize: '11px',
+            color: elapsedSeconds < 30 ? 'var(--c-success, #25a244)' : 'var(--c-warning, #ffaa00)',
+            fontWeight: 700
+          }}>
+            ● REVIEW SLA: {timerFormatted} / &lt;30s TARGET
+          </span>
+          <span className="badge badge--pass" style={{ fontSize: '10px' }}>
+            {elapsedSeconds < 30 ? 'SLA AUDIT PASS' : 'EXTENDED REVIEW'}
+          </span>
+        </div>
       </div>
 
       <div style={{ padding: 'var(--sp-6)' }}>
@@ -111,15 +177,31 @@ export const DecisionControls = ({ caseData, onSubmit, submitted }) => {
         )}
 
         {/* Submit */}
-        {decision && (
+        {submitted ? (
+          <div style={{
+            marginTop: 'var(--sp-4)',
+            padding: '16px',
+            background: 'rgba(37, 162, 68, 0.12)',
+            border: '2px solid var(--c-success, #25a244)',
+            boxShadow: '3px 3px 0px #000',
+            textAlign: 'center'
+          }}>
+            <div style={{ color: 'var(--c-success, #25a244)', fontWeight: 800, fontSize: '14px', fontFamily: 'var(--font-mono)' }}>
+              ✓ CLINICAL DECISION AUDITED &amp; SIGNED
+            </div>
+            <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--text-h)' }}>
+              Review completed in <strong>{elapsedSeconds} seconds</strong> (Target: &lt; 30s SLA). Audit log recorded by Dr. Krrish Gadekar. Returning to queue...
+            </div>
+          </div>
+        ) : decision && (
           <button
             className={`btn btn--lg u-w-full ${decision === 'confirm' ? 'btn--success' : 'btn--danger'}`}
             onClick={handleSubmit}
-            disabled={submitted || submitting || (decision === 'override' && !overrideCategory)}
+            disabled={submitting || (decision === 'override' && !overrideCategory)}
             style={{ justifyContent: 'center', marginTop: 'var(--sp-2)' }}
           >
             <span>
-              {submitting ? 'SUBMITTING...' : submitted ? '✓ SUBMITTED' : `SUBMIT ${decision.toUpperCase()}`}
+              {submitting ? 'SUBMITTING CLINICAL AUDIT...' : `SUBMIT ${decision.toUpperCase()} (PRESS ENTER)`}
             </span>
           </button>
         )}

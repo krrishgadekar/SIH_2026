@@ -1,6 +1,7 @@
 // ── Mock Data — shapes match api-contracts.md exactly ──
 
 export const mockPatients = [
+  { patientId: 'PHC001-kr7x9a-k20', name: 'Krrish', age: 20, contactNumber: '+919823044821', registeredAt: '2026-09-10T09:00:00.000Z' },
   { patientId: 'PHC001-lz3k9f-a2x9', name: 'Sunita Devi', age: 54, contactNumber: '+919812345678', registeredAt: '2026-09-06T09:00:00.000Z' },
   { patientId: 'PHC001-lz3k9g-b4y2', name: 'Ramesh Kumar', age: 62, contactNumber: '+919876543210', registeredAt: '2026-09-06T09:10:00.000Z' },
   { patientId: 'PHC001-lz3k9h-c6z5', name: 'Priya Sharma', age: 45, contactNumber: '+919912345678', registeredAt: '2026-09-06T09:20:00.000Z' },
@@ -142,11 +143,12 @@ export const qualityReasonMessages = {
 };
 
 export const mockQueueItems = [
-  { captureId: 'PHC001-lz4a2b-c7f1', patientId: 'PHC001-lz3k9f-a2x9', patientName: 'Sunita Devi', status: 'result_delivered', capturedAt: '2026-09-06T09:05:00.000Z' },
-  { captureId: 'PHC001-lz4a2c-d8g2', patientId: 'PHC001-lz3k9g-b4y2', patientName: 'Ramesh Kumar', status: 'synced', capturedAt: '2026-09-06T09:15:00.000Z' },
-  { captureId: 'PHC001-lz4a2d-e9h3', patientId: 'PHC001-lz3k9h-c6z5', patientName: 'Priya Sharma', status: 'result_pending', capturedAt: '2026-09-06T09:25:00.000Z' },
-  { captureId: 'PHC001-lz4a2e-f1i4', patientId: 'PHC001-lz3k9i-d8w3', patientName: 'Anil Verma', status: 'quality_passed', capturedAt: '2026-09-06T09:35:00.000Z' },
-  { captureId: 'PHC001-lz4a2f-g2j5', patientId: 'PHC001-lz3k9j-e1v7', patientName: 'Kavita Joshi', status: 'captured', capturedAt: '2026-09-06T09:50:00.000Z' },
+  { captureId: 'PHC001-kr9a2b-c101', patientId: 'PHC001-kr7x9a-k20', patientName: 'Krrish', patientAge: 20, status: 'result_delivered', capturedAt: '2026-09-10T09:05:00.000Z' },
+  { captureId: 'PHC001-lz4a2b-c7f1', patientId: 'PHC001-lz3k9f-a2x9', patientName: 'Sunita Devi', patientAge: 54, status: 'result_delivered', capturedAt: '2026-09-06T09:05:00.000Z' },
+  { captureId: 'PHC001-lz4a2c-d8g2', patientId: 'PHC001-lz3k9g-b4y2', patientName: 'Ramesh Kumar', patientAge: 62, status: 'synced', capturedAt: '2026-09-06T09:15:00.000Z' },
+  { captureId: 'PHC001-lz4a2d-e9h3', patientId: 'PHC001-lz3k9h-c6z5', patientName: 'Priya Sharma', patientAge: 45, status: 'result_pending', capturedAt: '2026-09-06T09:25:00.000Z' },
+  { captureId: 'PHC001-lz4a2e-f1i4', patientId: 'PHC001-lz3k9i-d8w3', patientName: 'Anil Verma', patientAge: 58, status: 'quality_passed', capturedAt: '2026-09-06T09:35:00.000Z' },
+  { captureId: 'PHC001-lz4a2f-g2j5', patientId: 'PHC001-lz3k9j-e1v7', patientName: 'Kavita Joshi', patientAge: 49, status: 'captured', capturedAt: '2026-09-06T09:50:00.000Z' },
 ];
 
 export const mockSyncStatus = {

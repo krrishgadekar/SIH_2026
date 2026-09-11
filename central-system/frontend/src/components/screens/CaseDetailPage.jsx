@@ -88,6 +88,9 @@ export const CaseDetailPage = () => {
             <span className="t-mono" style={{ fontWeight: 700, marginLeft: 'var(--sp-2)' }}>
               #{caseId.slice(0, 8).toUpperCase()}
             </span>
+            <span className="t-mono" style={{ fontWeight: 700, marginLeft: 'var(--sp-3)', color: 'var(--c-crimson)' }}>
+              • {c.patientName ? `${c.patientName.toUpperCase()}` : c.patientReference} {c.patientAge ? `(${c.patientAge}Y)` : ''}
+            </span>
           </div>
         </div>
 
@@ -115,7 +118,9 @@ export const CaseDetailPage = () => {
           {/* Fundus Image with Grad-CAM Toggle */}
           <div className="case-detail__image-panel panel--dark">
             <div className="case-detail__image-header u-flex u-justify-between u-items-center">
-              <span className="t-label" style={{ color: 'var(--c-crimson)' }}>{t('central.caseDetail.image.fundus', 'FUNDUS IMAGE')} — {c.patientReference}</span>
+              <span className="t-label" style={{ color: 'var(--c-crimson)' }}>
+                {t('central.caseDetail.image.fundus', 'FUNDUS IMAGE')} — {c.patientName ? `${c.patientName} (${c.patientReference})` : c.patientReference}
+              </span>
               <button
                 className={`btn ${showGradCam ? 'btn--danger' : 'btn--outline'}`}
                 onClick={() => setShowGradCam(!showGradCam)}
@@ -159,6 +164,18 @@ export const CaseDetailPage = () => {
           <div className="case-detail__context" style={{ border: 'var(--border)', padding: 'var(--sp-6)' }}>
             <h3 className="t-h3 u-mb-4">{t('central.caseDetail.context.title', 'PATIENT / CAPTURE CONTEXT')}</h3>
             <div className="grid--2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+              <div style={{ padding: 'var(--sp-3)', borderRight: 'var(--border)', borderBottom: 'var(--border)' }}>
+                <span className="t-label" style={{ opacity: 0.5 }}>PATIENT NAME</span>
+                <p className="t-mono" style={{ fontWeight: 700, color: 'var(--c-crimson)' }}>
+                  {c.patientName || 'Krrish'}
+                </p>
+              </div>
+              <div style={{ padding: 'var(--sp-3)', borderBottom: 'var(--border)' }}>
+                <span className="t-label" style={{ opacity: 0.5 }}>PATIENT AGE</span>
+                <p className="t-mono" style={{ fontWeight: 700 }}>
+                  {c.patientAge ? `${c.patientAge} YEARS` : '20 YEARS'}
+                </p>
+              </div>
               <div style={{ padding: 'var(--sp-3)', borderRight: 'var(--border)' }}>
                 <span className="t-label" style={{ opacity: 0.5 }}>{t('central.caseDetail.context.diabetesDuration', 'DIABETES DURATION')}</span>
                 <p className="t-mono" style={{ fontWeight: 700 }}>

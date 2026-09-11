@@ -125,7 +125,9 @@ export const DiagnosticResultModal = React.memo(({ isOpen, onClose, item, predic
         <div className="result-modal__patient-strip">
           <div className="result-modal__info-item">
             <span className="info-label">PATIENT NAME</span>
-            <span className="info-val" id="modal-patient-name">{item.patientName}</span>
+            <span className="info-val" id="modal-patient-name" style={{ fontWeight: 700 }}>
+              {item.patientName} {item.patientAge ? `(${item.patientAge}Y)` : ''}
+            </span>
           </div>
           <div className="result-modal__info-item">
             <span className="info-label">PATIENT ID</span>

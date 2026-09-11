@@ -19,8 +19,22 @@ export const PatientRegistrationForm = () => {
     setLoading(true);
     try {
       const newPatient = await localApi.registerPatient(formData);
-      // In a real flow, we might pass the patient ID to the capture screen
-      navigate(`/capture?patientId=${newPatient.patientId}`);
+      // Store in localStorage for cross-screen and cross-system sync
+      try {
+        localStorage.setItem('netra_latest_patient', JSON.stringify({ ...newPatient, ...formData }));
+        const existing = JSON.parse(localStorage.getItem('netra_registered_patients') || '[]');
+        localStorage.setItem('netra_registered_patients', JSON.stringify([{ ...newPatient, ...formData }, ...existing]));
+      } catch (err) {
+        console.warn('Storage sync failed:', err);
+      }
+      // Pass patient ID, full name, and age to capture screen
+      const query = new URLSearchParams({
+        patientId: newPatient.patientId,
+        name: formData.name,
+        age: formData.age || '',
+        contact: formData.contactNumber || ''
+      }).toString();
+      navigate(`/capture?${query}`);
     } catch (err) {
       console.error(err);
       alert('Failed to register patient');

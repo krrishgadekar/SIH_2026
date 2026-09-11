@@ -43,9 +43,10 @@ const ReferralRow = React.memo(({ item, onAdvance }) => {
 
   return (
     <tr style={isLost ? { background: 'rgba(168, 34, 34, 0.05)' } : {}}>
-      <td className="t-mono" style={{ fontWeight: 700 }}>
+      <td className="t-mono">
         {isLost && <span style={{ color: 'var(--c-crimson)', marginRight: '6px' }} title="Urgent Action Required">●</span>}
-        {item.patientReference}
+        <span style={{ fontWeight: 700 }}>{item.patientName || item.patientReference}</span>
+        {item.patientName && <span style={{ fontSize: '11px', opacity: 0.5, marginLeft: '6px' }}>({item.patientReference})</span>}
       </td>
       <td className="t-mono">{item.phcName}</td>
       <td>

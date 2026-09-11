@@ -4,8 +4,10 @@ export const mockOphthQueue = [
   {
     caseId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
     patientReference: 'PT-4821',
+    patientName: 'Krrish',
+    patientAge: 20,
     phcName: 'PHC Kharadi',
-    capturedAt: '2026-09-06T09:05:00.000Z',
+    capturedAt: '2026-09-10T09:05:00.000Z',
     drGradeCnn: 2,
     drGradeRuleEngine: 3,
     branchAgreement: false,
@@ -78,6 +80,8 @@ export const mockOphthQueue = [
 export const mockCaseDetail = {
   caseId: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
   patientReference: 'PT-4821',
+  patientName: 'Krrish',
+  patientAge: 20,
   imageUrl: null, // We'll generate a placeholder
   gradCamOverlayUrl: null, // We'll generate a placeholder
   lesionCounts: { microaneurysms: 6, hemorrhages: 2, hardExudates: 0, softExudates: 0 },
@@ -198,7 +202,7 @@ export const mockAdminDashboard = {
 };
 
 export const mockReferrals = [
-  { referralId: 'ref-001', patientReference: 'PT-4821', status: 'referred', assignedWorker: null, updatedAt: '2026-09-06T09:20:00.000Z', phcName: 'PHC Kharadi', drGrade: 3 },
+  { referralId: 'ref-001', patientReference: 'PT-4821', patientName: 'Krrish', patientAge: 20, status: 'referred', assignedWorker: null, updatedAt: '2026-09-10T09:20:00.000Z', phcName: 'PHC Kharadi', drGrade: 3 },
   { referralId: 'ref-002', patientReference: 'PT-2056', status: 'contacted', assignedWorker: 'ASHA-112', updatedAt: '2026-09-05T16:30:00.000Z', phcName: 'PHC Lohegaon', drGrade: 4 },
   { referralId: 'ref-003', patientReference: 'PT-3190', status: 'attended', assignedWorker: 'ASHA-087', updatedAt: '2026-09-04T11:00:00.000Z', phcName: 'PHC Wagholi', drGrade: 3 },
   { referralId: 'ref-004', patientReference: 'PT-6621', status: 'lost', assignedWorker: 'ASHA-045', updatedAt: '2026-08-28T14:00:00.000Z', phcName: 'PHC Hadapsar', drGrade: 2 },

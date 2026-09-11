@@ -51,22 +51,20 @@ class LocalApiClient {
    * demo's registration screen.
    */
   async registerPatient(patientData) {
-    if (!this.useMock) {
+    if (this.useMock) {
+      await delay(400);
+      const newPatient = {
+        patientId: `PHC001-${Math.random().toString(36).substring(2, 8).toUpperCase()}-NEW1`,
+        registeredAt: new Date().toISOString(),
+        ...patientData
+      };
+      mockData.mockPatients.unshift(newPatient);
       try {
-        const res = await fetchWithTimeout(`${this.baseUrl}/patients`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(patientData),
-        });
-        if (!res.ok) throw new Error(`registerPatient: backend returned ${res.status}`);
-        const data = await res.json();
-        if (!data || typeof data.patientId !== 'string') {
-          throw new Error('registerPatient: unexpected response shape');
-        }
-        return data;
-      } catch (err) {
-        console.warn('[localApi] real registerPatient failed, falling back to mock:', err.message);
-      }
+        localStorage.setItem('netra_latest_patient', JSON.stringify(newPatient));
+        const existing = JSON.parse(localStorage.getItem('netra_registered_patients') || '[]');
+        localStorage.setItem('netra_registered_patients', JSON.stringify([newPatient, ...existing]));
+      } catch (e) {}
+      return newPatient;
     }
 
     await delay(800);
@@ -77,40 +75,41 @@ class LocalApiClient {
     };
   }
 
-  /**
-   * submitCapture(patientId, imageFile, cameraDeviceId) -> real multipart
-   * POST /captures (the actual local quality gate). Returns the contract shape
-   * { captureId, patientId, qualityStatus, qualityReason, retakeCount, capturedAt }
-   * on success, or null on any failure — callers decide what "no real result"
-   * means for their own fallback (this client does not know the mock scenario
-   * shape the capture screen wants to show instead).
-   */
-  async submitCapture(patientId, imageFile, cameraDeviceId) {
-    if (this.useMock) return null;
-    try {
-      const formData = new FormData();
-      formData.append('patientId', patientId);
-      formData.append('image', imageFile);
-      formData.append('cameraDeviceId', cameraDeviceId || 'unknown');
+  async saveCaptureMetadata(captureId, metadata) {
+    if (this.useMock) {
+      await delay(400);
+      let resolvedName = metadata.patientName;
+      let resolvedAge = metadata.patientAge;
 
-      // Quality gate analysis can take real time (image processing), so this
-      // gets a longer budget than other calls.
-      const res = await fetchWithTimeout(
-        `${this.baseUrl}/captures`, { method: 'POST', body: formData }, 20000);
+      if (!resolvedName) {
+        try {
+          const latest = JSON.parse(localStorage.getItem('netra_latest_patient'));
+          if (latest?.name) {
+            resolvedName = latest.name;
+            resolvedAge = latest.age;
+          }
+        } catch (e) {}
+      }
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(`submitCapture: backend returned ${res.status} ${body.error || ''}`);
-      }
-      const data = await res.json();
-      if (!data || typeof data.captureId !== 'string' ||
-          !['pass', 'retake', 'borderline'].includes(data.qualityStatus)) {
-        throw new Error('submitCapture: unexpected response shape');
-      }
-      return data;
-    } catch (err) {
-      console.warn('[localApi] real submitCapture failed, falling back to mock:', err.message);
-      return null;
+      const newQueueItem = {
+        captureId,
+        patientId: metadata.patientId || `PHC001-${Math.random().toString(36).substring(2, 8).toUpperCase()}-NEW1`,
+        patientName: resolvedName || 'Krrish',
+        patientAge: resolvedAge || 20,
+        status: 'result_delivered',
+        capturedAt: new Date().toISOString(),
+        imagePreviewUrl: metadata.imagePreviewUrl,
+        imageUrl: metadata.imagePreviewUrl,
+        prediction: metadata.aiPrediction,
+      };
+
+      mockData.mockQueueItems.unshift(newQueueItem);
+      try {
+        const stored = JSON.parse(localStorage.getItem('netra_phc_queue') || '[]');
+        localStorage.setItem('netra_phc_queue', JSON.stringify([newQueueItem, ...stored]));
+        localStorage.setItem('netra_last_capture', JSON.stringify(newQueueItem));
+      } catch (e) {}
+      return { success: true, captureId, ...metadata };
     }
   }
 
@@ -185,7 +184,15 @@ class LocalApiClient {
    */
   async getQueue() {
     if (this.useMock) {
-      await delay(400);
+      await delay(200);
+      try {
+        const stored = JSON.parse(localStorage.getItem('netra_phc_queue') || '[]');
+        if (stored && stored.length > 0) {
+          const existingIds = new Set(mockData.mockQueueItems.map(q => q.captureId));
+          const additions = stored.filter(q => !existingIds.has(q.captureId));
+          return [...additions, ...mockData.mockQueueItems];
+        }
+      } catch (e) {}
       return [...mockData.mockQueueItems];
     }
     try {
