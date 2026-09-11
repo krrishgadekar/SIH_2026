@@ -79,14 +79,14 @@ export default function HomeScreen() {
 
   const renderCaseRow = ({ item, index }: { item: QueueItem; index: number }) => {
     const patient = item.session.patient;
-    const result  = item.session.result;
-    const level   = result?.severity?.level;
+    const result = item.session.result;
+    const level = result?.severity?.level;
     const display = level !== undefined ? getSeverityDisplay(level) : null;
 
     const syncVariant =
-      item.syncStatus === 'synced'  ? 'success' :
-      item.syncStatus === 'pending' ? 'warning' :
-      item.syncStatus === 'error'   ? 'danger'  : 'neutral';
+      item.syncStatus === 'synced' ? 'success' :
+        item.syncStatus === 'pending' ? 'warning' :
+          item.syncStatus === 'error' ? 'danger' : 'neutral';
 
     return (
       <Animated.View style={{ opacity: fadeAnims[index] || 1 }}>
@@ -122,7 +122,7 @@ export default function HomeScreen() {
         {/* App header — editorial */}
         <View style={styles.appHeader}>
           <View>
-            <Text style={styles.appName}>RETINASAARTHI</Text>
+            <Text style={styles.appName}>NetraSetu</Text>
             <View style={styles.headerUnderline} />
             <Text style={styles.appSubtitle}>DIABETIC RETINOPATHY SCREENING</Text>
           </View>

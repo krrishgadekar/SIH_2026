@@ -1,7 +1,8 @@
 import React, { useMemo } from 'react';
 import {
-  View, Text, StyleSheet, SafeAreaView, ScrollView,
+  View, Text, StyleSheet, ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useScreening } from '../context/ScreeningContext';
 import GradCamCard, { LesionMarker } from '../components/GradCamCard';
 import QualityCard from '../components/QualityCard';
