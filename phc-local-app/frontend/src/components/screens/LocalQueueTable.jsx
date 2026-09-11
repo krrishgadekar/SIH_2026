@@ -50,17 +50,25 @@ export const LocalQueueTable = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchQueue = async () => {
       try {
         const data = await localApi.getQueue();
+        if (cancelled) return;
         setQueue(data);
       } catch (err) {
         console.error(err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
+    // A capture's pipeline stage (captured -> quality_passed -> synced) changes
+    // in the background (sync manager, central grading) while a technician may
+    // just be sitting on this screen — a one-shot fetch on mount never reflects
+    // that, and looks exactly like "nothing is happening" even once it has.
     fetchQueue();
+    const interval = setInterval(fetchQueue, 5000);
+    return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
   // Handle ESC key for modal

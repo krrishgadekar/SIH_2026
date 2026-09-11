@@ -68,13 +68,15 @@ export const PatientRegistrationForm = () => {
           
           <div className="panel u-p-4 u-mt-0">
             <label className="label">{t('registration.contact')}</label>
-            <input 
-              type="tel" 
-              name="contactNumber" 
-              className="input" 
+            <input
+              type="tel"
+              name="contactNumber"
+              className="input"
               placeholder={t('registration.contactPlaceholder')}
               value={formData.contactNumber}
               onChange={handleChange}
+              required
+              title="Required — this is the only channel for delivering a result to a patient who has already gone home. Without it, registration silently falls back to offline practice data."
             />
           </div>
 

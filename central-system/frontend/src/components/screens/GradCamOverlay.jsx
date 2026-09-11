@@ -1,10 +1,49 @@
 import React, { useRef, useEffect, useState } from 'react';
+import { CENTRAL_API_BASE } from '../../config';
 
 /**
- * GradCamOverlay renders a synthetic fundus image and a Grad-CAM heatmap overlay.
- * Since we don't have real images, we generate them procedurally with canvas.
+ * GradCamOverlay — real case: renders the actual fundus image with the real
+ * Grad-CAM PNG (produced by branchAInfer.py) as an absolutely-positioned
+ * semi-transparent layer on top, toggled by showOverlay. imageUrl/
+ * gradCamOverlayUrl come back from the API as paths under /media (e.g.
+ * "/media/cases/<id>/original.jpg"), served by the central backend itself —
+ * not the frontend dev server — so they're resolved against CENTRAL_API_BASE.
+ *
+ * Mock/no-data case (imageUrl null, e.g. mock data or a case not yet graded):
+ * falls back to the original procedurally-generated synthetic retina, so the
+ * mock demo path is completely unchanged.
  */
-export const GradCamOverlay = ({ showOverlay, caseData }) => {
+const RealGradCam = ({ showOverlay, caseData, onLoadError }) => {
+  const imageSrc = `${CENTRAL_API_BASE}${caseData.imageUrl}`;
+  const overlaySrc = caseData.gradCamOverlayUrl ? `${CENTRAL_API_BASE}${caseData.gradCamOverlayUrl}` : null;
+
+  return (
+    <div className="gradcam-viewer">
+      <img src={imageSrc} alt="Fundus capture" className="gradcam-viewer__fundus" onError={onLoadError} />
+      {overlaySrc && (
+        <img
+          src={overlaySrc}
+          alt="Grad-CAM attention overlay"
+          className={`gradcam-viewer__overlay ${showOverlay ? 'gradcam-viewer__overlay--visible' : ''}`}
+        />
+      )}
+      <div className="capture-zone__crosshair" />
+      <div className="gradcam-viewer__brackets">
+        <span className="gradcam-viewer__bracket gradcam-viewer__bracket--tl" />
+        <span className="gradcam-viewer__bracket gradcam-viewer__bracket--tr" />
+        <span className="gradcam-viewer__bracket gradcam-viewer__bracket--bl" />
+        <span className="gradcam-viewer__bracket gradcam-viewer__bracket--br" />
+      </div>
+    </div>
+  );
+};
+
+/**
+ * SyntheticGradCam renders a synthetic fundus image and a Grad-CAM heatmap
+ * overlay. Used when there is no real image to show (mock data, or a case
+ * whose grading hasn't produced media yet).
+ */
+const SyntheticGradCam = ({ showOverlay, caseData }) => {
   const canvasRef = useRef(null);
   const overlayRef = useRef(null);
   const [dimensions] = useState({ width: 500, height: 500 });
@@ -184,4 +223,27 @@ export const GradCamOverlay = ({ showOverlay, caseData }) => {
       </div>
     </div>
   );
+};
+
+/**
+ * GradCamOverlay — picks the real image renderer when the case actually has
+ * one, otherwise falls back to the synthetic illustration exactly as before.
+ * This is the only exported entry point; CaseDetailPage's usage is unchanged.
+ */
+export const GradCamOverlay = ({ showOverlay, caseData }) => {
+  // If the real /media image 404s or the connection drops mid-demo, drop to
+  // the synthetic illustration instead of a broken-image icon — same
+  // "never a visible error" rule as the API fallbacks.
+  const [realImageFailed, setRealImageFailed] = useState(false);
+
+  if (caseData?.imageUrl && !realImageFailed) {
+    return (
+      <RealGradCam
+        showOverlay={showOverlay}
+        caseData={caseData}
+        onLoadError={() => setRealImageFailed(true)}
+      />
+    );
+  }
+  return <SyntheticGradCam showOverlay={showOverlay} caseData={caseData} />;
 };

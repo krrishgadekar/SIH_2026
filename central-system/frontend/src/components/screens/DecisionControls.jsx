@@ -17,6 +17,12 @@ export const DecisionControls = ({ caseData, onSubmit, submitted }) => {
       decision,
       overrideReasonCategory: decision === 'override' ? overrideCategory : null,
       overrideReasonText: decision === 'override' && overrideText ? overrideText : null,
+      // Without this, an override returns smsStatus: 'override_without_grade'
+      // and the referral SMS is never sent (api-contracts.md) — the reviewer
+      // picks a grade in the UI above, but it was never reaching the API.
+      ...(decision === 'override' && overrideGrade !== ''
+        ? { correctedGrade: Number(overrideGrade) }
+        : {}),
     };
 
     await onSubmit(reviewData);
