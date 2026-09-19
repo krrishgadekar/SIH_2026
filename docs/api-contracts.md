@@ -19,6 +19,40 @@
 Kept because this file is the tie-breaker: when it changes, the code and both
 plans have to be re-checked against it, and a silent edit makes that impossible.
 
+**2026-09-20 — Backend plan §G, §I, §O, §P (resource model, fovea, PDF report, eye laterality).**
+- **New `GET /api/v1/admin/resource-recommendations`** (404 until the first run) and **`POST …/refresh`**. This is the district resource model's output, replacing the hardcoded panel copy.
+- **New `GET /api/v1/cases/:caseId/report`**. It returns `{ reportUrl, generatedAt, cached }`, and the PDF itself is fetched from `/media`.
+- **`GET /api/v1/cases/:caseId` gains four fields:** `eyeLaterality`, `eyeLateralitySource`, `eyeLateralityMismatch` and `foveaUnreliable`.
+- **Local `POST /captures/:captureId/capture-metadata` accepts `eyeLaterality`** (`"left" | "right"`). The desktop capture screen already asks the technician, but its payload mapper does not send the answer yet: `toRealCaptureMetadataPayload` in `CaptureScreen.jsx` needs `eyeLaterality: m.eye`. That is a frontend change.
+
+**2026-09-20 — Backend plan §D–§F (system health).**
+- New `GET /api/v1/admin/system-health` (district_admin), below.
+- `GET /api/v1/phc/:phcId/sync-status` gains `lastContactAt`: any contact at all, summary packets included. A PHC health badge should key off `lastContactAt`, not `lastSyncAt`; the threshold comes from `thresholds.silentPhcHours` in system-health.
+
+**2026-09-20 — Backend plan §C (idempotent ingestion + summary packets).**
+
+- **One PHC capture is one central case.** `captureIdRef` is now an idempotency key, backed by a unique constraint. Re-sending a capture central already has returns **`200`** with the existing `caseId` and `"duplicate": true`. Nothing is stored and nothing is re-graded. Treat it as success: mark the capture synced.
+- **New `POST /api/v1/cases/summary`.** It carries the same fields as `POST /api/v1/cases` but no image, and is sent ahead of the image on a thin link. It creates the case in the new status **`"awaiting_image"`**. The later full upload with the same `captureIdRef`, by single POST or chunks, fills in that same case and starts grading.
+- **Status enum:** `GET /api/v1/cases/:caseId/status` can now return `"awaiting_image"`, as well as `"processing" | "graded" | "error"`.
+- **`POST /api/v1/cases` responses gain `status`, `duplicate` and `fromSummary`.** These are additive; `caseId` and `receivedAt` are unchanged.
+
+**2026-09-20 — Backend plan §A, §B.1–B.3, §M (auth, claiming, review history, patient search, consent).**
+
+- **Login exists.** `POST /api/v1/auth/login`, `GET /api/v1/auth/me` and `POST /api/v1/auth/logout` are specified under "Authentication" below. The session is an **httpOnly cookie**, not a token the frontend handles. Every browser `fetch` must send `credentials: 'include'`, and every POST, PATCH or DELETE must send the `X-CSRF-Token` header. `<img>` tags need nothing extra.
+- **Enforcement is behind flags, both OFF by default.** `AUTH_ENABLED` covers browser users and `PHC_AUTH_ENABLED` covers PHC device keys. While a flag is off, nothing is rejected for missing credentials, so today's frontends and sync keep working unchanged. Build against the "flag ON" behaviour: that is what ships.
+- **Every route now has an allowed role.** The table is under "Authentication". Once `AUTH_ENABLED=true`, a wrong role gets `403 forbidden` and no session gets `401 unauthenticated`.
+- **PHC apps authenticate with a per-site API key** in the `X-PHC-Api-Key` header, on `POST /api/v1/cases` and every `/chunks` route. `GET /api/v1/cases/:caseId/status` accepts either a PHC key or a logged-in user.
+- **`POST /api/v1/cases/:caseId/review` changes in three ways:**
+  1. The reviewer is taken from the session. `ophthalmologistId` in the body is ignored when someone is logged in.
+  2. `correctedGrade` is now **stored** and returned by review history.
+  3. **§10.9 is enforced server-side, regardless of flags.** On a case where `branchAgreement === false`, a `"confirm"`, or an override without `correctedGrade`, returns `400 explicit_grade_required`. A review on a case another reviewer holds returns `409 case_claimed`.
+- **New endpoints:**
+  - `POST /api/v1/cases/:caseId/claim`
+  - `GET /api/v1/cases/:caseId/reviews` (closes the gap previously recorded under the review endpoint)
+  - `GET /api/v1/patients/search` (central, PHC key)
+  - `GET /patients/search` (local, same shape)
+- **Consent (§9.7):** local `POST /patients` and central `POST /api/v1/cases` accept an optional `consentGivenAt` (ISO 8601). The sync manager forwards the local value to central.
+
 **2026-09-09 — Task 7.3.** `evidenceSummaryText` is no longer `null`: it is always a non-empty string now that the report generator exists. Until lesion segmentation ships it states that segmentation has not been run rather than reporting zero lesions. `lesionAttentionConsistencyScore` stays `null` — Task 7.1 is built and tested but needs a lesion mask to score against.
 
 **2026-09-09 — Tasks 8.2 and 8.3.** One behaviour change and one new endpoint group.
@@ -47,6 +81,8 @@ that made an endpoint unbuildable as written.
 ## Local API — `phc-local-app/backend`, base URL `http://localhost:4000`
 
 ### `POST /patients`
+*(2026-09-20)* Also accepts an optional `consentGivenAt` (ISO 8601): the moment the technician ticked "verbal consent obtained" (design doc §9.7). It is echoed back as `consentGivenAt` (`null` if absent) and forwarded to central on sync. Errors: `400 invalid_field` for an unparseable timestamp.
+
 Request:
 ```json
 { "name": "Sunita Devi", "age": 54, "contactNumber": "+919812345678" }
@@ -67,6 +103,11 @@ Response `404`: `{ "error": "patient_not_found", "message": "..." }`
 ### `GET /patients`
 Response `200`: array of the same object, most recently registered first, capped at 200.
 Not part of the original contract; recorded 2026-09-08 because it is implemented and the Patient Lookup screen needs a list to search. The cap is deliberate — this table grows all season on modest PHC hardware.
+
+### `GET /patients/search?name=&age=&phone=`  *(added 2026-09-20, design doc §10.3)*
+Duplicate check at registration, against **this PHC's own** records, so it works offline. Same parameters, matching rules and item shape as central's `GET /api/v1/patients/search` (below), with two differences: it searches only local patients, and each item is the full `POST /patients` shape (the real `contactNumber`, since this is the site's own data) plus `matchedOn` and `score`.
+
+At least one of `name` or `phone` is required; `age` only boosts. Errors: `400 invalid_field`.
 
 ### `POST /captures`
 Request: `multipart/form-data` with fields `patientId` (string), `image` (file), `cameraDeviceId` (string — one of the keys in `cameraPresets.json`, or `"unknown"`).
@@ -113,6 +154,8 @@ Request:
 Response `201`: `{ "responseId": "string", "captureId": "string" }`
 
 ### `POST /captures/:captureId/capture-metadata`
+*(2026-09-20)* Also accepts optional `eyeLaterality`: `"left" | "right"` (design doc §10.4). It is stored with the capture and forwarded to central inside `captureMetadata`. Errors: `400 invalid_field` for any other value.
+
 Request:
 ```json
 {
@@ -179,7 +222,23 @@ A `201` means the case was **stored**, not that it was graded. **Since Task 8.3 
 
 Errors: `400 image_required`, `400 invalid_image_type`, `400 invalid_json` (malformed `questionnaireData`/`captureMetadata`), `404 patient_not_found` (unknown patient and no demographics supplied), `413 image_too_large` (limit 25 MB).
 
+### `POST /api/v1/cases/summary`  *(added 2026-09-20, design doc §10.1)*
+JSON body with the same fields as `POST /api/v1/cases` minus `image`. `captureIdRef` is **required** here: it is what the later image upload matches on.
+
+Response: `{ "caseId", "receivedAt", "status", "duplicate" }`.
+- **`201`, `status: "awaiting_image"`:** the case was created.
+- **`200`, `duplicate: true`:** the capture was already known. `status` is its current state, which may already be `"processing"` or `"graded"` if the image arrived first.
+
+A summary is never graded. It records the patient and the questionnaires, and marks the PHC as in contact (`last_contact_at`, not `last_sync_at`).
+
+Errors:
+- `400 capture_id_required | invalid_field | invalid_json`
+- `404 patient_not_found`: unknown patient and no demographics sent.
+
+Auth: PHC key.
+
 ### `GET /api/v1/cases/:caseId/status`
+*(2026-09-20)* `status` may also be `"awaiting_image"`: a summary arrived and the image has not yet.
 Response `200`: `{ "caseId": "string", "status": "processing" | "graded" | "error" }`
 
 `"processing"` covers both *waiting for a worker* and *being graded*. That is deliberate: from outside they are the same fact — the answer is not ready, keep polling — and a fourth enum value would expose an internal distinction no client can act on. Both `"graded"` and `"error"` are terminal; nothing leaves either state without a new submission.
@@ -268,6 +327,12 @@ That is deliberate and is not a placeholder. It never says "0 microaneurysms" �
 
 `imageUrl` and `gradCamOverlayUrl` are paths under `/media`, or `null` when the file does not exist. `original.jpg` in the example is illustrative: the uploaded file's real extension is preserved, so a PNG upload is served as `original.png`. Naming a PNG `.jpg` would be a file whose extension lies about its contents. Both URLs are served by the central server as static files; a URL returned here is expected to resolve, so treat a 404 on one as a bug rather than an empty state.
 
+### `GET /api/v1/cases/:caseId`: fields added 2026-09-20
+- `eyeLaterality`: `"left" | "right" | null`. The eye the image's own DICOM tag reports, if the file has one; otherwise the technician's selection.
+- `eyeLateralitySource`: `"dicom" | "technician" | null`.
+- `eyeLateralityMismatch`: `true` when the DICOM tag and the technician's selection disagree. Such a case is never auto-cleared (it is held at Tier B or higher).
+- `foveaUnreliable`: `true | false | null`. `true` means the localizer could not place the fovea, so lesion quadrants follow the image axes and the quadrant-based severe-NPDR criteria were not applied. `null` means the localizer did not report it.
+
 ### `POST /api/v1/cases/:caseId/review`
 Request:
 ```json
@@ -301,7 +366,81 @@ Errors: `400 invalid_field` (bad `decision`; a category supplied on a `confirm`;
 
 An `"override"` also writes a `corrections` row in the same transaction — that pairing of "the model was wrong" with "and here is why" is the training signal the continual-learning loop consumes, so a review whose correction failed to record would be lost from retraining with nothing downstream noticing.
 
-> **Gap, unresolved.** There is no endpoint to read a case's review history, but the design doc's Case Detail screen specifies a per-patient audit trail. Something like `GET /api/v1/cases/:caseId/reviews` is needed. It is deliberately **not** invented here — the frontend track should specify the shape it actually needs first, rather than the backend guessing and both sides building to different assumptions.
+**Changes from 2026-09-20:**
+- The reviewer is taken from the login session. `ophthalmologistId` is used only when no one is logged in, which can happen only while `AUTH_ENABLED=false`.
+- `correctedGrade` is persisted.
+- If another reviewer holds a live claim on the case: `409 case_claimed` with `{ claimedBy, claimedAt }`.
+- If the two branches disagree (`branchAgreement === false`): a `"confirm"`, or an `"override"` without `correctedGrade`, returns `400 explicit_grade_required` (design doc §10.9). The UI should make Confirm unavailable on such cases; the server enforces it either way.
+
+Review history is now served by `GET /api/v1/cases/:caseId/reviews`, below.
+
+### `POST /api/v1/cases/:caseId/claim`  *(added 2026-09-20, design doc §10.8)*
+Call this when a reviewer opens a case in Case Detail. It takes no body. Requires a logged-in ophthalmologist, even while `AUTH_ENABLED=false`, because a claim with no claimant means nothing.
+
+- **Success.** It succeeds when the case is unclaimed, already held by the caller (for example after a page reload), or held by someone whose claim is older than `CLAIM_TTL_MINUTES` (default 30). Response `200`: `{ "caseId", "claimedBy": { "userId", "name" }, "claimedAt", "expiresAt" }`.
+- **`409 case_claimed`.** Someone else holds a live claim. The body has the same fields as the `200` response, plus `error` and `message`. Show the holder's `claimedBy.name` and disable the decision controls.
+- **Other errors:** `409 case_not_graded`, `404 case_not_found`, `401 unauthenticated`.
+
+### `GET /api/v1/cases/:caseId/report`  *(added 2026-09-20, backend plan §O)*
+The per-case clinical-rationale PDF.
+- **Response `200`:** `{ "reportUrl": "/media/cases/<id>/report.pdf", "generatedAt", "cached": true|false }`.
+- **When it is generated:** on the first request, then cached. A case re-graded since the last PDF gets a fresh one automatically, and `?regenerate=1` forces one.
+- **Timing:** about 2 s when the MATLAB session is up, about 35 s when it is not.
+- **Contents:** patient reference (never the raw ID), age, eye, site, capture time, the photo and Grad-CAM overlay, the grade with a plain-language description and its tier, both branches' grades and whether they agree, lesion evidence (with the disclosed limits of each detector), the evidence summary, and the "requires ophthalmologist review" disclaimer on every page.
+- **Errors:** `409 case_not_graded`, `404 case_not_found`, `502 report_generation_failed`.
+- **Auth:** ophthalmologist or district_admin. The PDF itself needs a session, like everything under `/media`.
+
+### `GET /api/v1/cases/:caseId/reviews`  *(added 2026-09-20)*
+Review history, newest first. Allowed roles: ophthalmologist or district_admin.
+```json
+[
+  {
+    "reviewId": "uuid",
+    "decision": "override",
+    "overrideReasonCategory": "wrong_severity",
+    "overrideReasonText": "string|null",
+    "correctedGrade": 3,
+    "reviewDurationSeconds": 24,
+    "reviewedAt": "2026-09-20T10:00:00.000Z",
+    "reviewer": { "userId": "uuid", "name": "Dr. Demo Ophthalmologist" },
+    "ophthalmologistId": "string|null"
+  }
+]
+```
+- An empty array means the case has never been reviewed.
+- `reviewer` is `null` for reviews recorded before login existed, whose `ophthalmologistId` was free text from the client.
+- `correctedGrade` is `null` on confirms and on overrides recorded before 2026-09-20.
+- Errors: `404 case_not_found`.
+
+### `GET /api/v1/patients/search?name=&age=&phone=`  *(added 2026-09-20, design doc §10.3)*
+Duplicate check against every patient in the district. Callers are PHC apps, so it requires `X-PHC-Api-Key`.
+
+**Parameters.** At least one of `name` or `phone` is required: `age` alone matches half the district, so it never selects a candidate and only raises the score.
+
+**Matching and scoring:**
+- **Name, whole query contained in the patient's name:** +3.
+- **Name, otherwise any query word of 3+ letters contained:** +2. This catches reordered names and a missing surname.
+- **Phone:** digits only, compared on the trailing digits (up to 10). +3.
+- **Age within ±1 year:** +1.
+
+Results are the top 20 by score.
+```json
+[
+  {
+    "patientId": "PHC001-lz3k9f-a2x9",
+    "patientReference": "PT-K3M9XQ",
+    "name": "Sunita Devi",
+    "age": 52,
+    "contactNumberMasked": "******3210",
+    "registeredAt": "…",
+    "matchedOn": ["name", "age"],
+    "score": 4
+  }
+]
+```
+The phone is masked to its last four digits because this endpoint spans every PHC: enough for the technician to ask the patient to confirm the number, not enough to harvest numbers.
+
+Errors: `400 invalid_field`, `401 phc_key_required | phc_key_invalid`.
 
 ### `GET /api/v1/admin/dashboard`
 `casesToday` and `casesPerPhc` are both scoped to **today in the district's local timezone** (`REPORT_TIMEZONE`, default `Asia/Kolkata`), not UTC. A UTC day boundary would roll over at 05:30 local time in India, counting each morning's first hours of screening against the previous day — wrong in a way nobody notices. The two figures always reconcile: `casesPerPhc` counts sum exactly to `casesToday`, and cases that arrived without a `phcId` appear as a bucket with `phcId: null` rather than being dropped.
@@ -327,13 +466,117 @@ Response `200`: array of
 Request: `{ "status": "contacted", "assignedWorker": "ASHA-112" }`
 Response `200`: the updated referral object, same shape as the list item above.
 
+### `GET /api/v1/admin/resource-recommendations`  *(added 2026-09-20, backend plan §G)*
+District admin. The latest run of the district resource model (`simulink-model/referenceQueueingModel.m`, the model the SimEvents `.slx` was validated against). It runs daily and on demand.
+```json
+{
+  "generatedAt": "…",
+  "minOphthalmologistsRoutine": 2,
+  "minOphthalmologistsCamp": 4,
+  "maxSearched": 12,
+  "p95TargetMin": 60,
+  "bottleneck": "ophthalmologist review",
+  "recommendation": "Reviewer pool is the constraint (72% utilised, p95 wait 72 min). Add ophthalmologists: 1 -> 2.",
+  "current": { "numOphthalmologists", "reviewUtilisationPct", "reviewWaitP95Min",
+               "uploadUtilisationPct", "uploadWaitP95Min", "casesReviewed", "casesAutoCleared" },
+  "params": { "…every input the model ran on…" },
+  "inputsSource": { "tierFractions": "observed: 43 graded cases, last 90 days", "…": "…" },
+  "model": "referenceQueueingModel",
+  "runSeconds": 2.0
+}
+```
+- **`minOphthalmologists*`:** the smallest reviewer pool that holds the p95 review wait under `p95TargetMin`. The first figure is for routine operation, the second for camp mode (the same annual volume in 50 days). It is `null` when even `maxSearched` reviewers would not meet the target; never show `null` as a number.
+- **`inputsSource`:** says which inputs were **observed** in this system's own data and which are **modelled defaults**. The panel should show this, because the figures are planning estimates built on assumptions.
+- **Errors:** `404 recommendations_not_generated` before the first run.
+
+### `POST /api/v1/admin/resource-recommendations/refresh`
+District admin (CSRF header required). Runs the model now, which takes about 10–30 s. Returns the new row in the same shape as above, or `502 resource_model_failed`.
+
+### `GET /api/v1/admin/system-health`  *(added 2026-09-20, design doc §10.7)*
+District admin. One call returns four checks: silent PHCs, stuck grading jobs, the MATLAB session and unreviewed referable cases.
+```json
+{
+  "silentPhcs":      [ { "phcId", "phcName", "lastContactAt": "…|null", "hoursSilent": 52 } ],
+  "stuckJobs":       [ { "caseId", "stuckSince", "autoRecoveredCount": 2,
+                         "lastRecoveredAt": "…|null", "autoRecoveryExhausted": false } ],
+  "matlabSessionStatus": "healthy",
+  "unreviewedCases": [ { "caseId", "tier": "C", "createdAt", "hoursUnreviewed": 76 } ],
+  "matlabSession":   { "status", "lastHeartbeatAt", "restartsInWindow", "lastError" },
+  "alerts":          [ { "kind": "matlab_session_down", "subject", "message",
+                         "firstSeenAt", "lastSeenAt", "occurrences" } ],
+  "thresholds":      { "silentPhcHours": 48, "stuckJobMinutes": 15, "unreviewedCaseHours": 48 },
+  "generatedAt": "…"
+}
+```
+
+**The four checks:**
+- **`silentPhcs`:** a PHC appears when it has had no contact of any kind (full case, summary packet or chunk) for `silentPhcHours`, or has never made contact (`lastContactAt: null`).
+- **`stuckJobs`:** a case appears when it is still processing long after it arrived. The automatic watchdog re-queues such cases up to 3 times; once `autoRecoveryExhausted` is `true`, it needs a human.
+- **`matlabSessionStatus`:** one of `"healthy" | "restarting" | "down" | "disabled"`. The supervisor restarts the session itself. It reports `"down"`, and raises an alert, when restarting has not worked.
+- **`unreviewedCases`:** referable cases that have never been reviewed, older than `unreviewedCaseHours`.
+
 ### `GET /api/v1/phc/:phcId/sync-status`
+*(2026-09-20)* Response also includes `lastContactAt` (`string|null`).
 Response `200`: `{ "phcId": "string", "phcName": "PHC Kharadi", "lastSyncAt": "2026-09-06T08:00:00.000Z", "pendingCount": 5 }`
 Response `404`: `{ "error": "phc_not_found", "message": "..." }`
 
 **Read `lastSyncAt` and `pendingCount` together — `pendingCount` alone is misleading.** The sync queue lives in that PHC's local SQLite; central has no view into it, so this is the number the PHC last *reported*, true only as of `lastSyncAt`. The site whose backlog is genuinely growing is exactly the offline one whose count is frozen at whatever it was when it last made contact. A PHC reporting `pendingCount: 0` with a three-day-old `lastSyncAt` is a far bigger problem than one reporting `40` from a minute ago. Any UI built on this must surface the staleness, not just the count. `lastSyncAt` is `null` and `pendingCount` is `0` for a site that has never synced.
 
 ---
+
+## Authentication  *(added 2026-09-20, backend plan §A)*
+
+### `POST /api/v1/auth/login`
+Request: `{ "email": "string", "password": "string" }`
+
+Response `200`:
+```json
+{
+  "user": { "userId": "uuid", "name": "string", "email": "string", "role": "ophthalmologist" },
+  "csrfToken": "string",
+  "expiresAt": "…"
+}
+```
+It also sets the `ns_session` cookie (`HttpOnly; Secure; SameSite=Lax`, or `SameSite=None` when `COOKIE_SAMESITE=none`).
+- **The JWT is never in the body.** The frontend cannot read the cookie and should not try.
+- **Keep `csrfToken` in memory.**
+- **Sessions last 12 hours** (`JWT_TTL_HOURS`). There is no refresh; on expiry the user logs in again.
+
+`role` ∈ `"ophthalmologist" | "district_admin"`.
+
+Errors:
+- `400 invalid_field`
+- `401 invalid_credentials`: the same body for an unknown email and a wrong password, deliberately.
+- `429 too_many_attempts`: after 10 failures in 15 minutes.
+
+### `GET /api/v1/auth/me`
+Same `200` body as login. Call it on page load to recover the user and `csrfToken` after a reload. Errors: `401 unauthenticated`.
+
+### `POST /api/v1/auth/logout`
+`204`. Clears the cookie.
+
+### Rules for every browser call
+- `fetch(url, { credentials: 'include' })`. Without it the cookie is neither stored nor sent.
+- POST, PATCH and DELETE also send `X-CSRF-Token: <csrfToken>`. Missing or wrong: `403 csrf_invalid`.
+- A frontend on a different site from the backend (for example `*.vercel.app` → `http://localhost:5000`) needs the backend set to `COOKIE_SAMESITE=none`, and its origin in `CORS_ALLOWED_ORIGINS`.
+
+### PHC device authentication
+PHC apps do not log in. They send their site's key as `X-PHC-Api-Key: phc_…`, issued once by `npm run provision-phc-key` on central and stored in that PHC's config (`PHC_API_KEY`). A key identifies its site, so a request that names a different `phcId` gets `403 phc_mismatch`. Errors: `401 phc_key_required | phc_key_invalid`.
+
+### Who may call what (enforced when the flags are on)
+| Endpoint | Allowed |
+|---|---|
+| `POST /api/v1/auth/*`, `GET /health` | anyone |
+| `POST /api/v1/cases`, `/api/v1/cases/:captureRef/chunks…` | PHC key |
+| `GET /api/v1/patients/search` | PHC key |
+| `GET /api/v1/cases/:caseId/status` | PHC key **or** any logged-in user |
+| `GET /api/v1/cases/:caseId`, `GET /api/v1/cases/:caseId/reviews`, `/media/…` | ophthalmologist or district_admin |
+| `GET /api/v1/ophthalmologist/queue`, `POST …/claim`, `POST …/review` | ophthalmologist |
+| `GET /api/v1/admin/*`, `PATCH /api/v1/referrals/:id`, `GET /api/v1/phc/:phcId/sync-status` | district_admin |
+
+Reads and writes of patient data by a logged-in user are recorded in `access_log`.
+
+Demo accounts, from `npm run seed-users`, are listed in `.env.example`. They are fake and clearly labelled.
 
 ## Error shape (applies to every endpoint above)
 Any non-2xx response body is always: `{ "error": "snake_case_error_code", "message": "human-readable string" }` — never a bare string, never an HTML error page. Frontend error handling should read `.error` for logic and `.message` only for display.
