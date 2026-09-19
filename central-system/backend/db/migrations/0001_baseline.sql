@@ -1,8 +1,16 @@
+-- Up Migration
 -- =============================================================================
--- Central system PostgreSQL schema
+-- Central system PostgreSQL schema -- MIGRATION ZERO (baseline)
 -- Database: dr_screening_central
--- Run via:  node scripts/setupCentralDb.js            (create / update)
---           node scripts/setupCentralDb.js --reset    (DROP everything first)
+-- Run via:  npm run migrate                           (apply pending migrations)
+--           node scripts/setupCentralDb.js --reset    (DROP everything, re-migrate)
+--
+-- This file was db/schema.sql until migrations were introduced. It is FROZEN:
+-- do not edit it. Every schema change from here on is a new numbered file in
+-- this directory. It stays idempotent (CREATE ... IF NOT EXISTS) so that it is
+-- a no-op on a database that was built from the old schema.sql, and a full
+-- build on a fresh one -- no --fake step needed either way.
+-- =============================================================================
 --
 -- AUTHORITY
 --   This file implements Task 0.3 of docs/implementation-plan-backend-ml.md,
@@ -283,3 +291,7 @@ CREATE INDEX IF NOT EXISTS idx_grading_case      ON grading_results(case_id);
 CREATE INDEX IF NOT EXISTS idx_grading_tier      ON grading_results(conformal_tier);
 CREATE INDEX IF NOT EXISTS idx_reviews_case      ON ophthalmologist_reviews(case_id);
 CREATE INDEX IF NOT EXISTS idx_referrals_status  ON referrals(status);
+
+-- Down Migration
+-- Irreversible by design: undoing the baseline means dropping the database.
+-- Use `node scripts/setupCentralDb.js --reset` for that, deliberately.
