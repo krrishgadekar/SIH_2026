@@ -30,6 +30,77 @@ Status as of 2026-09-20. Every item below was verified by running it, not by rea
 | R | Rename to `hard_exudate` / `hardExudates` in the JS layer | **Waiting on Tanuj's rename** | none |
 | S | M2/M3/M4 served from the MATLAB session (`SEG_INFERENCE_BACKEND`, PyTorch fallback, M5 excluded) | Done | `diagnostics/checkSegBackendParity.py`: rule grade 20/20, lesion counts 20/20 |
 
+## Full audit, 2026-09-20: what it found
+
+A line-by-line pass over every plan section, plus the design doc's own
+requirements, looking for things that were done wrongly rather than not at all.
+Twelve defects, all fixed and covered by tests.
+
+**Would have been visible to a user**
+
+1. **Reviewed cases never left the review queue.** The queue selected every
+   graded Tier B/C case with no check for an existing review, so finished work
+   stayed mixed in with outstanding work forever.
+2. **A review could be recorded against a case that was never graded** — and
+   with a referable-looking corrected grade, that raised a referral and sent
+   the patient an SMS. Now `409 case_not_graded`.
+3. **An undeliverable SMS left the referral looking exactly like a delivered
+   one** (design doc §10.5, never implemented). The one patient nobody reached
+   was indistinguishable from the ones who were told.
+4. **The camera-probation tier rule could LOWER a case's tier.** It set the
+   tier to exactly 'B', so a case the conformal predictor had put in Tier C
+   came out as B -- the "floor" was cutting the review requirement.
+5. **Queue rows did not show the eye or whether another reviewer held the
+   case**, both of which the design doc asks for (§5.2), so a reviewer could
+   open a case someone else was already deciding.
+
+**Operational / data correctness**
+
+6. **Summary-first cases were reported as stuck immediately.** "How long has
+   this been processing?" was measured from `received_at`, which for a
+   summary-first case is when the *summary* arrived, possibly days earlier.
+   Now measured from a new `processing_started_at`.
+7. **A reviewer who had ever claimed a case could not be removed** (a foreign
+   key blocked it), and deleting a user would have orphaned the audit trail
+   anyway. Access is now revoked by deactivation; history is kept.
+8. **A revoked account kept working for up to 12 hours** -- until its token
+   expired. Sessions are now re-checked against the account (cached 60 s), so
+   deactivation and role changes take effect within a minute.
+9. **A timed-out MATLAB request was left in the request directory,** so a slow
+   session would later run inference nobody was waiting for and leave orphan
+   response files behind.
+10. **The MATLAB session went unsupervised** on a python-classifier +
+    matlab-segmentation configuration, silently degrading every case to the
+    PyTorch fallback with nobody told.
+11. **A chunked upload of an already-ingested capture transferred the whole
+    image** over a bad link before ingestion recognised the duplicate and
+    discarded it.
+12. **A non-numeric `patientAge` produced a 500** from a NOT NULL constraint
+    rather than a 400 naming the field.
+
+**Hardening added at the same time**
+
+- Security headers on every response (nosniff, frame-deny, no-referrer,
+  no-store).
+- A 500 no longer echoes internal error text in production; database errors
+  quote table names, column names and sometimes patient values.
+- The login brake now also counts per IP, not only per (IP, email), so one
+  client cannot walk a list of addresses; its memory is bounded.
+- An invalid `RESOURCE_MODEL_CRON` no longer stops the backend from starting.
+- A boot warning when auth is enabled over plain HTTP, where the Secure
+  session cookie is silently dropped by the browser.
+
+**Test suites after the audit:** 13 suites, 400+ checks, all passing --
+`verify_backend_auth` (66), `verify_backend_ingestion` (20),
+`verify_backend_health` (28), `verify_task31`–`verify_task82_83`, plus
+`testCors`, `testBranchB` (54), `testRuleEngineSignals` (17),
+`testPhase7Explainability` (58) and `testReadFundusDicom` (8) in MATLAB.
+
+Two existing suites asserted behaviour this work deliberately changed (the
+ingestion response gained fields; sync-status gained `lastContactAt`) and were
+updated. One was failing before any of this work, on a missing `sharp`
+install, and one assumed a database with no sync history; both fixed.
+
 ## Flagged explicitly (plan §A.15): encryption at rest is NOT in place
 
 The plan's own corrected guidance: self-hosted Postgres has no built-in transparent data encryption. For this round the real mechanism is **full-disk encryption at the OS level**. It needs no application code, so it cannot be done from the repository.

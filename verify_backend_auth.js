@@ -274,6 +274,85 @@ async function main() {
       cookie: o.cookie, csrf: o.csrf, body: { decision: 'override', overrideReasonCategory: 'wrong_severity', correctedGrade: 7 } });
     check('correctedGrade out of range -> 400', badGrade.status === 400, badGrade.json);
 
+    // ── Queue hygiene (design doc §5.2) ─────────────────────────────────────
+    console.log('\n===== Review queue contents =====');
+    const queued = (await call('GET', '/api/v1/ophthalmologist/queue', { cookie: o.cookie })).json;
+    check('queue rows carry eyeLaterality and claim state',
+      queued.length === 0 || (['eyeLaterality', 'claimedBy', 'claimedAt']
+        .every((k) => k in queued[0])), queued[0]);
+    if (graded) {
+      const reviewedIds = (await pool.query(
+        'SELECT DISTINCT case_id FROM ophthalmologist_reviews')).rows.map((r) => r.case_id);
+      check('an already-reviewed case is NOT in the queue',
+        !queued.some((q) => reviewedIds.includes(q.caseId)),
+        queued.filter((q) => reviewedIds.includes(q.caseId)).map((q) => q.caseId));
+      const claimedRow = queued.find((q) => q.caseId === graded.case_id);
+      check('a claimed case shows who holds it',
+        !claimedRow || (claimedRow.claimedBy && claimedRow.claimedBy.name), claimedRow);
+    }
+
+    // ── A review needs a graded case ────────────────────────────────────────
+    console.log('\n===== Reviewing an ungraded case =====');
+    const ungraded = (await pool.query(`
+      SELECT c.case_id FROM cases c
+      LEFT JOIN grading_results g ON g.case_id = c.case_id
+      WHERE g.case_id IS NULL LIMIT 1`)).rows[0];
+    if (ungraded) {
+      const before = (await pool.query('SELECT count(*)::int n FROM ophthalmologist_reviews')).rows[0].n;
+      const r = await call('POST', `/api/v1/cases/${ungraded.case_id}/review`, {
+        cookie: o.cookie, csrf: o.csrf, body: { decision: 'confirm' } });
+      check('review on a case with no grading result -> 409 case_not_graded',
+        r.status === 409 && r.json.error === 'case_not_graded', r.json);
+      const after = (await pool.query('SELECT count(*)::int n FROM ophthalmologist_reviews')).rows[0].n;
+      check('...and nothing was written', after === before);
+    } else {
+      console.log('  SKIP  no ungraded case in the database');
+    }
+
+    // ── Revoked account ─────────────────────────────────────────────────────
+    console.log('\n===== Revocation takes effect before the JWT expires =====');
+    if (cleanup.userId) {
+      const pw2 = crypto.randomBytes(12).toString('base64url');
+      await pool.query('UPDATE users SET password_hash = $2 WHERE user_id = $1',
+        [cleanup.userId, await bcrypt.hash(pw2, 4)]);
+      const victim = await login({ email: 'verify-second@demo.netrasetu.local', password: pw2 });
+      check('the second reviewer can read the queue while the account exists',
+        (await call('GET', '/api/v1/ophthalmologist/queue', { cookie: victim.cookie })).status === 200);
+      await pool.query('UPDATE users SET role = $2 WHERE user_id = $1',
+        [cleanup.userId, 'district_admin']);
+      require(path.join(CENTRAL, 'middleware', 'requireAuth'))._clearUserCache();
+      const afterRole = await call('GET', '/api/v1/ophthalmologist/queue', { cookie: victim.cookie });
+      check('a role change takes effect on the NEXT request, not the next login',
+        afterRole.status === 403, afterRole.json);
+      // Deactivation, NOT deletion: the account keeps its reviews and its
+      // access-log rows (migration 0012), which is what an audit trail means.
+      await pool.query('UPDATE users SET is_active = false, deactivated_at = now() WHERE user_id = $1',
+        [cleanup.userId]);
+      require(path.join(CENTRAL, 'middleware', 'requireAuth'))._clearUserCache();
+      const afterDeactivate = await call('GET', '/api/v1/ophthalmologist/queue', { cookie: victim.cookie });
+      check('a deactivated account cannot use its unexpired session',
+        afterDeactivate.status === 401, afterDeactivate.json);
+      const meAfter = await call('GET', '/api/v1/auth/me', { cookie: victim.cookie });
+      check('...and /auth/me refuses it too', meAfter.status === 401);
+      const reLogin = await login({ email: 'verify-second@demo.netrasetu.local', password: pw2 });
+      check('...and it cannot log in again, with the same body as a wrong password',
+        reLogin.status === 401 && reLogin.json.error === 'invalid_credentials', reLogin.json);
+      // A user who has claimed a case can now actually be removed (the claim
+      // is released rather than blocking the delete).
+      await pool.query('UPDATE grading_results SET claimed_by = NULL WHERE claimed_by = $1',
+        [cleanup.userId]);
+    }
+
+    // ── Response hygiene ────────────────────────────────────────────────────
+    console.log('\n===== Response headers =====');
+    const hdr = await fetch(`${BASE}/health`);
+    check('nosniff, frame-deny, no-referrer and no-store are set',
+      hdr.headers.get('x-content-type-options') === 'nosniff'
+      && hdr.headers.get('x-frame-options') === 'DENY'
+      && hdr.headers.get('referrer-policy') === 'no-referrer'
+      && /no-store/.test(hdr.headers.get('cache-control') || ''),
+      Object.fromEntries(hdr.headers));
+
     // ── Review history (§B.3) ───────────────────────────────────────────────
     console.log('\n===== Review history (§B.3) =====');
     // Inserted directly rather than through POST /review, which would also raise

@@ -31,6 +31,11 @@ process.env.MATLAB_SUPERVISOR_ENABLED = 'true';
 process.env.MATLAB_STARTUP_GRACE_MS = '150';
 process.env.MATLAB_HEARTBEAT_STALE_MS = '30000';
 process.env.MATLAB_MAX_RESTARTS = '3';
+// Watch a heartbeat file of our own: the real session, when one is running on
+// this machine, rewrites its own every 5 s and would make every "session is
+// dead" step below silently pass as healthy.
+process.env.MATLAB_HEARTBEAT_PATH = require('path').join(
+  require('os').tmpdir(), `verify_health_${process.pid}.heartbeat`);
 process.env.GRADING_RETRY_BASE_MS = '600000';   // a failed job stays in backoff for the test
 
 const pool         = require(path.join(CENTRAL, 'db', 'pgClient'));
@@ -58,7 +63,6 @@ async function main() {
 
   const patientId = `ZZTEST-${crypto.randomBytes(4).toString('hex')}`;
   let siteId;
-  const hadHeartbeat = fs.existsSync(supervisor.HEARTBEAT);
 
   try {
     const otherProcessing = (await pool.query(
@@ -118,6 +122,19 @@ async function main() {
       boRecs.length === 0);
     gradingQueue._setGradingFn(prev);
     gradingQueue._reset();
+
+    // A summary-first case: received days ago, grading started seconds ago.
+    // Measuring from received_at reported this as stuck immediately.
+    const summaryish = (await pool.query(`
+      INSERT INTO cases (patient_id, phc_id, capture_id_ref, image_path, status,
+                         received_at, processing_started_at)
+      VALUES ($1, $2, $3, 'x.jpg', 'processing', now() - interval '3 days', now())
+      RETURNING case_id`, [patientId, siteId, `ZZTEST-sum-${Date.now()}`])).rows[0].case_id;
+    await watchdog.sweep();
+    const sumRecs = (await pool.query(
+      'SELECT 1 FROM grading_recoveries WHERE case_id = $1', [summaryish])).rows;
+    check('a case received days ago but only now processing is not "stranded"',
+      sumRecs.length === 0);
 
     // ── §E supervisor ───────────────────────────────────────────────────────
     console.log('\n===== MATLAB session supervisor (§E) =====');
@@ -190,6 +207,9 @@ async function main() {
         .every((k) => k in h), Object.keys(h));
     const silent = h.silentPhcs.find((p) => p.phcId === siteId);
     check('a PHC silent for 72h is listed with hoursSilent', silent && silent.hoursSilent >= 71, silent);
+    check('...and it is not reported as a stuck job either',
+      !h.stuckJobs.some((j) => j.caseId === summaryish),
+      h.stuckJobs.find((j) => j.caseId === summaryish));
     const stuck = h.stuckJobs.find((j) => j.caseId === stranded);
     check('the stranded case is a stuck job, with autoRecoveredCount and exhausted flag',
       stuck && stuck.autoRecoveredCount === 3 && stuck.autoRecoveryExhausted === true, stuck);
@@ -208,7 +228,7 @@ async function main() {
     check('PHC sync-status now also carries lastContactAt', 'lastContactAt' in sync && sync.lastContactAt, sync);
   } finally {
     supervisor.stop();
-    if (hadHeartbeat) { /* leave a real one alone */ } else fs.rmSync(supervisor.HEARTBEAT, { force: true });
+    fs.rmSync(supervisor.HEARTBEAT, { force: true });   // our own temp file
     await pool.query('DELETE FROM system_alerts WHERE first_seen_at >= $1', [testStart]);
     // The sweeps also re-queue (in memory only) any REAL stranded cases; drop
     // the recovery rows written for them during this run so the test leaves no

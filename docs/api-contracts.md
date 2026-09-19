@@ -19,6 +19,20 @@
 Kept because this file is the tie-breaker: when it changes, the code and both
 plans have to be re-checked against it, and a silent edit makes that impossible.
 
+**2026-09-20 — Full backend audit: behaviour fixes.** Each of these changes what a client sees.
+
+- **The review queue no longer lists cases that have already been reviewed.** It used to keep them forever, so the queue grew without bound and finished work was indistinguishable from outstanding work. The history is still at `GET /cases/:caseId/reviews`.
+- **Queue rows gain `eyeLaterality`, `claimedBy` and `claimedAt`** (design doc §5.2): show the eye, and whether another reviewer currently holds the case.
+- **`GET /cases/:caseId` gains `claim`** (`null`, or `{ claimedBy: { userId, name }, claimedAt, expiresAt }`), so Case Detail can disable the decision controls when someone else holds the case (§10.8).
+- **`POST /cases/:caseId/review` returns `409 case_not_graded`** when the case has no grading result. It used to record a review, and could raise a referral and an SMS, for a case that had never been graded.
+- **An undeliverable SMS now moves the referral to `manual_follow_up`** (design doc §10.5), which is a new value in the referral status enum: `referred | manual_follow_up | contacted | attended | lost`. It is set when there is no contact number, when sending fails, and when Twilio later reports `undelivered`/`failed`. It never overwrites a status a worker has already moved on.
+- **New `POST /api/v1/notifications/sms-status`**: Twilio's delivery callback, authenticated by Twilio's request signature. Not for frontend use.
+- **Deactivating a user** (`users.is_active = false`) now revokes access within a minute, instead of the session staying valid for up to 12 hours. A role change also takes effect on the next request. A deactivated account cannot log in, and gets the same response as a wrong password.
+- **Every response carries `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer` and `Cache-Control: no-store`.**
+- **A 500 no longer echoes the internal error message** when `NODE_ENV=production`; the detail goes to the server log.
+- **`patientAge` that is not an integer 0–130 returns `400 invalid_field`** instead of a 500.
+- **Chunked upload:** `POST /cases/:captureRef/chunks/init` answers `{ alreadyIngested: true, caseId, status }` when that capture already has a complete case, instead of accepting an upload it would then discard.
+
 **2026-09-20 — Backend plan §G, §I, §O, §P (resource model, fovea, PDF report, eye laterality).**
 - **New `GET /api/v1/admin/resource-recommendations`** (404 until the first run) and **`POST …/refresh`**. This is the district resource model's output, replacing the hardcoded panel copy.
 - **New `GET /api/v1/cases/:caseId/report`**. It returns `{ reportUrl, generatedAt, cached }`, and the PDF itself is fetched from `/media`.
@@ -282,6 +296,8 @@ Response `200`: array of
   "priorityRank": 1
 }
 ```
+*(2026-09-20)* Each row also carries `eyeLaterality` (`"left" | "right" | null`), `claimedBy` (`null`, or `{ userId, name }` when another reviewer holds it) and `claimedAt`. Cases that have already been reviewed are **not** listed.
+
 `patientReference` is a display-safe identifier, never the raw `patientId` used internally (keep patient-identifying strings out of anything an ophthalmologist's screen might be seen displaying by someone else). `drGradeRuleEngine` and `branchAgreement` are `null` until Branch B is built (post-checkpoint) — the frontend must handle `null` here from day one, not just once Branch B ships. `conformalTier` ∈ `"A" | "B" | "C"` — Tier A never appears in this list since it auto-clears. Sorted ascending by `priorityRank` (1 = review first). Checkpoint-version ranking: Tier C cases ranked 1–100 by `uncertaintyScore` descending, Tier B cases ranked 101–200 by `confidenceScore` ascending.
 
 `uncertaintyScore` is `null` until MC-Dropout ships (Phase 6). Until then ranking uses `1 - confidenceScore` in its place — same ordering, different scale. That substitute is used for **ordering only** and is never reported as an uncertainty value.
@@ -362,7 +378,7 @@ Response `200`: `{ "reviewId": "string", "referralId": "string|null", "smsStatus
 
 **Optional request field `correctedGrade` (integer 0–4), added 2026-09-08.** On `"confirm"` the model's grade stands and referability follows from it. On `"override"` the ophthalmologist has said the model was wrong — but this contract has no field for *what the grade actually is*, so the system cannot tell whether the case is still referable. Without `correctedGrade` an override returns `override_without_grade` and **no SMS is sent**: telling a patient to seek care for a finding the reviewer may have just ruled out is worse than sending nothing, since the admin referral tracker still shows the case either way. Supply it whenever the decision is an override.
 
-Errors: `400 invalid_field` (bad `decision`; a category supplied on a `confirm`; a category missing or invalid on an `override`), `404 case_not_found`.
+Errors: `400 invalid_field` (bad `decision`; a category supplied on a `confirm`; a category missing or invalid on an `override`), `404 case_not_found`, `409 case_not_graded` (the case has no grading result yet — nothing to confirm or override), `409 case_claimed` (another reviewer holds it).
 
 An `"override"` also writes a `corrections` row in the same transaction — that pairing of "the model was wrong" with "and here is why" is the training signal the continual-learning loop consumes, so a review whose correction failed to record would be lost from retraining with nothing downstream noticing.
 
@@ -463,6 +479,7 @@ Response `200`: array of
 `status` ∈ `"referred" | "contacted" | "attended" | "lost"`.
 
 ### `PATCH /api/v1/referrals/:referralId`
+*(2026-09-20)* `status` ∈ `"referred" | "manual_follow_up" | "contacted" | "attended" | "lost"`. `manual_follow_up` is set automatically when the patient could not be reached by SMS (design doc §10.5) and means someone has to phone them; a worker can also set it by hand.
 Request: `{ "status": "contacted", "assignedWorker": "ASHA-112" }`
 Response `200`: the updated referral object, same shape as the list item above.
 
