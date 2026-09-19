@@ -19,15 +19,24 @@ const path = require('path');
 // nothing -- taking DATABASE_URL and MATLAB_EXECUTABLE with it.
 require('dotenv').config({ path: path.resolve(__dirname, '..', '..', '.env') });
 
-const express = require('express');
+const express      = require('express');
+const cookieParser = require('cookie-parser');
+
+// Loaded first so a bad auth configuration (AUTH_ENABLED without JWT_SECRET,
+// an invalid COOKIE_SAMESITE) stops the server at boot, not on first login.
+const authConfig               = require('./services/authConfig');
+const requireAuth              = require('./middleware/requireAuth');
 
 const gradingQueue             = require('./services/gradingQueue');
+
+const authRouter               = require('./routes/auth');
 
 const casesRouter              = require('./routes/cases');
 const ophthalmologistQueueRouter = require('./routes/ophthalmologistQueue');
 const adminDashboardRouter     = require('./routes/adminDashboard');
 const referralsRouter          = require('./routes/referrals');
 const phcRouter                = require('./routes/phc');
+const patientsRouter           = require('./routes/patients');
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
 
@@ -39,6 +48,7 @@ const app = express();
 app.use(require('./middleware/cors')());
 
 app.use(express.json());
+app.use(cookieParser());
 
 // GET /health is what the PHC sync manager polls as its network heartbeat
 // before every transmission attempt (design doc §4.2), so it must stay
@@ -47,16 +57,24 @@ app.use(express.json());
 // PHC's queue for reasons unrelated to reachability.
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
+// Auth is applied PER ROUTE inside each router, not here (backend plan §A.11):
+// /auth/login and the PHC ingestion routes must stay reachable without a
+// browser session.
+app.use('/api/v1/auth',            authRouter);
 app.use('/api/v1/cases',           casesRouter);
 app.use('/api/v1/ophthalmologist', ophthalmologistQueueRouter);
 app.use('/api/v1/admin',           adminDashboardRouter);
 app.use('/api/v1/referrals',       referralsRouter);
 app.use('/api/v1/phc',             phcRouter);
+app.use('/api/v1/patients',        patientsRouter);
 
 // Case media (fundus images, Grad-CAM overlays). api-contracts.md's case-detail
 // response returns imageUrl / gradCamOverlayUrl as paths under /media, so those
 // paths have to actually resolve to files.
-app.use('/media', express.static(path.join(__dirname, 'media')));
+//
+// Guarded like any other patient-data route (§A.3). The session is a cookie, so
+// the browser sends it on <img> requests too and no signed-URL scheme is needed.
+app.use('/media', requireAuth, express.static(path.join(__dirname, 'media')));
 
 // ── Error handling ───────────────────────────────────────────────────────────
 // api-contracts.md: every non-2xx body is { error, message }.
@@ -97,7 +115,36 @@ if (require.main === module) {
   gradingQueue.recoverStranded().catch((err) =>
     console.error('[central] stranded-case recovery failed:', err.message));
 
-  const server = app.listen(PORT, () => console.log(`central backend on ${PORT}`));
+  // §D: the same recovery, periodically, for cases that lose their job while
+  // the server stays up. §E: keep the persistent MATLAB session alive (and
+  // start it now if it is not running). Both main-block only, like recovery:
+  // a test that imports the app must neither sweep real backlog nor launch
+  // MATLAB.
+  require('./services/gradingWatchdog').start();
+  require('./services/matlabSessionSupervisor').start();
+  // §G: daily district resource-model run (RESOURCE_MODEL_CRON).
+  require('./services/resourceRecommendations').start();
+
+  // §A.14: TLS when a key and certificate are configured (a self-signed pair
+  // for the demo: `node scripts/generateDevCert.js`). Plain HTTP otherwise,
+  // and it says so -- the Secure session cookie must not be relied on over
+  // plain HTTP to anything but localhost.
+  const TLS_KEY = process.env.TLS_KEY_PATH;
+  const TLS_CERT = process.env.TLS_CERT_PATH;
+  const useTls = !!(TLS_KEY && TLS_CERT);
+  const onListen = () => {
+    console.log(`central backend on ${useTls ? 'https' : 'http'}://localhost:${PORT}` +
+      (useTls ? ' (TLS 1.2+)' : ' (NO TLS -- set TLS_KEY_PATH / TLS_CERT_PATH)'));
+    console.log(`[central] auth: users ${authConfig.AUTH_ENABLED ? 'ENFORCED' : 'not enforced (AUTH_ENABLED=false)'}, ` +
+      `PHC keys ${authConfig.PHC_AUTH_ENABLED ? 'ENFORCED' : 'not enforced (PHC_AUTH_ENABLED=false)'}`);
+  };
+  const server = useTls
+    ? require('https').createServer({
+      key: require('fs').readFileSync(TLS_KEY),
+      cert: require('fs').readFileSync(TLS_CERT),
+      minVersion: 'TLSv1.2',
+    }, app).listen(PORT, onListen)
+    : app.listen(PORT, onListen);
 
   // Let a case that is mid-MATLAB finish rather than killing it half-written.
   // Anything still queued stays 'processing' in the database and is picked up

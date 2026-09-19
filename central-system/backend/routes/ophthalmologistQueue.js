@@ -24,10 +24,13 @@
 
 const express = require('express');
 const pool    = require('../db/pgClient');
+const requireAuth = require('../middleware/requireAuth');
+const requireRole = require('../middleware/requireRole');
+const { logAccess } = require('../services/accessLog');
 
 const router = express.Router();
 
-router.get('/queue', async (req, res, next) => {
+router.get('/queue', requireAuth, requireRole('ophthalmologist'), async (req, res, next) => {
   try {
     const { rows } = await pool.query(`
       WITH ranked AS (
@@ -78,6 +81,8 @@ router.get('/queue', async (req, res, next) => {
       FROM ranked
       ORDER BY priority_rank ASC
     `);
+
+    await logAccess(req.user?.userId, 'view_queue', 'review_queue');
 
     res.json(rows.map((r) => ({
       caseId:            r.case_id,

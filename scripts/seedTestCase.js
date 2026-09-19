@@ -71,11 +71,16 @@ async function main() {
     `, [patientId]);
 
     // ── Case ────────────────────────────────────────────────────────────────
+    // A FRESH capture id per run. cases.capture_id_ref is unique (§C: one PHC
+    // capture = one central case), so the fixed 'PHC001-lz4a2b-c7f1' this used
+    // to reuse would now fail on the second run. Same shape as the PHC's ids.
+    const captureRef = `PHC001-${Date.now().toString(36)}-${
+      Math.random().toString(36).slice(2, 6).padEnd(4, '0')}`;
     const c = await pool.query(`
       INSERT INTO cases
         (patient_id, phc_id, capture_id_ref, camera_device_id, image_path,
          questionnaire_data, capture_metadata, status)
-      VALUES ($1, $2, 'PHC001-lz4a2b-c7f1', 'unknown', $3, $4, $5, 'processing')
+      VALUES ($1, $2, $6, 'unknown', $3, $4, $5, 'processing')
       RETURNING case_id, received_at
     `, [
       patientId,
@@ -91,6 +96,7 @@ async function main() {
       { cameraDeviceReported: 'forus_3nethra_v2', pupilStatus: 'dilated',
         lightingEnvironment: 'indoor_clinic', observedIssues: ['none_noticed'],
         workerUsabilityRating: 'clear' },
+      captureRef,
     ]);
 
     const { case_id: caseId, received_at: receivedAt } = c.rows[0];

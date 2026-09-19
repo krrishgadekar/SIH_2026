@@ -129,7 +129,7 @@ async function updateReferral(referralId, { status, assignedWorker }) {
  */
 async function getPhcSyncStatus(phcId) {
   const { rows } = await pool.query(
-    'SELECT phc_id, name, last_sync_at, pending_count FROM phc_sites WHERE phc_id = $1',
+    'SELECT phc_id, name, last_sync_at, last_contact_at, pending_count FROM phc_sites WHERE phc_id = $1',
     [phcId]);
   if (!rows.length) return null;
   const r = rows[0];
@@ -137,6 +137,10 @@ async function getPhcSyncStatus(phcId) {
     phcId:        r.phc_id,
     phcName:      r.name,
     lastSyncAt:   r.last_sync_at ? r.last_sync_at.toISOString() : null,
+    // Any contact at all, summary packets included (backend plan §F). A health
+    // badge should key off this, not lastSyncAt: a site on a thin link that is
+    // only getting summaries through is alive.
+    lastContactAt: r.last_contact_at ? r.last_contact_at.toISOString() : null,
     pendingCount: r.pending_count ?? 0,
   };
 }

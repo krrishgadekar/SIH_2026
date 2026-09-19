@@ -432,9 +432,12 @@ async function completeSession(captureRef) {
       fs.rmSync(chunkPath(captureRef, i), { force: true });
     }
 
-    gradingQueue.enqueue(result.caseId);
+    // ingestCase is idempotent on the capture id (§C): if central already had a
+    // graded/processing case for this capture -- e.g. it arrived earlier by the
+    // single-shot POST -- nothing new was stored and nothing must be re-graded.
+    if (!result.duplicate) gradingQueue.enqueue(result.caseId);
 
-    return { ...result, duplicate: false };
+    return result;
   });
 }
 

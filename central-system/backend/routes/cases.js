@@ -6,11 +6,21 @@
  * Mounted at /api/v1/cases. Implements the "Central API" case endpoints from
  * docs/api-contracts.md:
  *
- *   POST /api/v1/cases                -> 201 { caseId, receivedAt }
+ *   POST /api/v1/cases                -> 201 { caseId, receivedAt, status, duplicate, fromSummary }
+ *                                        200 same body when the capture was already ingested
+ *   POST /api/v1/cases/summary        -> 201 | 200 { caseId, receivedAt, status, duplicate }
  *   GET  /api/v1/cases/:caseId/status -> 200 { caseId, status }
  *   GET  /api/v1/cases/:caseId        -> 200 full case detail
  *
- *   POST /api/v1/cases/:caseId/review -> Task 3.5, not built here.
+ *   POST /api/v1/cases/:caseId/review -> 200 { reviewId, referralId, smsStatus }
+ *   POST /api/v1/cases/:caseId/claim  -> 200 claim | 409 held by another reviewer
+ *   GET  /api/v1/cases/:caseId/reviews -> 200 [ review history, newest first ]
+ *
+ * ── Who may call what (backend plan §A.7 / §A.12) ───────────────────────────
+ *   PHC device key (X-PHC-Api-Key):  POST /, all /:captureRef/chunks routes
+ *   PHC key OR any logged-in user:   GET /:caseId/status
+ *   ophthalmologist or admin:        GET /:caseId, GET /:caseId/reviews
+ *   ophthalmologist only:            POST /:caseId/claim, POST /:caseId/review
  *
  * ── CONTRACT GAP worth resolving before Task 3.4 ────────────────────────────
  * cases.patient_id is a foreign key to patients, so a patient must exist
@@ -36,8 +46,37 @@ const ingestion = require('../services/ingestionService');
 const gradingQueue = require('../services/gradingQueue');
 const { handleConfirmedReferral } = require('../services/referralNotificationService');
 const pool = require('../db/pgClient');
+const cfg  = require('../services/authConfig');
+const requireAuth = require('../middleware/requireAuth');
+const requireRole = require('../middleware/requireRole');
+const { requirePhcApiKey, requireUserOrPhc } = require('../middleware/requirePhcApiKey');
+const { logAccess } = require('../services/accessLog');
 
 const router = express.Router();
+
+const anyUser         = [requireAuth, requireRole('ophthalmologist', 'district_admin')];
+const ophthalmologist = [requireAuth, requireRole('ophthalmologist')];
+
+/**
+ * pinPhc(req, res) -- when the request carries a PHC key, the case belongs to
+ * THAT site. A body naming a different phcId is refused rather than silently
+ * rewritten: it means a PHC is configured with another site's id (or key), and
+ * attributing its cases anywhere would corrupt the per-site camera probation
+ * and silent-PHC checks. Returns false when it has already sent a response.
+ */
+function pinPhc(req, res) {
+  if (!req.phc) return true;
+  const claimed = req.body && req.body.phcId;
+  if (claimed && claimed !== req.phc.phcId) {
+    res.status(403).json({
+      error: 'phc_mismatch',
+      message: `This API key belongs to PHC ${req.phc.phcId}, but the request names ${claimed}.`,
+    });
+    return false;
+  }
+  if (req.body) req.body.phcId = req.phc.phcId;
+  return true;
+}
 
 // memoryStorage: ingestionService owns the media layout and names the file
 // after the case_id the database generates, which is not known until the row is
@@ -62,11 +101,17 @@ const notFound = (res, caseId) => res.status(404).json({
 });
 
 // ── POST /api/v1/cases ───────────────────────────────────────────────────────
-router.post('/', upload.single('image'), async (req, res, next) => {
+router.post('/', requirePhcApiKey, upload.single('image'), async (req, res, next) => {
+  if (!pinPhc(req, res)) return;
   let caseId;
   try {
     const result = await ingestion.ingestCase({ ...req.body, imageFile: req.file });
     caseId = result.caseId;
+
+    // §C: a retried upload of a capture central already has. Nothing was
+    // stored; answer 200 with the existing case so the PHC marks it synced and
+    // stops retrying, and do NOT grade the same scan a second time.
+    if (result.duplicate) return res.status(200).json(result);
 
     // Task 8.3: hand grading to the queue and return. This used to be an
     // `await processCase(caseId)` right here, which held the PHC's upload
@@ -85,6 +130,28 @@ router.post('/', upload.single('image'), async (req, res, next) => {
     gradingQueue.enqueue(caseId);
 
     res.status(201).json(result);
+  } catch (err) {
+    if (err.code === 'patient_not_found') {
+      return res.status(404).json({ error: err.code, message: err.message });
+    }
+    if (err.status === 400 || err.code === 'invalid_json') {
+      return res.status(400).json({ error: err.code || 'bad_request', message: err.message });
+    }
+    next(err);
+  }
+});
+
+// ── POST /api/v1/cases/summary  (design doc §10.1, backend plan §C.3) ────────
+// A lightweight packet -- the same JSON fields as POST /cases minus the image
+// -- sent ahead of the image when the link is too thin to move it yet. Creates
+// the case as 'awaiting_image'; the later full upload (POST /cases or the
+// chunk group, same captureIdRef) fills in that row and starts grading.
+// 201 when it created the case, 200 when the capture was already known.
+router.post('/summary', requirePhcApiKey, async (req, res, next) => {
+  if (!pinPhc(req, res)) return;
+  try {
+    const result = await ingestion.ingestSummary(req.body || {});
+    res.status(result.duplicate ? 200 : 201).json(result);
   } catch (err) {
     if (err.code === 'patient_not_found') {
       return res.status(404).json({ error: err.code, message: err.message });
@@ -135,13 +202,14 @@ function sendUploadError(res, err, next) {
   return next(err);
 }
 
-router.post('/:captureRef/chunks/init', async (req, res, next) => {
+router.post('/:captureRef/chunks/init', requirePhcApiKey, async (req, res, next) => {
   try {
+    if (!pinPhc(req, res)) return;
     res.status(201).json(await chunked.initSession(req.params.captureRef, req.body || {}));
   } catch (err) { sendUploadError(res, err, next); }
 });
 
-router.post('/:captureRef/chunks/complete', async (req, res, next) => {
+router.post('/:captureRef/chunks/complete', requirePhcApiKey, async (req, res, next) => {
   try {
     const result = await chunked.completeSession(req.params.captureRef);
     // 200 rather than 201 on a duplicate: the second call created nothing. The
@@ -151,7 +219,7 @@ router.post('/:captureRef/chunks/complete', async (req, res, next) => {
   } catch (err) { sendUploadError(res, err, next); }
 });
 
-router.get('/:captureRef/chunks', (req, res, next) => {
+router.get('/:captureRef/chunks', requirePhcApiKey, (req, res, next) => {
   try {
     const session = chunked.getSession(req.params.captureRef);
     if (!session) {
@@ -164,7 +232,7 @@ router.get('/:captureRef/chunks', (req, res, next) => {
   } catch (err) { sendUploadError(res, err, next); }
 });
 
-router.post('/:captureRef/chunks/:index', chunkUpload.single('chunk'), async (req, res, next) => {
+router.post('/:captureRef/chunks/:index', requirePhcApiKey, chunkUpload.single('chunk'), async (req, res, next) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -181,7 +249,9 @@ router.post('/:captureRef/chunks/:index', chunkUpload.single('chunk'), async (re
 // ── GET /api/v1/cases/:caseId/status ─────────────────────────────────────────
 // Declared before /:caseId so the literal '/status' suffix is matched by this
 // route rather than being swallowed as part of the id parameter.
-router.get('/:caseId/status', async (req, res, next) => {
+router.get('/:caseId/status', requireUserOrPhc, async (req, res, next) => {
+  // requireUserOrPhc lets a logged-in user of ANY role through; this endpoint
+  // exposes nothing but a status word, so no narrower role check is needed.
   const { caseId } = req.params;
   if (!UUID_RE.test(caseId)) return notFound(res, caseId);
   try {
@@ -192,12 +262,13 @@ router.get('/:caseId/status', async (req, res, next) => {
 });
 
 // ── GET /api/v1/cases/:caseId ────────────────────────────────────────────────
-router.get('/:caseId', async (req, res, next) => {
+router.get('/:caseId', anyUser, async (req, res, next) => {
   const { caseId } = req.params;
   if (!UUID_RE.test(caseId)) return notFound(res, caseId);
   try {
     const detail = await ingestion.getCaseDetail(caseId);
     if (!detail) return notFound(res, caseId);
+    await logAccess(req.user?.userId, 'view_case', 'case', caseId);
     res.json(detail);
   } catch (err) { next(err); }
 });
@@ -207,14 +278,27 @@ const DECISIONS = ['confirm', 'override'];
 const OVERRIDE_CATEGORIES = ['artifact_misread', 'lesion_missed',
                              'wrong_severity', 'image_quality_issue'];
 
-router.post('/:caseId/review', async (req, res, next) => {
+router.post('/:caseId/review', ophthalmologist, async (req, res, next) => {
   const { caseId } = req.params;
   const {
-    ophthalmologistId, decision,
-    overrideReasonCategory, overrideReasonText, reviewDurationSeconds,
+    decision, overrideReasonCategory, overrideReasonText, reviewDurationSeconds,
+    correctedGrade,
   } = req.body || {};
 
+  // Who reviewed comes from the session, never from the body, once someone is
+  // logged in -- a client-supplied id is exactly the unverifiable attribution
+  // the build audit flagged. The body field survives only for AUTH_ENABLED=false
+  // with no one logged in, so the existing frontend keeps working meanwhile.
+  const reviewerId = req.user?.userId || req.body?.ophthalmologistId || null;
+
   if (!UUID_RE.test(caseId)) return notFound(res, caseId);
+
+  if (correctedGrade !== undefined && correctedGrade !== null &&
+      !(Number.isInteger(correctedGrade) && correctedGrade >= 0 && correctedGrade <= 4)) {
+    return res.status(400).json({
+      error: 'invalid_field', message: 'correctedGrade must be an integer 0-4.',
+    });
+  }
 
   if (!DECISIONS.includes(decision)) {
     return res.status(400).json({
@@ -250,16 +334,53 @@ router.post('/:caseId/review', async (req, res, next) => {
       return notFound(res, caseId);
     }
 
+    // FOR UPDATE: a concurrent claim on this case waits for this review to land
+    // rather than interleaving with the checks below.
+    const graded = await client.query(`
+      SELECT branch_agreement, claimed_by, claimed_at,
+             claimed_at > now() - make_interval(mins => $2) AS claim_live
+      FROM grading_results WHERE case_id = $1 FOR UPDATE
+    `, [caseId, cfg.CLAIM_TTL_MINUTES]);
+    const g = graded.rows[0];
+
+    // §10.8: a live claim by SOMEONE ELSE blocks this decision. Only checkable
+    // when the reviewer is known, i.e. someone is logged in.
+    if (g && g.claimed_by && g.claim_live && req.user && g.claimed_by !== req.user.userId) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({
+        error: 'case_claimed',
+        message: 'Another reviewer holds this case. Claim it first once their claim expires.',
+        claimedBy: g.claimed_by,
+        claimedAt: g.claimed_at.toISOString(),
+      });
+    }
+
+    // §10.9: when the branches disagree there is no single model grade to
+    // "confirm", so the only way forward is an explicit grade. Enforced here,
+    // not only by hiding the button, so no client can skip it.
+    if (g && g.branch_agreement === false) {
+      if (decision === 'confirm' || !Number.isInteger(correctedGrade)) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({
+          error: 'explicit_grade_required',
+          message: 'Branch A and Branch B disagree on this case. Submit an override ' +
+                   'with correctedGrade (0-4); a plain confirm is not accepted.',
+        });
+      }
+    }
+
     const inserted = await client.query(`
       INSERT INTO ophthalmologist_reviews
         (case_id, ophthalmologist_id, decision,
-         override_reason_category, override_reason_text, review_duration_seconds)
-      VALUES ($1, $2, $3, $4, $5, $6)
+         override_reason_category, override_reason_text, review_duration_seconds,
+         corrected_grade)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       RETURNING review_id
-    `, [caseId, ophthalmologistId || null, decision,
+    `, [caseId, reviewerId, decision,
         decision === 'override' ? overrideReasonCategory : null,
         overrideReasonText || null,
-        Number.isInteger(reviewDurationSeconds) ? reviewDurationSeconds : null]);
+        Number.isInteger(reviewDurationSeconds) ? reviewDurationSeconds : null,
+        decision === 'override' && Number.isInteger(correctedGrade) ? correctedGrade : null]);
 
     const reviewId = inserted.rows[0].review_id;
 
@@ -275,6 +396,8 @@ router.post('/:caseId/review', async (req, res, next) => {
     }
 
     await client.query('COMMIT');
+
+    await logAccess(req.user?.userId, 'submit_review', 'case', caseId);
 
     // ── Task 3.6: referral + patient SMS ──────────────────────────────────
     // AFTER the commit, never inside the transaction. An SMS cannot be rolled
@@ -311,6 +434,140 @@ router.post('/:caseId/review', async (req, res, next) => {
   } finally {
     client.release();
   }
+});
+
+// ── POST /api/v1/cases/:caseId/claim  (backend plan §B.2, design doc §10.8) ──
+//
+// Opening a case for review claims it. The whole lock is ONE conditional UPDATE:
+// it succeeds only if nobody holds the case, the caller already does, or the
+// holder's claim has gone stale (CLAIM_TTL_MINUTES, default 30 -- without an
+// expiry a reviewer who closes the tab would lock the case forever). Zero rows
+// back means someone else holds it, and the reply says who, so the UI can show
+// it and disable the decision controls.
+//
+//   200 { caseId, claimedBy: { userId, name }, claimedAt, expiresAt }
+//   409 { error: 'case_claimed', message, caseId, claimedBy, claimedAt, expiresAt }
+//   409 { error: 'case_not_graded' }   nothing to review yet
+//   404 case_not_found
+//   401 when no one is logged in -- a claim with no claimant means nothing, so
+//       this endpoint needs a session even while AUTH_ENABLED=false.
+router.post('/:caseId/claim', ophthalmologist, async (req, res, next) => {
+  const { caseId } = req.params;
+  if (!UUID_RE.test(caseId)) return notFound(res, caseId);
+  if (!req.user) {
+    return res.status(401).json({
+      error: 'unauthenticated', message: 'Log in to claim a case for review.',
+    });
+  }
+
+  const shape = (row) => ({
+    caseId,
+    claimedBy: { userId: row.claimed_by, name: row.claimant_name ?? null },
+    claimedAt: row.claimed_at.toISOString(),
+    expiresAt: new Date(row.claimed_at.getTime() + cfg.CLAIM_TTL_MINUTES * 60000).toISOString(),
+  });
+
+  try {
+    const { rows } = await pool.query(`
+      UPDATE grading_results g
+      SET claimed_by = $2, claimed_at = now()
+      WHERE g.case_id = $1
+        AND (g.claimed_by IS NULL
+             OR g.claimed_by = $2
+             OR g.claimed_at <= now() - make_interval(mins => $3))
+      RETURNING g.claimed_by, g.claimed_at,
+                (SELECT name FROM users WHERE user_id = g.claimed_by) AS claimant_name
+    `, [caseId, req.user.userId, cfg.CLAIM_TTL_MINUTES]);
+
+    if (rows.length) {
+      await logAccess(req.user.userId, 'claim_case', 'case', caseId);
+      return res.json(shape(rows[0]));
+    }
+
+    const held = await pool.query(`
+      SELECT g.claimed_by, g.claimed_at, u.name AS claimant_name
+      FROM grading_results g LEFT JOIN users u ON u.user_id = g.claimed_by
+      WHERE g.case_id = $1
+    `, [caseId]);
+    if (!held.rows.length) {
+      const exists = await pool.query('SELECT 1 FROM cases WHERE case_id = $1', [caseId]);
+      if (!exists.rows.length) return notFound(res, caseId);
+      return res.status(409).json({
+        error: 'case_not_graded', message: 'This case has not been graded yet.',
+      });
+    }
+    return res.status(409).json({
+      error: 'case_claimed',
+      message: `${held.rows[0].claimant_name || 'Another reviewer'} is reviewing this case.`,
+      ...shape(held.rows[0]),
+    });
+  } catch (err) { next(err); }
+});
+
+// ── GET /api/v1/cases/:caseId/report  (backend plan §O) ─────────────────────
+// The clinical-rationale PDF. Generated on first request and cached; a case
+// re-graded since is regenerated automatically; ?regenerate=1 forces it.
+//   200 { reportUrl: '/media/cases/<id>/report.pdf', generatedAt, cached }
+//   409 case_not_graded | 404 case_not_found | 502 report_generation_failed
+// The PDF itself is fetched from /media, which requires a session.
+const caseReport = require('../services/caseReport');
+router.get('/:caseId/report', anyUser, async (req, res, next) => {
+  const { caseId } = req.params;
+  if (!UUID_RE.test(caseId)) return notFound(res, caseId);
+  try {
+    const out = await caseReport.getOrCreateReport(caseId, {
+      force: req.query.regenerate === '1' || req.query.regenerate === 'true',
+    });
+    if (!out) return notFound(res, caseId);
+    if (out.error === 'case_not_graded') {
+      return res.status(409).json({
+        error: 'case_not_graded', message: 'A report can only be generated once the case is graded.',
+      });
+    }
+    await logAccess(req.user?.userId, 'view_report', 'case', caseId);
+    res.json(out);
+  } catch (err) {
+    console.error(`[cases] report for ${caseId} failed:`, err.message);
+    res.status(502).json({ error: 'report_generation_failed', message: err.message });
+  }
+});
+
+// ── GET /api/v1/cases/:caseId/reviews  (backend plan §B.3) ──────────────────
+//
+// Review history, newest first. reviewer is null for reviews recorded before
+// login existed, when ophthalmologist_id was a free-text client value that may
+// not match any user -- the raw value is still returned as ophthalmologistId.
+router.get('/:caseId/reviews', anyUser, async (req, res, next) => {
+  const { caseId } = req.params;
+  if (!UUID_RE.test(caseId)) return notFound(res, caseId);
+  try {
+    const exists = await pool.query('SELECT 1 FROM cases WHERE case_id = $1', [caseId]);
+    if (!exists.rows.length) return notFound(res, caseId);
+
+    const { rows } = await pool.query(`
+      SELECT r.review_id, r.decision, r.override_reason_category, r.override_reason_text,
+             r.corrected_grade, r.review_duration_seconds, r.reviewed_at,
+             r.ophthalmologist_id, u.user_id, u.name AS reviewer_name
+      FROM ophthalmologist_reviews r
+      LEFT JOIN users u ON u.user_id::text = r.ophthalmologist_id
+      WHERE r.case_id = $1
+      ORDER BY r.reviewed_at DESC
+    `, [caseId]);
+
+    await logAccess(req.user?.userId, 'view_reviews', 'case', caseId);
+
+    res.json(rows.map((r) => ({
+      reviewId:               r.review_id,
+      decision:               r.decision,
+      overrideReasonCategory: r.override_reason_category ?? null,
+      overrideReasonText:     r.override_reason_text ?? null,
+      correctedGrade:         r.corrected_grade ?? null,
+      reviewDurationSeconds:  r.review_duration_seconds ?? null,
+      reviewedAt:             r.reviewed_at.toISOString(),
+      reviewer:               r.user_id ? { userId: r.user_id, name: r.reviewer_name } : null,
+      ophthalmologistId:      r.ophthalmologist_id ?? null,
+    })));
+  } catch (err) { next(err); }
 });
 
 // ── Upload errors ────────────────────────────────────────────────────────────

@@ -84,6 +84,7 @@ const PERMANENT = new Set([
 const queue = [];              // caseIds waiting for a worker
 const queued = new Set();      // membership test for the above (dedupe)
 const inflight = new Set();    // caseIds a worker currently holds
+const retrying = new Set();    // caseIds waiting out a retry backoff (neither of the above)
 
 let workers = 0;
 let started = false;
@@ -107,7 +108,7 @@ let runGrading = processCase;
  */
 function enqueue(caseId) {
   if (!caseId) throw new Error('enqueue: caseId is required');
-  if (queued.has(caseId) || inflight.has(caseId)) return false;
+  if (queued.has(caseId) || inflight.has(caseId) || retrying.has(caseId)) return false;
   queue.push({ caseId, attempts: 0 });
   queued.add(caseId);
   if (started) pump();
@@ -156,7 +157,13 @@ async function runJob(job) {
       `[gradingQueue] ${job.caseId} attempt ${job.attempts} failed, retrying in `
       + `${delay}ms: ${err.message}`);
 
+    // `retrying` covers the backoff gap, when the job is neither queued nor
+    // inflight. Without it the watchdog (§D) would see a 'processing' case the
+    // queue does not know about, enqueue a FRESH job with attempts = 0, and a
+    // permanently failing case would be retried forever.
+    retrying.add(job.caseId);
     const t = setTimeout(() => {
+      retrying.delete(job.caseId);
       if (!queued.has(job.caseId) && !inflight.has(job.caseId)) {
         queue.push(job);
         queued.add(job.caseId);
@@ -202,11 +209,24 @@ async function markError(caseId) {
  *
  * @returns {Promise<number>} how many were re-enqueued.
  */
-async function recoverStranded() {
+async function recoverStranded({ source = 'boot', minAgeSeconds = 0, maxRecoveries = null } = {}) {
   let rows;
   try {
-    ({ rows } = await pool.query(
-      "SELECT case_id FROM cases WHERE status = 'processing' ORDER BY received_at ASC"));
+    // minAgeSeconds: the watchdog skips rows younger than this, so it never
+    // races a POST handler that has committed a case but not yet enqueued it.
+    // maxRecoveries: the watchdog stops re-enqueuing a case it has already
+    // recovered this many times; System Health surfaces it for a human instead
+    // (§D.3). Boot recovery passes neither -- after a restart every
+    // 'processing' row really is stranded.
+    ({ rows } = await pool.query(`
+      SELECT c.case_id
+      FROM cases c
+      WHERE c.status = 'processing'
+        AND c.received_at <= now() - make_interval(secs => $1)
+        AND ($2::int IS NULL OR
+             (SELECT count(*) FROM grading_recoveries r WHERE r.case_id = c.case_id) < $2::int)
+      ORDER BY c.received_at ASC
+    `, [minAgeSeconds, maxRecoveries]));
   } catch (err) {
     // A failure here must not stop the server booting: the alternative is a
     // central system that will not start because of old rows, which takes every
@@ -215,12 +235,22 @@ async function recoverStranded() {
     return 0;
   }
 
-  let n = 0;
-  for (const r of rows) if (enqueue(r.case_id)) n++;
-  if (n > 0) {
-    console.log(`[gradingQueue] recovered ${n} case(s) left 'processing' by a previous run`);
+  // enqueue() returns false for anything already queued, inflight or backing
+  // off, so only genuinely lost cases are counted -- and recorded (§D.3).
+  const recovered = rows.map((r) => r.case_id).filter((id) => enqueue(id));
+  if (recovered.length > 0) {
+    console.log(`[gradingQueue] ${source}: recovered ${recovered.length} case(s) ` +
+      "left 'processing' with no job behind them");
+    try {
+      await pool.query(`
+        INSERT INTO grading_recoveries (case_id, source)
+        SELECT unnest($1::uuid[]), $2
+      `, [recovered, source]);
+    } catch (err) {
+      console.error(`[gradingQueue] could not record recoveries: ${err.message}`);
+    }
   }
-  return n;
+  return recovered.length;
 }
 
 function start() {
@@ -261,6 +291,7 @@ function stats() {
   return {
     queued: queue.length,
     inflight: inflight.size,
+    retrying: retrying.size,
     processed,
     failed,
     concurrency: CONCURRENCY,
@@ -280,6 +311,7 @@ function _reset() {
   queue.length = 0;
   queued.clear();
   inflight.clear();
+  retrying.clear();
   workers = 0;
   started = false;
   processed = 0;
