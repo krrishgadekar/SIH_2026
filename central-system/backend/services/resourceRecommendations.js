@@ -182,6 +182,15 @@ async function latest() {
 function start() {
   if (task) return;
   const cron = require('node-cron');
+  if (!cron.validate(CRON)) {
+    // A typo in RESOURCE_MODEL_CRON used to throw out of here and stop the
+    // whole backend from starting. Losing the daily resource estimate is not
+    // worth refusing to grade cases.
+    console.error(`[resourceModel] RESOURCE_MODEL_CRON is not a valid cron expression ` +
+      `("${CRON}"); the daily run is disabled. POST /admin/resource-recommendations/` +
+      `refresh still works.`);
+    return;
+  }
   task = cron.schedule(CRON, () => {
     refresh().catch((err) => console.error(`[resourceModel] scheduled run failed: ${err.message}`));
   });

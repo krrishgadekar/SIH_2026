@@ -63,6 +63,13 @@ def forward(model_name, x_nchw):
         deadline = time.time() + TIMEOUT_S
         while not os.path.exists(resp_path):
             if time.time() > deadline:
+                # Take the request back: a session that is merely slow would
+                # otherwise run it later for a caller that has already fallen
+                # back to PyTorch, and leave an orphan response behind.
+                try:
+                    os.remove(req_path)
+                except OSError:
+                    pass
                 raise MatlabSessionError(
                     f"no response from the MATLAB session within {TIMEOUT_S:.0f}s "
                     "(is it running? manageMatlabSession.ps1 status)")

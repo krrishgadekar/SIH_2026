@@ -64,7 +64,11 @@ async function run() {
         VALUES ($1, $2, $3, $4)
         ON CONFLICT (email) DO UPDATE
           SET name = EXCLUDED.name, role = EXCLUDED.role,
-              password_hash = EXCLUDED.password_hash
+              password_hash = EXCLUDED.password_hash,
+              -- Re-seeding also REACTIVATES: a demo account someone
+              -- deactivated (migration 0012) should come back with its id, its
+              -- reviews and its access-log history intact.
+              is_active = true, deactivated_at = NULL
         RETURNING user_id, (xmax = 0) AS inserted
       `, [u.email, u.name, u.role, hash]);
 

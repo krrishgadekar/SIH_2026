@@ -59,21 +59,24 @@ async function stuckJobs() {
   // (autoRecoveredCount >= its cap) is always reported: it will not move again
   // without a human.
   const { rows } = await pool.query(`
-    SELECT c.case_id, c.received_at,
+    SELECT c.case_id,
+           COALESCE(c.processing_started_at, c.received_at) AS started_at,
            count(r.recovery_id)::int AS recoveries,
            max(r.recovered_at)       AS last_recovered_at
     FROM cases c
     LEFT JOIN grading_recoveries r ON r.case_id = c.case_id
     WHERE c.status = 'processing'
-    GROUP BY c.case_id, c.received_at
-    HAVING GREATEST(c.received_at, COALESCE(max(r.recovered_at), c.received_at))
+    GROUP BY c.case_id, c.processing_started_at, c.received_at
+    HAVING GREATEST(COALESCE(c.processing_started_at, c.received_at),
+                    COALESCE(max(r.recovered_at),
+                             COALESCE(c.processing_started_at, c.received_at)))
              < now() - make_interval(mins => $1)
         OR count(r.recovery_id) >= $2
-    ORDER BY c.received_at ASC
+    ORDER BY COALESCE(c.processing_started_at, c.received_at) ASC
   `, [STUCK_JOB_MINUTES, watchdog.MAX_RECOVERIES]);
   return rows.map((r) => ({
     caseId:             r.case_id,
-    stuckSince:         r.received_at.toISOString(),
+    stuckSince:         r.started_at.toISOString(),
     autoRecoveredCount: r.recoveries,
     lastRecoveredAt:    r.last_recovered_at ? r.last_recovered_at.toISOString() : null,
     autoRecoveryExhausted: r.recoveries >= watchdog.MAX_RECOVERIES,

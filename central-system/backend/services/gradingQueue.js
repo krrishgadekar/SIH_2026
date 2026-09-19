@@ -222,10 +222,11 @@ async function recoverStranded({ source = 'boot', minAgeSeconds = 0, maxRecoveri
       SELECT c.case_id
       FROM cases c
       WHERE c.status = 'processing'
-        AND c.received_at <= now() - make_interval(secs => $1)
+        AND COALESCE(c.processing_started_at, c.received_at)
+              <= now() - make_interval(secs => $1)
         AND ($2::int IS NULL OR
              (SELECT count(*) FROM grading_recoveries r WHERE r.case_id = c.case_id) < $2::int)
-      ORDER BY c.received_at ASC
+      ORDER BY COALESCE(c.processing_started_at, c.received_at) ASC
     `, [minAgeSeconds, maxRecoveries]));
   } catch (err) {
     // A failure here must not stop the server booting: the alternative is a

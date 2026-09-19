@@ -44,23 +44,41 @@ const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 10);
 // ── Brute-force brake ─────────────────────────────────────────────────────────
 // In-memory, per (ip, email): enough for a single-node demo server. Counts
 // FAILURES only and resets on success.
-const WINDOW_MS    = 15 * 60 * 1000;
-const MAX_FAILURES = 10;
-const failures = new Map();   // key -> { count, first }
+const WINDOW_MS       = 15 * 60 * 1000;
+const MAX_FAILURES    = 10;    // per (ip, email)
+const MAX_PER_IP      = 50;    // per ip, across every email it tries
+const failures = new Map();    // key -> { count, first }
 
-function attemptKey(req, email) { return `${req.ip}|${email}`; }
+// Two keys per attempt. The (ip, email) counter stops password guessing
+// against one account; the ip-only counter stops the same client walking a
+// list of emails, which the first counter alone never notices.
+function attemptKeys(req, email) { return [`${req.ip}|${email}`, `ip|${req.ip}`]; }
 
-function isLockedOut(key) {
-  const f = failures.get(key);
-  if (!f) return false;
-  if (Date.now() - f.first > WINDOW_MS) { failures.delete(key); return false; }
-  return f.count >= MAX_FAILURES;
+function fresh(f) { return f && Date.now() - f.first <= WINDOW_MS; }
+
+function isLockedOut(keys) {
+  prune();
+  const [byEmail, byIp] = keys.map((k) => failures.get(k));
+  return (fresh(byEmail) && byEmail.count >= MAX_FAILURES)
+      || (fresh(byIp) && byIp.count >= MAX_PER_IP);
 }
 
-function recordFailure(key) {
-  const f = failures.get(key);
-  if (!f || Date.now() - f.first > WINDOW_MS) failures.set(key, { count: 1, first: Date.now() });
-  else f.count += 1;
+function recordFailure(keys) {
+  for (const k of keys) {
+    const f = failures.get(k);
+    if (!fresh(f)) failures.set(k, { count: 1, first: Date.now() });
+    else f.count += 1;
+  }
+}
+
+// Without this the map keeps one entry per email ever tried -- unbounded
+// memory from anyone posting random addresses at the login route.
+let lastPrune = 0;
+function prune() {
+  const now = Date.now();
+  if (now - lastPrune < 60_000) return;
+  lastPrune = now;
+  for (const [k, f] of failures) if (now - f.first > WINDOW_MS) failures.delete(k);
 }
 
 function userBody(u, session) {
@@ -81,8 +99,8 @@ router.post('/login', async (req, res, next) => {
     });
   }
 
-  const key = attemptKey(req, email);
-  if (isLockedOut(key)) {
+  const keys = attemptKeys(req, email);
+  if (isLockedOut(keys)) {
     return res.status(429).json({
       error: 'too_many_attempts',
       message: 'Too many failed logins. Wait 15 minutes and try again.',
@@ -91,19 +109,22 @@ router.post('/login', async (req, res, next) => {
 
   try {
     const { rows } = await pool.query(
-      `SELECT user_id, email, name, role, password_hash
+      `SELECT user_id, email, name, role, password_hash, is_active
        FROM users WHERE lower(email) = $1`, [email]);
-    const user = rows[0];
+    // A deactivated account is treated exactly like a wrong password: same
+    // status, same body, same bcrypt cost. Saying "this account is disabled"
+    // would confirm the address exists.
+    const user = rows[0] && rows[0].is_active ? rows[0] : undefined;
 
     const ok = await bcrypt.compare(password, user ? user.password_hash : DUMMY_HASH);
     if (!user || !ok) {
-      recordFailure(key);
+      recordFailure(keys);
       return res.status(401).json({
         error: 'invalid_credentials', message: 'Email or password is incorrect.',
       });
     }
 
-    failures.delete(key);
+    for (const k of keys) failures.delete(k);
     const session = issueSession(user);
     res.cookie(cfg.SESSION_COOKIE, session.token, cfg.cookieOptions);
     res.json(userBody(user, session));
@@ -117,11 +138,12 @@ router.get('/me', async (req, res, next) => {
   }
   try {
     const { rows } = await pool.query(
-      'SELECT user_id, email, name, role FROM users WHERE user_id = $1', [session.userId]);
+      `SELECT user_id, email, name, role FROM users
+       WHERE user_id = $1 AND is_active`, [session.userId]);
     if (!rows.length) {
       // The account was deleted after the session was issued.
       res.clearCookie(cfg.SESSION_COOKIE, { ...cfg.cookieOptions, maxAge: undefined });
-      return res.status(401).json({ error: 'unauthenticated', message: 'Account no longer exists.' });
+      return res.status(401).json({ error: 'unauthenticated', message: 'Account is no longer active.' });
     }
     res.json(userBody(rows[0], {
       csrfToken: session.csrf,

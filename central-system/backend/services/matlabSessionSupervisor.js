@@ -46,7 +46,11 @@ const { execFile }  = require('child_process');
 const { raiseAlert, resolveAlert } = require('./systemAlerts');
 
 const SESSION_DIR = path.join(__dirname, '..', 'ml-pipeline', 'inference', 'matlabSession');
-const HEARTBEAT   = path.join(SESSION_DIR, 'session.heartbeat');
+// Overridable so a test can watch its own file instead of the live session's
+// (a running session rewrites the real one every 5 s, which made
+// "simulate a dead session" impossible to test on a machine that has one).
+const HEARTBEAT   = process.env.MATLAB_HEARTBEAT_PATH
+  || path.join(SESSION_DIR, 'session.heartbeat');
 const MANAGER     = path.join(SESSION_DIR, 'manageMatlabSession.ps1');
 
 const num = (name, dflt) => {
@@ -63,10 +67,17 @@ const RESTART_WINDOW_MS = num('MATLAB_RESTART_WINDOW_MS', 30 * 60_000);
 const ALERT_KIND = 'matlab_session_down';
 
 function enabled() {
-  const backend = (process.env.INFERENCE_BACKEND || 'matlab').toLowerCase();
+  // Branch A is not the only user of the session: segmentation (§S) and the
+  // clinical-rationale PDF (§O) go through it too. Supervising only when
+  // INFERENCE_BACKEND=matlab left the session unwatched on a
+  // python-classifier + matlab-segmentation configuration, which is a valid
+  // one -- segmentation would then silently run every case on the PyTorch
+  // fallback with nobody told the session was down.
+  const classifier = (process.env.INFERENCE_BACKEND || 'matlab').toLowerCase();
+  const segmentation = (process.env.SEG_INFERENCE_BACKEND || 'matlab').toLowerCase();
   const flag = process.env.MATLAB_SUPERVISOR_ENABLED;
   const off = flag !== undefined && flag !== '' && /^(0|false|no|off)$/i.test(flag.trim());
-  return backend === 'matlab' && !off;
+  return (classifier === 'matlab' || segmentation === 'matlab') && !off;
 }
 
 const state = {

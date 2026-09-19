@@ -25,6 +25,7 @@ const path = require('path');
 
 const pool       = require('../db/pgClient');
 const mediaPaths = require('./mediaPaths');
+const cfg        = require('./authConfig');
 
 // Task 4.6: .dcm accepted because real fundus cameras export DICOM under the
 // Ophthalmic Photography IOD, and readFundusImage.m now reads it. Central only
@@ -181,13 +182,20 @@ async function ensurePatient(client, f) {
         `Patient ${f.patientId} is not known centrally. Send patientName, ` +
         'patientAge and patientContactNumber with the case to register them.');
     }
+    // Validated here rather than left to the NOT NULL column: parseInt('abc')
+    // is NaN, which reaches Postgres as null and surfaces as a 500 about a
+    // constraint instead of a 400 naming the field the PHC got wrong.
+    const age = parseInt(f.patientAge, 10);
+    if (!Number.isInteger(age) || age < 0 || age > 130) {
+      throw badRequest('invalid_field',
+        `patientAge must be an integer between 0 and 130 — got '${f.patientAge}'.`);
+    }
     await client.query(`
       INSERT INTO patients (patient_id, name, age, contact_number, registered_at,
                             consent_given_at)
       VALUES ($1, $2, $3, $4, now(), $5)
       ON CONFLICT (patient_id) DO NOTHING
-    `, [f.patientId, f.patientName, parseInt(f.patientAge, 10), f.patientContactNumber,
-        f.consentGivenAt]);
+    `, [f.patientId, f.patientName, age, f.patientContactNumber, f.consentGivenAt]);
   } else if (f.consentGivenAt) {
     // A known patient's FIRST recorded consent is kept: consent is given once
     // at registration, and a later case must not quietly move that date.
@@ -304,8 +312,8 @@ async function ingestCase(fields) {
       INSERT INTO cases
         (patient_id, phc_id, capture_id_ref, camera_device_id, image_path,
          questionnaire_data, capture_metadata, status, captured_at, quality_scores,
-         eye_laterality_reported)
-      VALUES ($1, $2, $3, $4, '', $5, $6, 'processing', $7, $8, $9)
+         eye_laterality_reported, processing_started_at)
+      VALUES ($1, $2, $3, $4, '', $5, $6, 'processing', $7, $8, $9, now())
       ON CONFLICT (capture_id_ref) DO NOTHING
       RETURNING case_id, received_at
     `, [f.patientId, f.phcId, f.captureIdRef, f.cameraDeviceId,
@@ -352,6 +360,10 @@ async function ingestCase(fields) {
       await client.query(`
         UPDATE cases
         SET status             = 'processing',
+            -- NOT received_at: this row may have been created by a summary
+            -- packet days ago (§C). The watchdog and the stuck-job check
+            -- measure from here.
+            processing_started_at = now(),
             image_path         = $8,
             phc_id             = COALESCE(phc_id, $2),
             camera_device_id   = COALESCE($3, camera_device_id),
@@ -451,6 +463,20 @@ async function ingestSummary(fields) {
   }
 }
 
+/**
+ * findCaseByCaptureRef(captureIdRef) -> { caseId, status } | null
+ *
+ * The idempotency lookup (§C), for callers that need to know whether a capture
+ * already has a case before doing expensive work -- the chunked upload checks
+ * it before accepting megabytes it would then discard.
+ */
+async function findCaseByCaptureRef(captureIdRef) {
+  if (!captureIdRef) return null;
+  const { rows } = await pool.query(
+    'SELECT case_id, status FROM cases WHERE capture_id_ref = $1', [captureIdRef]);
+  return rows.length ? { caseId: rows[0].case_id, status: rows[0].status } : null;
+}
+
 /** GET /api/v1/cases/:caseId/status */
 async function getCaseStatus(caseId) {
   const { rows } = await pool.query(
@@ -476,6 +502,8 @@ async function getCaseDetail(caseId) {
       p.patient_reference,
       g.dr_grade_cnn, g.dr_grade_rule_engine, g.branch_agreement,
       g.confidence_score, g.uncertainty_score, g.conformal_tier,
+      g.claimed_by, g.claimed_at, claimant.name AS claimed_by_name,
+      g.claimed_at > now() - make_interval(mins => $2) AS claim_live,
       s.lesion_counts, s.nv_suspicion_score,
       e.gradcam_path, e.lesion_attention_consistency_score, e.evidence_summary_text
     FROM cases c
@@ -483,8 +511,9 @@ async function getCaseDetail(caseId) {
     LEFT JOIN grading_results        g ON g.case_id    = c.case_id
     LEFT JOIN segmentation_outputs   s ON s.case_id    = c.case_id
     LEFT JOIN explainability_outputs e ON e.case_id    = c.case_id
+    LEFT JOIN users                  claimant ON claimant.user_id = g.claimed_by
     WHERE c.case_id = $1
-  `, [caseId]);
+  `, [caseId, cfg.CLAIM_TTL_MINUTES]);
 
   if (!rows.length) return null;
   const r = rows[0];
@@ -547,6 +576,17 @@ async function getCaseDetail(caseId) {
     // then follow the image axes). null when not reported.
     foveaUnreliable: r.fovea_unreliable ?? null,
 
+    // §10.8: who is reviewing this case right now, if anyone. null once the
+    // claim has expired. The reviewer's own client compares userId to decide
+    // between "you hold this" and "someone else does".
+    claim: r.claim_live
+      ? {
+        claimedBy: { userId: r.claimed_by, name: r.claimed_by_name ?? null },
+        claimedAt: r.claimed_at.toISOString(),
+        expiresAt: new Date(r.claimed_at.getTime() + cfg.CLAIM_TTL_MINUTES * 60000).toISOString(),
+      }
+      : null,
+
     priorAssessments: prior.rows.map((x) => ({
       caseId:     x.case_id,
       gradedAt:   x.graded_at.toISOString(),
@@ -562,4 +602,6 @@ function badRequest(code, message) {
   return e;
 }
 
-module.exports = { ingestCase, ingestSummary, getCaseStatus, getCaseDetail };
+module.exports = {
+  ingestCase, ingestSummary, getCaseStatus, getCaseDetail, findCaseByCaptureRef,
+};

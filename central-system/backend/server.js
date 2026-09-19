@@ -37,6 +37,7 @@ const adminDashboardRouter     = require('./routes/adminDashboard');
 const referralsRouter          = require('./routes/referrals');
 const phcRouter                = require('./routes/phc');
 const patientsRouter           = require('./routes/patients');
+const notificationsRouter      = require('./routes/notifications');
 
 const PORT = parseInt(process.env.PORT || '5000', 10);
 
@@ -49,6 +50,22 @@ app.use(require('./middleware/cors')());
 
 app.use(express.json());
 app.use(cookieParser());
+
+// Baseline response headers. Small, hand-rolled for the same reason cors.js is
+// (one fewer dependency on a machine about to be demoed from), and they matter
+// once this serves patient data and images:
+//   nosniff        a stored image must never be sniffed into something else
+//   DENY           nothing here should ever be framed (clickjacking on the
+//                  review controls)
+//   no-referrer    a case URL carries a case id; do not leak it to other sites
+//   no-store       browser and proxy caches must not keep patient JSON/images
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+});
 
 // GET /health is what the PHC sync manager polls as its network heartbeat
 // before every transmission attempt (design doc §4.2), so it must stay
@@ -67,6 +84,9 @@ app.use('/api/v1/admin',           adminDashboardRouter);
 app.use('/api/v1/referrals',       referralsRouter);
 app.use('/api/v1/phc',             phcRouter);
 app.use('/api/v1/patients',        patientsRouter);
+// Twilio delivery reports (§10.5). Authenticated by Twilio's request
+// signature, not by a session -- see the route file.
+app.use('/api/v1/notifications',   notificationsRouter);
 
 // Case media (fundus images, Grad-CAM overlays). api-contracts.md's case-detail
 // response returns imageUrl / gradCamOverlayUrl as paths under /media, so those
@@ -88,9 +108,16 @@ app.use((req, res) => {
 
 app.use((err, req, res, next) => {   // eslint-disable-line no-unused-vars
   console.error('[central] Unhandled error:', err);
+  // The full error goes to the server log. The RESPONSE carries a generic
+  // message in production: an unhandled error here is usually a database
+  // error, and node-postgres messages quote table names, column names and
+  // sometimes the offending value -- which is patient data.
+  const expose = process.env.NODE_ENV !== 'production';
   res.status(500).json({
     error: 'internal_error',
-    message: err.message || 'Unexpected server error',
+    message: expose
+      ? (err.message || 'Unexpected server error')
+      : 'Unexpected server error. The details are in the server log.',
   });
 });
 

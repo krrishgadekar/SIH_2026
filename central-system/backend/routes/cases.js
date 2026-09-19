@@ -343,9 +343,21 @@ router.post('/:caseId/review', ophthalmologist, async (req, res, next) => {
     `, [caseId, cfg.CLAIM_TTL_MINUTES]);
     const g = graded.rows[0];
 
+    // No grading result means there is nothing to confirm or override: the case
+    // is still processing, awaiting its image, or failed. Recording a review
+    // against it would produce an audited clinical decision about a grade that
+    // does not exist -- and, on a referable-looking override, an SMS for it.
+    if (!g) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({
+        error: 'case_not_graded',
+        message: 'This case has no grading result yet, so there is nothing to review.',
+      });
+    }
+
     // §10.8: a live claim by SOMEONE ELSE blocks this decision. Only checkable
     // when the reviewer is known, i.e. someone is logged in.
-    if (g && g.claimed_by && g.claim_live && req.user && g.claimed_by !== req.user.userId) {
+    if (g.claimed_by && g.claim_live && req.user && g.claimed_by !== req.user.userId) {
       await client.query('ROLLBACK');
       return res.status(409).json({
         error: 'case_claimed',
@@ -358,7 +370,7 @@ router.post('/:caseId/review', ophthalmologist, async (req, res, next) => {
     // §10.9: when the branches disagree there is no single model grade to
     // "confirm", so the only way forward is an explicit grade. Enforced here,
     // not only by hiding the button, so no client can skip it.
-    if (g && g.branch_agreement === false) {
+    if (g.branch_agreement === false) {
       if (decision === 'confirm' || !Number.isInteger(correctedGrade)) {
         await client.query('ROLLBACK');
         return res.status(400).json({

@@ -28,7 +28,9 @@ const { logAccess } = require('../services/accessLog');
 
 const router = express.Router();
 
-const STATUSES = ['referred', 'contacted', 'attended', 'lost'];
+// manual_follow_up (design doc §10.5) is set automatically when an SMS cannot
+// be delivered; it is listed here so a worker can also set it by hand.
+const STATUSES = ['referred', 'manual_follow_up', 'contacted', 'attended', 'lost'];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // District admin: the Referral Tracker is an admin screen (design doc §5.3).

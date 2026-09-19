@@ -320,6 +320,10 @@ function callMatlabSession(tensorPath, gradcamPath) {
       }
       if (Date.now() - startedAt > MATLAB_SESSION_TIMEOUT_MS) {
         clearInterval(poll);
+        // Take the request back. Left behind, a session that is merely slow (or
+        // one that starts later) picks it up, runs a full inference nobody is
+        // waiting for, and leaves an orphan response file behind it.
+        fs.unlink(reqPath, () => {});
         return reject(unavailable('matlab_session_unavailable',
           `No response from the persistent MATLAB session within ${MATLAB_SESSION_TIMEOUT_MS}ms. `
           + 'Is it running? See ml-pipeline/inference/matlabSession/README.md '

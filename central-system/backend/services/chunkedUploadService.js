@@ -179,6 +179,18 @@ const sha256 = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
 async function initSession(captureRef, meta = {}) {
   assertCaptureRef(captureRef);
 
+  // §C: the capture may already have a complete case -- typically because the
+  // single-shot POST /cases succeeded and its response was lost. Uploading the
+  // image again in chunks would transfer megabytes over a bad link only for
+  // ingestion to recognise the duplicate and discard it. Say so up front.
+  const existingCase = await ingestion.findCaseByCaptureRef(captureRef);
+  if (existingCase && existingCase.status !== 'awaiting_image') {
+    return {
+      captureRef, alreadyIngested: true, caseId: existingCase.caseId,
+      status: existingCase.status, missing: [], received: [],
+    };
+  }
+
   const totalChunks = parseInt(meta.totalChunks, 10);
   const totalBytes  = parseInt(meta.totalBytes, 10);
   const expectedSha = String(meta.sha256 || '').toLowerCase();
