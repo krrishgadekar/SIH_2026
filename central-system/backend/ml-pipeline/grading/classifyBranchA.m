@@ -84,11 +84,30 @@ end
 
 if isa(net, 'dlnetwork')
     % dlnetwork path: convert to single 4-D (H×W×C×N) dlarray
-    img4D = single(preprocessedImg);
+    %
+    % CORRECTION (2026-09-18): the real branchA_v1.mat (ONNX-imported from
+    % branchA_v1.pt) has NO input-normalization layer of its own -- unlike the
+    % old imagePretrainedNetwork stub this branch was originally written for,
+    % which baked ImageNet zerocenter normalization into its input layer.
+    % preprocessForBranchA/preprocessModel1.m stop at a 384x384x3 UINT8 image
+    % by design (see docs/model-handoff-guide.md §2) -- normalization is the
+    % network's own input contract, not part of that preprocessing chain.
+    % Feeding raw 0-255 values here was found, empirically, to send logits to
+    % +38/-105 instead of the normal single-digit range and flip the grade
+    % outright (see ml-pipeline/inference/branchAInferMatlab.m's header for
+    % the cross-check against branchAInfer.py that caught it). This is the
+    % same ImageNet mean/std the checkpoint's own metadata records, applied
+    % the same way branchAInfer.py:186-191 does.
+    IMAGENET_MEAN = reshape([0.485 0.456 0.406], 1, 1, 3);
+    IMAGENET_STD  = reshape([0.229 0.224 0.225], 1, 1, 3);
+    x = (single(preprocessedImg) ./ 255) - IMAGENET_MEAN;
+    x = x ./ IMAGENET_STD;
+
+    img4D = x;
     if ndims(img4D) == 3
         img4D = reshape(img4D, [size(img4D,1), size(img4D,2), size(img4D,3), 1]);
     end
-    X     = dlarray(img4D, 'SSCB');
+    X     = dlarray(single(img4D), 'SSCB');
     probs = double(extractdata(predict(net, X)));
     probs = probs(:)';                % ensure 1×5 row vector
 else

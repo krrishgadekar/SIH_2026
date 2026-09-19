@@ -53,9 +53,19 @@ lastConvName = findLastConvLayer(net);
 outputLayerName = net.Layers(end).Name;
 
 % ── Step 2: prepare dlarray input ────────────────────────────────────────────
-img4D = single(preprocessedImg);
-img4D = reshape(img4D, [size(img4D,1), size(img4D,2), size(img4D,3), 1]);
-X = dlarray(img4D, 'SSCB');
+% CORRECTION (2026-09-18): the network's own input contract is ImageNet-
+% normalized float, not raw 0-255 uint8 -- see classifyBranchA.m's matching
+% correction for how this was found (logits landing at +38/-105 instead of
+% single digits). preprocessedImg itself stays uint8 below (Step 4/6 need the
+% original pixel values for resizing and the visual overlay); only the copy
+% fed to the network is normalized.
+IMAGENET_MEAN = reshape([0.485 0.456 0.406], 1, 1, 3);
+IMAGENET_STD  = reshape([0.229 0.224 0.225], 1, 1, 3);
+netInput = (single(preprocessedImg) ./ 255) - IMAGENET_MEAN;
+netInput = netInput ./ IMAGENET_STD;
+
+img4D = reshape(netInput, [size(netInput,1), size(netInput,2), size(netInput,3), 1]);
+X = dlarray(single(img4D), 'SSCB');
 
 % ── Step 2b: initialize dlnetwork if needed (same guard as classifyBranchA) ──
 % addLayers/connectLayers de-initializes a dlnetwork. Any net loaded from a

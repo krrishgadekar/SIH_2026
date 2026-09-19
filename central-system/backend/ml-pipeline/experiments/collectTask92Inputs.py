@@ -80,7 +80,7 @@ def main():
     for i, (img_id, path, truth) in enumerate(cases, 1):
         bgr = cv2.imread(path, cv2.IMREAD_COLOR)
 
-        x, _base = B.preprocess(path, ckpt)
+        x, _base, _enh = B.preprocess(path, ckpt)
         with torch.no_grad():
             logits = model(torch.from_numpy(x)).numpy()[0]
         probs = B.softmax(logits / T)

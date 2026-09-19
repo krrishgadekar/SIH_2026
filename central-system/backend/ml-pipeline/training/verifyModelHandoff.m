@@ -44,6 +44,7 @@ addpath(fullfile(thisDir, '..', 'preprocessing'));
 addpath(fullfile(thisDir, '..', 'grading'));
 addpath(fullfile(thisDir, '..', 'calibration'));
 addpath(fullfile(thisDir, '..', 'explainability'));
+addpath(fullfile(thisDir, '..', 'cameraCalibration'));
 
 %% ── 1. File and variable layout ─────────────────────────────────────────────
 fprintf('-- File layout --\n');
@@ -91,17 +92,29 @@ fprintf('\n-- Input / output contract --\n');
 
 % classifyBranchA carries this same guard, so an uninitialised save is
 % tolerated -- but initialising before saving is cheaper and less surprising.
+% NOTE ON INPUT SIZE: this used to be 512x512x3, matching the legacy
+% benGrahamCrop->claheEnhance->illuminationNormalize chain in
+% docs/model-handoff-guide.md. That guide predates the actual branchA_v1
+% checkpoint (EfficientNet-B0, trained at 384x384, ImageNet norm, no CLAHE --
+% see preprocessing/preprocessModel1.m and diagnostics/MODEL_INTERFACE_REFERENCE.md,
+% both confirmed against the model's own published test logits to 0.0050
+% mean |diff| / 100% class agreement). preprocessForBranchA.m's default
+% recipe ('model1') already emits 384x384x3; this checker is updated to match
+% it rather than the superseded 512 contract.
+INPUT_SIZE = 384;
+
 if isa(net, 'dlnetwork') && ~net.Initialized
     softFail = report('dlnetwork was saved initialised', false, softFail, true);
-    fprintf('    Fix: net = initialize(net, dlarray(randn(512,512,3,1,''single''),''SSCB''));\n');
-    net = initialize(net, dlarray(randn(512, 512, 3, 1, 'single'), 'SSCB'));
+    fprintf('    Fix: net = initialize(net, dlarray(randn(%d,%d,3,1,''single''),''SSCB''));\n', ...
+            INPUT_SIZE, INPUT_SIZE);
+    net = initialize(net, dlarray(randn(INPUT_SIZE, INPUT_SIZE, 3, 1, 'single'), 'SSCB'));
 else
     softFail = report('dlnetwork was saved initialised', true, softFail, true);
 end
 
-probs1 = runNet(net, uint8(randi([0 255], 512, 512, 3)));
+probs1 = runNet(net, uint8(randi([0 255], INPUT_SIZE, INPUT_SIZE, 3)));
 
-hardFail = report('accepts 512x512x3 input', ~isempty(probs1), hardFail);
+hardFail = report(sprintf('accepts %dx%dx3 input', INPUT_SIZE, INPUT_SIZE), ~isempty(probs1), hardFail);
 hardFail = report('emits exactly 5 outputs', numel(probs1) == 5, hardFail);
 if numel(probs1) ~= 5
     fprintf('    got %d. DR grades are 0-4, so the final layer needs 5 outputs.\n', numel(probs1));
@@ -119,7 +132,7 @@ hardFail = report('outputs are all in [0,1]', all(probs1 >= 0 & probs1 <= 1), ha
 %% ── 3. Determinism and caching ──────────────────────────────────────────────
 fprintf('\n-- Determinism --\n');
 
-fixedImg = uint8(repmat(reshape(linspace(0, 255, 512), [], 1), 1, 512, 3));
+fixedImg = uint8(repmat(reshape(linspace(0, 255, INPUT_SIZE), [], 1), 1, INPUT_SIZE, 3));
 pA = runNet(net, fixedImg);
 pB = runNet(net, fixedImg);
 
@@ -152,11 +165,17 @@ if ~isfile(testImagePath)
 else
     raw = imread(testImagePath);
 
-    % EXACTLY the chain gradingOrchestrator.js runs, in the same order.
-    pre = illuminationNormalize(claheEnhance(benGrahamCrop(raw, 512)));
+    % EXACTLY the chain gradingOrchestrator.js runs: preprocessForBranchA is
+    % THE single definition (see its own header) and defaults to recipe
+    % 'model1' -- Ben Graham crop -> 384x384 -> ImageNet norm, no CLAHE.
+    % Calling the old legacy steps directly here would silently re-test the
+    % wrong contract, exactly the train/serve skew this whole file exists to
+    % catch.
+    pre = preprocessForBranchA(raw);
 
-    sizeOk   = isequal(size(pre), [512 512 3]);
-    hardFail = report('preprocessing chain emits 512x512x3', sizeOk, hardFail);
+    sizeOk   = isequal(size(pre), [INPUT_SIZE INPUT_SIZE 3]);
+    hardFail = report(sprintf('preprocessing chain emits %dx%dx3', INPUT_SIZE, INPUT_SIZE), ...
+                      sizeOk, hardFail);
 
     % classifyBranchA loads the .mat itself, so it can only exercise the
     % canonical path. Deliberately NOT copying the candidate model there:

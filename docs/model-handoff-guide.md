@@ -14,6 +14,18 @@ loads fine, returns correctly-shaped output, and is 20 points less accurate than
 your validation run said, because inference sees different pixels than training
 did. Read §2 even if you skip everything else.
 
+> **Correction (2026-09-18):** the delivered `branchA_v1.pt` did not arrive via
+> the MATLAB/ResNet-50 route §0/§6 describe — it was trained in PyTorch
+> (EfficientNet-B0) on Kaggle. §1's net contract and §2's preprocessing chain
+> below have been corrected to match what that checkpoint actually expects:
+> **384×384×3, ImageNet normalization, no CLAHE** — not the 512×512 /
+> `benGrahamCrop→claheEnhance→illuminationNormalize` contract this guide
+> originally specified. Source of truth: `preprocessing/preprocessModel1.m`
+> (the executable port, with the empirical logit-reproduction evidence in its
+> header) and `diagnostics/MODEL_INTERFACE_REFERENCE.md` ("Model 1"). §0 and
+> §6 still describe the original MATLAB-native plan and were not updated —
+> read them as historical intent, not as what was actually built.
+
 ---
 
 ## 0. Before you start: install the support package
@@ -52,7 +64,8 @@ gate is non-negotiable).
 |---|---|
 | Variable is named exactly `net` | `classifyBranchA.m` does `load(path, 'net')` |
 | Save **only** `net` | `save('branchA_v1.mat', 'net')`. Saving the workspace can drag training data in and produce a multi-GB file |
-| Input **512 × 512 × 3** | What `benGrahamCrop` emits |
+| Input **384 × 384 × 3** | What `preprocessModel1.m` (the default `'model1'` recipe inside `preprocessForBranchA.m`) emits — **not** 512×512. See §2 |
+| Normalized with **ImageNet mean/std** (`[0.485,0.456,0.406]` / `[0.229,0.224,0.225]`) after scaling to `[0,1]` — **no CLAHE** | What the checkpoint's own metadata (`normalize_mean`/`normalize_std`) and `identifyTrainingChain.py` confirm the model was actually trained on — see §2 |
 | Output **1 × 5**, summing to 1 | Needs a terminal softmax. Without it `confidence_score` is not a probability and the Tier A/B/C thresholds are meaningless |
 | Column *k* = grade *k−1* | See §3 |
 | `dlnetwork`, `DAGNetwork` or `SeriesNetwork` | `classifyBranchA` handles all three |
@@ -64,51 +77,71 @@ gate is non-negotiable).
 
 **This is the single highest-risk item in the handoff.**
 
-**THE CHAIN CHANGED on 2026-09-09.** If you started before that date against
-the old three-step sequence, re-read this section — training on the old chain
-and serving on the new one is exactly the silent failure described above.
+**THE CHAIN CHANGED AGAIN on 2026-09-09**, a second time, for a different
+reason than the paragraph below originally described: the delivered
+`branchA_v1.pt` turned out to be trained on a **Python** chain
+(`ben_graham.py`, no CLAHE, 384×384, ImageNet normalization) — not on the
+richer MATLAB `benGrahamCrop → denoiseRetinal → adaptiveEnhance` sequence this
+guide specified up front and this section used to describe. Training on one
+chain and serving on the other is exactly the silent failure this whole
+section exists to prevent, and it had actually happened.
 
-There is now ONE function that defines the chain, and both sides call it:
+There is still ONE function that defines the chain, and both sides call it —
+that part of the design held up. What changed is which chain it runs by
+default:
 
 ```matlab
 addpath('central-system/backend/ml-pipeline/preprocessing');
 
-preprocessed = preprocessForBranchA(img);        % training: no quality scores
+preprocessed = preprocessForBranchA(img);        % default recipe: 'model1'
 ```
 
 `gradingOrchestrator.js` calls the identical function at inference. **Do not
 call the individual steps, and do not reimplement the sequence** — a
 hand-written copy in two places is how the skew starts, and it has already
-changed once.
+changed twice.
 
-What it does internally, for reference only:
+The default recipe (`opts.recipe = 'model1'`) is a port of the exact Python
+training chain, implemented in `preprocessModel1.m`:
 
 ```
-benGrahamCrop(img, 512)   ->  denoiseRetinal(...)  ->  adaptiveEnhance(..., scores)
+ben_graham_preprocess(img, 384)   ->   BGR->RGB   ->   ImageNet normalize
 ```
 
-- `denoiseRetinal` (Task 2.1b) is NEW. Edge-preserving anisotropic diffusion,
-  placed before contrast amplification because CLAHE amplifies whatever noise it
-  is handed. Verified to retain microaneurysm-scale detail: 6/6 synthetic blobs
-  of radius 2–8 px survive at 89% contrast.
-- `adaptiveEnhance` (Task 2.8) SUBSUMES the old `claheEnhance` +
-  `illuminationNormalize` pair. It also varies the treatment by which quality
-  dimension is weak, using the PHC quality gate's sub-scores.
+i.e. circular-crop to the retinal disc → resize to **384×384** (not 512) →
+Ben Graham local-contrast boost (`4*img - 4*blur + 128`) → convert to RGB →
+`(x/255 - mean) / std` with ImageNet's `mean=[0.485,0.456,0.406]`,
+`std=[0.229,0.224,0.225]`. **No CLAHE, no denoising, no adaptive
+enhancement, no camera-calibration correction** — none of those ran during
+training, so applying any of them at inference makes a correct model perform
+worse, not better.
 
-**Training images have no quality scores, and that is fine.** With none
-supplied, `adaptiveEnhance` takes its default path — CLAHE at clip 0.01, no
-sharpening, no glare attenuation — which is deterministic, reproducible, and
-the same path a good-quality clinical image takes at inference. That is the
-property that keeps the two aligned for the images that matter most.
+This was established empirically, not assumed: `identifyTrainingChain.py`
+replayed candidate chains against the checkpoint's own published test-split
+logits (a fingerprint only the right preprocessing reproduces):
 
-Why substituting any of it is unsafe: `benGrahamCrop` is a large
-local-contrast boost, not a resize — it detects the retinal disc, crops to its
-bounding box, resizes, then subtracts a heavily blurred copy of itself and
-re-adds at mid-grey. Images that skip it look nothing like images that got it.
+```
+ben_graham only      mean |logit diff| 0.0050   class agreement 100.0%
+ben_graham + CLAHE    mean |logit diff| 1.5861   class agreement  57.7%
+```
 
-If you train on raw resized images and inference feeds the full chain, nothing
-errors. Accuracy just quietly collapses, and it will look like a bad model
-rather than a preprocessing mismatch.
+That 100%-agreement, 0.0050-diff result is why `'model1'` is the default.
+Full detail, including the MATLAB-port's own residual error against the
+Python reference (2.98 grey levels / SSIM 0.981, attributable to
+MATLAB-vs-OpenCV imaging-op differences, not the recipe), is in
+`preprocessModel1.m`'s header and `diagnostics/MODEL_INTERFACE_REFERENCE.md`
+("Model 1") — treat both as the source of truth over this guide.
+
+The richer `benGrahamCrop → denoiseRetinal → adaptiveEnhance` sequence (§2's
+original subject) still exists as `opts.recipe = 'legacy'`, targeting 512×512
+with quality-score-adaptive CLAHE — it is real code, still used by the Phase 4
+segmentation models, which we do control both sides of. It is simply **not**
+what Branch A was trained on, so it must never be the recipe Branch A's input
+goes through.
+
+If you ever retrain Branch A on a different chain, update both
+`preprocessModel1.m` and this section in the same commit — that is how this
+mismatch happened the first time.
 
 > **Cache the preprocessed images to disk once**, then train from that. The chain
 > is slow, and re-running it every epoch wastes hours. Just make sure the cache is
@@ -289,7 +322,7 @@ means the model latched onto a preprocessing artifact.
 ## 9. Handover checklist
 
 - [ ] ResNet-50 support package installed; transfer learning, not scratch
-- [ ] Trained on `benGrahamCrop` → `claheEnhance` → `illuminationNormalize` output (§2)
+- [ ] Trained on `preprocessModel1.m`'s output — Ben Graham 384×384, ImageNet norm, no CLAHE (§2)
 - [ ] `categories(imds.Labels)` verified as `'0'..'4'` in order (§3)
 - [ ] `dropoutLayer` present before the final FC (§4)
 - [ ] Three-way split; test split never fitted on (§5)
@@ -332,6 +365,7 @@ Backend side, for reference — you don't run these:
 | Why two branches, tiers, honest limits | `docs/system-design-v3-final.md` §6.7, §6.8, §16 |
 | Model inventory & swap-in path | `central-system/backend/ml-pipeline/models/README.md` |
 | Inference wrapper you must match | `.../ml-pipeline/grading/classifyBranchA.m` |
-| Preprocessing you must match | `.../ml-pipeline/preprocessing/` |
+| Preprocessing you must match | `.../ml-pipeline/preprocessing/preprocessModel1.m` (the `'model1'` recipe — see §2) |
+| Full, verified per-model interface spec | `.../ml-pipeline/diagnostics/MODEL_INTERFACE_REFERENCE.md` |
 | Acceptance check | `.../ml-pipeline/training/verifyModelHandoff.m` |
 | Stub generator (what exists now) | `.../ml-pipeline/training/createStubBranchA.m` |

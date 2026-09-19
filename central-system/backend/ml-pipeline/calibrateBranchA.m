@@ -5,9 +5,18 @@ function report = calibrateBranchA(opts)
 %   report = calibrateBranchA(opts)
 %
 %   opts:
-%     .alpha      0.10  - conformal miscoverage; 1-alpha is the coverage target
-%     .versionId  'branchA_v1'
-%     .quiet      false
+%     .alpha       0.10  - conformal miscoverage; 1-alpha is the coverage target
+%     .versionId   'branchA_v1'
+%     .quiet       false
+%     .imgSize     REQUIRED, no default. The checkpoint's own img_size (e.g.
+%                  384 for v1). Written into calibration_v1.json as
+%                  trainedImgSize so branchAInfer.py / branchAInferMatlab.m
+%                  can refuse to apply a calibration fitted for a
+%                  differently-shaped model instead of silently doing it.
+%                  Required (not defaulted to 384) specifically so re-fitting
+%                  for a v2 model at a new resolution cannot forget to update
+%                  it -- see the v2 training-run report's mandatory
+%                  recalibration step.
 %
 %   Does three things that were built long ago and never fitted, because until
 %   Branch A arrived there was nothing to fit them on:
@@ -43,6 +52,15 @@ if nargin < 1, opts = struct(); end
 alpha     = getdef(opts, 'alpha', 0.10);
 versionId = getdef(opts, 'versionId', 'branchA_v1');
 quiet     = getdef(opts, 'quiet', false);
+imgSize   = getdef(opts, 'imgSize', []);
+if isempty(imgSize)
+    error('calibrateBranchA:imgSizeRequired', ...
+        ['opts.imgSize is required -- pass the checkpoint''s own img_size ' ...
+         '(e.g. 384 for v1). No default is given on purpose: guessing wrong ' ...
+         'here is exactly the failure mode this field exists to prevent -- ' ...
+         'see calibration_v1.json''s trainedImgSize and branchAInfer.py''s ' ...
+         'load_calibration().']);
+end
 
 thisDir   = fileparts(mfilename('fullpath'));
 modelsDir = fullfile(thisDir, 'models');
@@ -107,6 +125,7 @@ report.conformal = calib;
 % place that computes the temperature is a second answer waiting to happen.
 calJson = struct( ...
     'modelVersion',   versionId, ...
+    'trainedImgSize', imgSize, ...
     'temperature',    T, ...
     'alpha',          alpha, ...
     'qhat',           calib.qhat, ...

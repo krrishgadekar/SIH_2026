@@ -13,11 +13,21 @@
  *   MATLAB  readFundusImage → preprocessForBranchA (camera cross-check)
  *           → generateEvidenceReport
  *
- * Branch A moved to Python because MATLAB's official PyTorch converter imports
- * the network and computes the wrong numbers — 8-11% agreement with the
- * model's own published logits, correlation -0.25, while Python reproduces
- * them exactly. That is a measured technical constraint, not a preference; see
- * ml-pipeline/testImportedNetwork.m, which re-runs the check in one command.
+ * Branch A moved to Python because MATLAB's official PyTorch converter
+ * (importNetworkFromPyTorch) imported the network and computed the wrong
+ * numbers — 8-11% agreement with the model's own published logits,
+ * correlation -0.25, while Python reproduces them exactly. See
+ * ml-pipeline/testImportedNetwork.m, which re-runs that check in one command.
+ *
+ * CORRECTION (2026-09-18): that finding does not generalize to every MATLAB
+ * import path. models/branchA_v1.mat was produced via a DIFFERENT converter
+ * (torch.onnx.export -> importNetworkFromONNX) and independently verified
+ * against the same PyTorch checkpoint on 10 real images at max|diff| ~2e-6
+ * post-softmax (training/parityCheck.m). An INFERENCE_BACKEND=matlab path now
+ * exists as an alternative to the Python one below (see
+ * runBranchAInferenceMatlab / branchAInferMatlab.m); INFERENCE_BACKEND
+ * defaults to 'python' unless documented otherwise elsewhere. Both paths are
+ * kept — this is a backend switch, not a replacement.
  *
  * DB writes:
  *   grading_results        — CNN grade, referable flag, calibrated confidence,
@@ -46,6 +56,7 @@
 const { spawn }  = require('child_process');
 const path       = require('path');
 const fs         = require('fs');
+const os         = require('os');
 const pool       = require('../db/pgClient');
 const mediaPaths = require('./mediaPaths');
 const matlabFallback = require('./matlabFallback');
@@ -134,6 +145,37 @@ const PYTHON_EXE = process.env.PYTHON_EXECUTABLE || 'python';
 const BRANCH_A_INFER = path.join(ML_ROOT, 'inference', 'branchAInfer.py');
 const SEG_INFER      = path.join(ML_ROOT, 'inference', 'segInfer.py');
 
+// ── Branch A backend switch ─────────────────────────────────────────────────
+// 'matlab' (DEFAULT as of 2026-09-19): branchAInferMatlab.m against the
+//          persistent MATLAB session (ml-pipeline/inference/matlabSession/ --
+//          REQUIRED to be running; there is no per-call cold-start fallback,
+//          see callMatlabSession below). Flipped from 'python' only once both
+//          gating conditions were met and measured, not assumed:
+//            - correctness: 10/10 grade AND 10/10 conformal-tier agreement
+//              with the python backend on 10 real IDRiD images, after
+//              preprocessModel1.m's MATLAB port (SSIM 0.981) was removed in
+//              favor of both backends calling the one Python preprocessing
+//              function (branchAInfer.preprocess()) -- see
+//              branchAInferMatlab.m's header and ml-pipeline/experiments/
+//              compareInferenceBackends.js.
+//            - latency: mean 3.3s/image against the persistent session vs
+//              python's 6.3s (ml-pipeline/experiments/measureInferenceLatency.js)
+//              -- matlab is now the FASTER backend, not merely acceptable.
+// 'python': branchAInfer.py, the original path. Kept, not deleted -- set
+//           INFERENCE_BACKEND=python to fall back to it (e.g. if the
+//           persistent session is down and restarting it isn't an option
+//           right now).
+// Segmentation (segInfer.py) is UNCHANGED either way -- this switch is
+// Branch A/classifier only.
+const INFERENCE_BACKEND = (process.env.INFERENCE_BACKEND || 'matlab').toLowerCase();
+if (!['python', 'matlab'].includes(INFERENCE_BACKEND)) {
+  throw new Error(`INFERENCE_BACKEND must be 'python' or 'matlab', got '${INFERENCE_BACKEND}'`);
+}
+const PREPROCESS_TENSOR = path.join(ML_ROOT, 'inference', 'preprocessBranchATensor.py');
+// branchAInferMatlab.m itself is no longer addpath'd/invoked per call from
+// here -- the persistent session (matlabSession/runMatlabInferenceSession.m)
+// addpaths and calls it once, at its own startup. See callMatlabSession below.
+
 /**
  * runBranchAInference(imagePath)
  *
@@ -178,6 +220,134 @@ function runBranchAInference(imagePath, gradcamPath) {
     proc.on('error', (err) => reject(unavailable('python_unavailable',
       `Failed to spawn Python (set PYTHON_EXECUTABLE?): ${err.message}`)));
   });
+}
+
+/**
+ * preprocessBranchATensor(imagePath)
+ *
+ * Runs the ONE shared preprocessing step (branchAInfer.preprocess(), via
+ * preprocessBranchATensor.py) and returns the path to the .mat tensor it
+ * wrote. Both Branch A backends need this to see identical input; the
+ * python backend does it in-process inside branchAInfer.py, the matlab
+ * backend needs it as a separate step first since MATLAB no longer carries
+ * its own preprocessing (see branchAInferMatlab.m's header for why that
+ * port was removed rather than fixed).
+ *
+ * Caller owns cleanup of the returned path (see runBranchAInferenceMatlab).
+ */
+function preprocessBranchATensor(imagePath) {
+  return new Promise((resolve, reject) => {
+    const tensorPath = path.join(
+      os.tmpdir(), `branchA_tensor_${Date.now()}_${Math.random().toString(36).slice(2)}.mat`);
+    const proc = spawn(PYTHON_EXE, [PREPROCESS_TENSOR, imagePath, tensorPath], {
+      env: process.env,
+      timeout: TIMEOUT_MS,
+    });
+    let stderr = '';
+    proc.stderr.on('data', (d) => { stderr += d.toString(); });
+    proc.on('close', (code) => {
+      if (code !== 0) {
+        return reject(new Error(
+          `Branch A tensor preprocessing exited ${code}.\nstderr: ${stderr.trim()}`));
+      }
+      resolve(tensorPath);
+    });
+    proc.on('error', (err) => reject(unavailable('python_unavailable',
+      `Failed to spawn Python for Branch A preprocessing (set PYTHON_EXECUTABLE?): ${err.message}`)));
+  });
+}
+
+// ── Persistent MATLAB session (Part 2 of the MATLAB-backend latency fix) ───
+// ml-pipeline/inference/matlabSession/{README.md,runMatlabInferenceSession.m,
+// manageMatlabSession.ps1}. `matlab -batch` cold-starts in ~24s mean (10-image
+// measurement, ml-pipeline/experiments/measureInferenceLatency.js) -- 3.9x
+// Python's ~6.2s, almost entirely interpreter/toolbox/ONNX-package startup,
+// not the predict() call itself. Spawning a fresh MATLAB process per case
+// pays that every time; this session pays it once at startup and serves
+// requests over a request/response directory instead.
+//
+// This REPLACES the per-call `matlab -batch` spawn for Branch A -- there is
+// no fallback to a fresh process if the session isn't running (see
+// callMatlabSession's timeout below). That is deliberate: silently falling
+// back would reintroduce the exact 24s-per-case cost this exists to remove,
+// and do it quietly.
+const MATLAB_SESSION_DIR          = path.join(ML_ROOT, 'inference', 'matlabSession');
+const MATLAB_SESSION_REQUEST_DIR  = path.join(MATLAB_SESSION_DIR, 'requests');
+const MATLAB_SESSION_RESPONSE_DIR = path.join(MATLAB_SESSION_DIR, 'responses');
+const MATLAB_SESSION_POLL_MS      = 50;
+const MATLAB_SESSION_TIMEOUT_MS   = parseInt(process.env.MATLAB_SESSION_TIMEOUT_MS || '30000', 10);
+
+/**
+ * callMatlabSession(tensorPath, gradcamPath)
+ *
+ * Writes a request file the persistent session (see above) is polling for,
+ * then polls for its matching response file. Both sides write temp-then-
+ * rename, so neither ever observes a partially-written file.
+ */
+function callMatlabSession(tensorPath, gradcamPath) {
+  return new Promise((resolve, reject) => {
+    fs.mkdirSync(MATLAB_SESSION_REQUEST_DIR, { recursive: true });
+    fs.mkdirSync(MATLAB_SESSION_RESPONSE_DIR, { recursive: true });
+
+    const reqId = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const reqPath = path.join(MATLAB_SESSION_REQUEST_DIR, `${reqId}.json`);
+    const reqTmpPath = `${reqPath}.tmp`;
+    const respPath = path.join(MATLAB_SESSION_RESPONSE_DIR, `${reqId}.json`);
+
+    fs.writeFileSync(reqTmpPath, JSON.stringify({
+      tensorPath, gradcamPath: gradcamPath || '',
+    }));
+    fs.renameSync(reqTmpPath, reqPath);
+
+    const startedAt = Date.now();
+    const poll = setInterval(() => {
+      if (fs.existsSync(respPath)) {
+        clearInterval(poll);
+        let body;
+        try {
+          body = JSON.parse(fs.readFileSync(respPath, 'utf8'));
+        } catch (err) {
+          fs.unlink(respPath, () => {});
+          return reject(new Error(`Branch A (MATLAB session) response JSON parse failed: ${err.message}`));
+        }
+        fs.unlink(respPath, () => {});
+        if (body && body.error) {
+          return reject(new Error(`Branch A (MATLAB session) failed: ${body.error}`));
+        }
+        return resolve(body);
+      }
+      if (Date.now() - startedAt > MATLAB_SESSION_TIMEOUT_MS) {
+        clearInterval(poll);
+        return reject(unavailable('matlab_session_unavailable',
+          `No response from the persistent MATLAB session within ${MATLAB_SESSION_TIMEOUT_MS}ms. `
+          + 'Is it running? See ml-pipeline/inference/matlabSession/README.md '
+          + '(start it with manageMatlabSession.ps1 start).'));
+      }
+    }, MATLAB_SESSION_POLL_MS);
+  });
+}
+
+/**
+ * runBranchAInferenceMatlab(imagePath, gradcamPath)
+ *
+ * The MATLAB-backend twin of runBranchAInference: same inputs, same resolved
+ * JSON shape, same reject-on-failure contract (a Branch A failure must fail
+ * the case -- there is no grade without it) -- mirrored field-for-field so
+ * processCase() below does not need to know which backend produced `branchA`.
+ *
+ * Two steps, not one spawn: preprocessBranchATensor() (a fresh Python
+ * process, every call -- preprocessing was deliberately NOT made part of the
+ * persistent session, see matlabSession/README.md's last section) writes the
+ * tensor, then callMatlabSession() hands it to the already-running MATLAB
+ * session and waits for the response file.
+ */
+async function runBranchAInferenceMatlab(imagePath, gradcamPath) {
+  const tensorPath = await preprocessBranchATensor(imagePath);
+  try {
+    return await callMatlabSession(tensorPath, gradcamPath);
+  } finally {
+    fs.unlink(tensorPath, () => {});   // best-effort; a leaked temp file is not worth failing the case over
+  }
 }
 
 /**
@@ -290,6 +460,103 @@ function assignTier(confidence, branchAgreement) {
   return 'C';
 }
 
+// ── Quality-forced override (design doc §6.8's "force-flagged poor-but-not-
+// unusable capture" -> Tier C) ──────────────────────────────────────────────
+/**
+ * isCaptureUngradable(qualityScores)
+ *
+ * quality_scores was already being loaded and forwarded to MATLAB for
+ * adaptiveEnhance's preprocessing (Task 2.8) but never converted to a
+ * boolean or checked anywhere in the tier decision -- a case whose own
+ * quality gate would have told the technician to retake the photo could
+ * still sail through to Tier A on a confident-looking probability.
+ *
+ * Thresholds are NOT invented here: they are the same hard-failure branches
+ * phc-local-app/backend/quality-gate-matlab/qualityGateMain.m already uses
+ * to decide LOCAL 'retake' (that file's Step 4), using the one preset that
+ * exists today (cameraPresets.json's 'default': focusThreshold 0.17,
+ * illuminationThreshold 0.4 -- no per-camera overrides are defined yet, so
+ * mirroring 'default' here is not an approximation of anything more precise).
+ * The local gate's softer 'borderline' composite-score branch is
+ * deliberately NOT reproduced -- borderline images are already handled by
+ * adaptiveEnhance and are not what this override exists to catch.
+ *
+ * A case reaching here with a hard local-retake-equivalent score means one
+ * of: the technician forced the capture through despite a warning, the local
+ * gate was bypassed, or scores were computed but not acted on locally. Any of
+ * those is exactly the "poor-but-not-unusable capture" the design doc's Tier
+ * C row names -- no statistical guarantee about the classifier addresses it.
+ *
+ * Returns false (not ungradable) when quality_scores is null/absent --
+ * captures from before this column existed, or synced without scores, fall
+ * back to "no signal", not "forced C". See ml-pipeline/grading's
+ * matlabStructLiteral for the same six field names.
+ */
+const QUALITY_RETAKE_THRESHOLDS = {
+  minCoveragePercent:    0.5,   // qualityGateMain.m: fov.coveragePercent < 0.5
+  maxGlareScore:         0.3,   // qualityGateMain.m: glareScore > 0.3
+  maxMotionScore:        0.3,   // qualityGateMain.m: motionScore > 0.3
+  illuminationThreshold: 0.4,   // cameraPresets.json 'default'.illuminationThreshold
+  focusThreshold:        0.17,  // cameraPresets.json 'default'.focusThreshold
+  maxOcclusionScore:     0.18,  // qualityGateMain.m: occlusionScore > 0.18
+};
+
+function isCaptureUngradable(qualityScores) {
+  if (!qualityScores || typeof qualityScores !== 'object') return false;
+  const t = QUALITY_RETAKE_THRESHOLDS;
+  const finite = (v) => Number.isFinite(Number(v));
+  const num = (v) => Number(v);
+
+  if (finite(qualityScores.coveragePercent) && num(qualityScores.coveragePercent) < t.minCoveragePercent) return true;
+  if (finite(qualityScores.glareScore) && num(qualityScores.glareScore) > t.maxGlareScore) return true;
+  if (finite(qualityScores.motionScore) && num(qualityScores.motionScore) > t.maxMotionScore) return true;
+  if (finite(qualityScores.illuminationScore) && num(qualityScores.illuminationScore) < t.illuminationThreshold) return true;
+  if (finite(qualityScores.focusScore) && num(qualityScores.focusScore) < t.focusThreshold) return true;
+  if (finite(qualityScores.occlusionScore) && num(qualityScores.occlusionScore) > t.maxOcclusionScore) return true;
+  return false;
+}
+
+// ── Camera/site probation override (design doc §6.8's implicit "unfamiliar
+// capture source" case; no case-count threshold is specified anywhere in the
+// docs, so CAMERA_PROBATION_MIN_CASES below is a stated, tunable default, not
+// a derived number) ──────────────────────────────────────────────────────────
+/**
+ * hasClearedCameraSiteProbation(phcId, cameraDeviceId, excludeCaseId)
+ *
+ * classifyCameraFamily.m already runs every case and flags a reported-vs-
+ * detected mismatch (gradingOrchestrator.js's cameraMismatch handling below),
+ * but that flag alone says nothing about whether THIS camera/site combination
+ * has a track record yet -- an established camera can mismatch on a single
+ * unusual photo without that being a systemic problem, while a mismatch on a
+ * brand-new install is exactly the "unfamiliar input distribution" case a
+ * conformal guarantee fitted on public datasets says nothing about.
+ *
+ * "Cleared probation" = this exact (phc_id, camera_device_id) pair has at
+ * least CAMERA_PROBATION_MIN_CASES prior GRADED cases. Keyed on the pair, not
+ * either alone: moving a known camera to a new site, or a new camera arriving
+ * at a known site, both restart probation, because the failure mode this
+ * guards against (unfamiliar capture characteristics) can come from either.
+ *
+ * No cameraDeviceId reported -> nothing to be "on probation" FOR -> treated
+ * as cleared, so a missing worker-reported field doesn't itself block a case
+ * (a null/absent report is a data-completeness issue, not evidence of an
+ * unfamiliar camera).
+ */
+const CAMERA_PROBATION_MIN_CASES = 20;
+
+async function hasClearedCameraSiteProbation(phcId, cameraDeviceId, excludeCaseId) {
+  if (!cameraDeviceId) return true;
+  const { rows } = await pool.query(`
+    SELECT COUNT(*)::int AS n
+      FROM cases c
+      JOIN grading_results g ON g.case_id = c.case_id
+     WHERE c.camera_device_id = $1
+       AND c.phc_id IS NOT DISTINCT FROM $2
+       AND c.case_id <> $3
+  `, [cameraDeviceId, phcId, excludeCaseId]);
+  return rows[0].n >= CAMERA_PROBATION_MIN_CASES;
+}
+
 // ── Main export ───────────────────────────────────────────────────────────────
 /**
  * processCase(caseId)
@@ -341,9 +608,21 @@ async function processCase(caseId) {
   // NULL on failure, because Branch B is the second opinion and losing it must
   // degrade the result rather than fail the case. A Branch A failure DOES
   // reject, and should — without it there is no grade at all.
-  const [branchA, segResult] = await Promise.all([
-    runBranchAInference(imagePath, gradcamPath),
+  //
+  // Backend switch (INFERENCE_BACKEND=python|matlab, default python): both
+  // functions resolve to the identical JSON shape, so nothing below this line
+  // needs to know which one ran. Segmentation is unaffected either way.
+  const runBranchA = INFERENCE_BACKEND === 'matlab'
+    ? runBranchAInferenceMatlab
+    : runBranchAInference;
+  // Probation lookup runs alongside the two inference calls rather than
+  // after them -- it only needs caseRow fields already in hand, and adding it
+  // serially would tack a DB round-trip onto every case's latency for no
+  // reason.
+  const [branchA, segResult, cameraSiteProbationCleared] = await Promise.all([
+    runBranchA(imagePath, gradcamPath),
     runSegInference(imagePath, mediaPaths.caseDir(caseId)),
+    hasClearedCameraSiteProbation(caseRow.phc_id, cameraDeviceId, caseId),
   ]);
 
   if (!segResult) {
@@ -425,14 +704,52 @@ async function processCase(caseId) {
   const ruleEngineGrade = fromMatlab(mlResult.ruleEngineGrade);
   const branchAgreement = fromMatlab(mlResult.branchAgreement);
 
-  // Task 6.3. A reported-vs-detected disagreement is logged rather than
-  // suppressed: it can mean an unusual capture, a mislabelled device, or a
-  // camera swapped without the config being updated. It never changes the
-  // grading — it is a signal for a human, not an input to the model.
+  // v2-task item 6 ("feed M5's microaneurysm count into the grade-0-vs-1
+  // decision"): investigated with real inference on the recovered held-out
+  // IDRiD grade-1/grade-0 images, not implemented as an automatic grade
+  // override -- see experiments/investigateM5Grade1.py's docstring for the
+  // n=10 evidence. A naive "M5 red count >= redFloor => bump grade 0 to 1"
+  // rule would have fixed at most 3/4 real grade-1 misses while
+  // mis-escalating 3/6 true grade-0 images in that sample (spurious counts
+  // of 6, 16, and a boundary 3, well above the "1-2" ruleEngineGrade.m's
+  // redFloor was calibrated on). Silently rewriting dr_grade_cnn on a signal
+  // that noisy was not a defensible trade.
+  //
+  // What M5's count already does, correctly: it feeds ruleEngineGrade.m,
+  // whose grade is compared to Branch A's by branchesAgree() -- CNN=0 vs
+  // rule-engine>=1 IS a disagreement there (`agree = gradeA == gradeB` for
+  // the non-lower-bound case), so it already forces Tier C via the
+  // branchAgreement check below. That is the safe version of "feed the count
+  // into the decision": a human sees it, the pipeline does not silently
+  // relabel a healthy eye on a spurious detection. This flag exists so that
+  // specific boundary is distinguishable in logs from other disagreements,
+  // for monitoring and any future, better-evidenced threshold change.
+  const grade0Vs1Disagreement = branchAgreement === false
+    && grade === 0 && Number.isInteger(ruleEngineGrade) && ruleEngineGrade >= 1;
+  if (grade0Vs1Disagreement) {
+    console.log(`[gradingOrchestrator] case ${caseId}: grade0Vs1Disagreement — `
+      + `CNN said 0, rule engine (M5-fed) said ${ruleEngineGrade} — routed to Tier C, `
+      + 'grade NOT auto-corrected (see investigateM5Grade1.py)');
+  }
+
+  // Task 6.3. A reported-vs-detected disagreement is ALWAYS logged. Whether it
+  // also touches the tier depends on cameraSiteProbationCleared (see the
+  // override chain below) — an established camera/site's occasional mismatch
+  // stays a log line, same as before; the previous behaviour ("never changes
+  // the grading") now only holds once this camera/site has a track record.
+  const cameraProbationOverride = mlResult.cameraMismatch === true
+    && !cameraSiteProbationCleared;
   if (mlResult.cameraMismatch) {
     console.warn(`[gradingOrchestrator] case ${caseId}: camera family mismatch — `
-      + `reported '${cameraDeviceId}', image looks like '${mlResult.cameraFamily}'`);
+      + `reported '${cameraDeviceId}', image looks like '${mlResult.cameraFamily}'`
+      + (cameraSiteProbationCleared ? '' : ' (camera/site still on probation)'));
   }
+
+  // quality_scores was already loaded (above) and forwarded to MATLAB for
+  // adaptiveEnhance's preprocessing, but until now nothing turned it into a
+  // tier signal. isCaptureUngradable reuses qualityGateMain.m's own
+  // hard-retake thresholds — see that function's header.
+  const qualityForced = isCaptureUngradable(qualityScores);
 
   // ── Tier: real conformal boundaries now, not the placeholder thresholds ────
   // branchAInfer.py assigns A/B/C from the conformal prediction set fitted by
@@ -461,6 +778,19 @@ async function processCase(caseId) {
     Number.isInteger(fromMatlab(mlResult.ruleMaxGrade)) &&
     grade > fromMatlab(mlResult.ruleMaxGrade);
 
+  // ── Override chain ──────────────────────────────────────────────────────
+  // All four early checks are decided before the conformal tier is ever
+  // consulted — none of them is a statement about classifier confidence, so
+  // none of them should be answerable by one.
+  //
+  // Ordering is NOT arbitrary. The three checks that force an exact 'C'
+  // (branch disagreement, beyond-rule-engine, quality-forced) all come before
+  // the one check that only raises a FLOOR to 'B' (camera/site probation).
+  // Checking the floor first would risk it short-circuiting the chain on a
+  // case that also warranted a hard 'C' — e.g. a probation-camera image of a
+  // confirmed grade 4 must still reach 'C', not get stuck at 'B' because the
+  // probation check matched first. A floor can only ever raise A -> B; it
+  // must never be able to pre-empt a real C.
   let tier;
   let tierReason;
   if (branchAgreement === false) {
@@ -470,6 +800,16 @@ async function processCase(caseId) {
     tier = 'C';
     tierReason = `CNN grade ${grade} is above the rule engine's ceiling `
       + `(${mlResult.ruleMaxGrade}); no second opinion is possible`;
+  } else if (qualityForced) {
+    tier = 'C';
+    tierReason = 'capture quality is below the local retake threshold '
+      + '(qualityGateMain.m-equivalent hard failure) — no shortcut on an '
+      + 'image the quality gate itself would have rejected';
+  } else if (cameraProbationOverride) {
+    tier = 'B';
+    tierReason = `camera family mismatch on a camera/site with fewer than `
+      + `${CAMERA_PROBATION_MIN_CASES} prior graded cases — not yet enough `
+      + 'of a track record to auto-clear';
   } else if (branchA.conformalTier) {
     tier = branchA.conformalTier;
     tierReason = branchA.tierReason || 'conformal prediction set';
@@ -492,7 +832,14 @@ async function processCase(caseId) {
   // Note the comment sits ABOVE pool.query, not inside the template literal.
   // A JS comment inside the SQL string is sent to Postgres as SQL and every
   // case fails with a syntax error -- that has already happened here once.
-  const uncertaintyScore = branchA.uncertaintyScore ?? null;
+  // fromMatlab, not `?? null`: the MATLAB backend's branchAInferMatlab.m
+  // reports "not measured" as `[]` (MATLAB's empty-array idiom), and
+  // jsonencode renders that as JSON `[]`, not `null` -- the same MATLAB/JS
+  // mismatch `fromMatlab` was already built for below (ruleEngineGrade,
+  // branchAgreement). `[]` is not nullish, so plain `?? null` would leave an
+  // array here and the INSERT below would fail against a FLOAT column. The
+  // Python backend's real `null` passes through fromMatlab unchanged.
+  const uncertaintyScore = fromMatlab(branchA.uncertaintyScore);
   if (branchA.uncertaintyError) {
     console.warn(`[gradingOrchestrator] case ${caseId}: `
       + `MC-dropout failed: ${branchA.uncertaintyError}`);
@@ -663,6 +1010,15 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId,
     `addpath('${calDir}');`,
     `addpath('${expDir}');`,
     `addpath('${camDir}');`,
+    // MODELS_DIR was computed as modDir above but never actually added to the
+    // path -- harmless while classifyBranchA.m resolves branchA_v1.mat by an
+    // absolute fullfile() path, but the ONNX-imported net also needs its
+    // companion `+branchA_v1/` custom-layer package folder (models/) to be
+    // resolvable, which only happens if this directory is on the path or is
+    // the current folder. Without it the .mat loads "successfully" and
+    // silently deserializes into a broken network that then errors on
+    // predict() -- reproduced and documented in the model-handoff work.
+    `addpath('${modDir}');`,
 
     // ── Preprocessing
     // preprocessForBranchA is THE chain — benGrahamCrop -> denoiseRetinal ->
@@ -836,4 +1192,8 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId,
 // actually generates is a real check, whereas grepping this file's source is
 // not -- a comment quoting the old chain would fail such a grep while the
 // generated code was perfectly correct.
-module.exports = { processCase, assignTier, buildMatlabExpr };
+module.exports = {
+  processCase, assignTier, buildMatlabExpr,
+  runBranchAInference, runBranchAInferenceMatlab, INFERENCE_BACKEND,
+  isCaptureUngradable, hasClearedCameraSiteProbation, CAMERA_PROBATION_MIN_CASES,
+};
