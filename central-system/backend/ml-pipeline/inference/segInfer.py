@@ -116,6 +116,43 @@ def _forward(model, x):
         return model(torch.from_numpy(x))[0].numpy()
 
 
+# ── Backend switch (backend plan §S) ───────────────────────────────────────
+# SEG_INFERENCE_BACKEND=matlab|python. With matlab, the forward pass of the
+# three MATLAB-converted models runs in the persistent MATLAB session; every
+# pre- and post-processing step below is unchanged, so both backends share one
+# copy of it. M5 (red_lesion) is NOT converted for serving -- its conversion is
+# the old 2-class model the 3-class retrain replaces -- so it always runs here.
+#
+# A session failure falls back to PyTorch for that call and is RECORDED in the
+# output (segBackend), never silent: tensor parity was verified at 2e-6..4e-5,
+# so the fallback changes where the numbers came from, not what they are, and
+# losing Branch B entirely over a restarting session would be worse.
+SEG_BACKEND = os.environ.get("SEG_INFERENCE_BACKEND", "matlab").strip().lower()
+_MATLAB_NETS = {
+    "vessel": "vessel_unet_v1",
+    "localization": "localization_v1",
+    "bright_lesion": "bright_lesion_unet_v1",
+}
+BACKEND_USED = {}
+
+
+def _run(role, x):
+    """Forward pass for `role` on NCHW float32 x; returns C x H x W."""
+    if SEG_BACKEND == "matlab" and role in _MATLAB_NETS:
+        try:
+            from matlabSessionClient import forward
+            out = forward(_MATLAB_NETS[role], x)
+            BACKEND_USED[role] = "matlab"
+            return out
+        except Exception as exc:  # noqa: BLE001 - recorded, then fall back
+            print(f"segInfer: MATLAB session failed for {role} ({exc}); "
+                  "falling back to PyTorch", file=sys.stderr)
+            BACKEND_USED[role] = f"python (matlab failed: {exc})"
+    else:
+        BACKEND_USED[role] = "python"
+    return _forward(load(role)[0], x)
+
+
 # ── M3: optic disc and fovea ───────────────────────────────────────────────
 def localize(bgr):
     """Disc and fovea in ORIGINAL image pixels.
@@ -126,7 +163,7 @@ def localize(bgr):
     resized = cv2.resize(bgr, (INPUT_SIZE, INPUT_SIZE), interpolation=cv2.INTER_AREA)
     rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
     x = (rgb.astype(np.float32) / 255.0 - IMAGENET_MEAN) / IMAGENET_STD
-    hm = _forward(load("localization")[0], x.transpose(2, 0, 1)[None, ...])
+    hm = _run("localization", np.ascontiguousarray(x.transpose(2, 0, 1)[None, ...]))
 
     pts = {}
     for idx, name in ((0, "opticDisc"), (1, "fovea")):
@@ -173,7 +210,7 @@ def vessels(bgr):
     green = bgr[:, :, 1]
     padded, (ox, oy, nw, nh) = _aspect_pad(green)
     x = ((padded.astype(np.float32) / 255.0) - 0.5) / 0.5
-    logits = _forward(load("vessel")[0], x[None, None, ...])[0]
+    logits = _run("vessel", np.ascontiguousarray(x[None, None, ...]))[0]
     prob = 1.0 / (1.0 + np.exp(-logits))
     # Undo the pad BEFORE resizing back: the padding is not part of the image,
     # and resizing it in would drag black bands into the retina.
@@ -204,7 +241,7 @@ def _lesion_prob(role, rgb512):
     # ground truth: this norm 0.49, ImageNet norm 0.33. Note the failure mode:
     # 0.33 still yields a plausible-looking mask, so it degrades quietly.
     x = ((rgb512.astype(np.float32) / 255.0) - 0.5) / 0.5
-    logits = _forward(load(role)[0], x.transpose(2, 0, 1)[None, ...])[0]
+    logits = _run(role, np.ascontiguousarray(x.transpose(2, 0, 1)[None, ...]))[0]
     return 1.0 / (1.0 + np.exp(-logits))
 
 
@@ -418,6 +455,9 @@ def main():
                                  "ImageNet) but its val split is not recorded, "
                                  "so its exact Dice cannot be reproduced. "
                                  "See verifySegModels.py / verifyModel3.py."),
+            # Which backend actually ran each network (backend plan §S). A
+            # fallback to PyTorch after a MATLAB failure is visible here.
+            "segBackend": {"requested": SEG_BACKEND, "used": dict(BACKEND_USED)},
             # Quadrant counts, in the frame the ICDR thresholds were fitted in.
             "redPerQuadrant": red_q,
             "brightPerQuadrant": bright_q,

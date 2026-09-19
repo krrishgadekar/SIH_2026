@@ -43,6 +43,13 @@ requestDir  = fullfile(thisDir, 'requests');
 responseDir = fullfile(thisDir, 'responses');
 stopFlag    = fullfile(thisDir, 'stop.flag');
 logFile     = fullfile(thisDir, 'session.log');
+% Liveness signal for the Node-side supervisor (matlabSessionSupervisor.js,
+% backend plan §E). Rewritten every HEARTBEAT_SECONDS from inside the poll
+% loop, so a fresh heartbeat means "loaded AND still polling" -- a process that
+% is alive but wedged stops refreshing it, which a PID check alone would miss.
+% Only written once the loop starts, so it is absent while networks load.
+heartbeatFile = fullfile(thisDir, 'session.heartbeat');
+if isfile(heartbeatFile), delete(heartbeatFile); end
 
 if ~isfolder(requestDir),  mkdir(requestDir);  end
 if ~isfolder(responseDir), mkdir(responseDir); end
@@ -52,8 +59,15 @@ mlRoot = fullfile(thisDir, '..', '..');
 addpath(fullfile(thisDir, '..'));              % branchAInferMatlab.m lives in inference/
 addpath(fullfile(mlRoot, 'calibration'));
 addpath(fullfile(mlRoot, 'explainability'));
+addpath(fullfile(mlRoot, 'preprocessing'));    % readFundusImage, for report images
+addpath(fullfile(mlRoot, 'segmentation'));     % fundusQuadrants, for report labels
 addpath(fullfile(mlRoot, 'models'));
 
+% The ONNX converter must be on the path BEFORE any load(): without it the
+% ONNX-imported networks deserialize into broken objects without an error.
+if ~ensureOnnxSupportOnPath()
+    logMsg(logFile, 'WARNING: ONNX converter support package not available');
+end
 logMsg(logFile, 'session starting -- loading all 5 networks');
 
 % ── Load all 5 networks once, keep them referenced for the session's life ──
@@ -92,6 +106,9 @@ delete(warmupTensor);
 logMsg(logFile, 'session ready, polling for requests');
 
 POLL_INTERVAL_SECONDS = 0.05;
+HEARTBEAT_SECONDS     = 5;
+beatClock = tic;
+lastBeat  = -Inf;
 
 while true
     if isfile(stopFlag)
@@ -100,34 +117,85 @@ while true
         break;
     end
 
+    if toc(beatClock) - lastBeat >= HEARTBEAT_SECONDS
+        writeAtomic(heartbeatFile, char(datetime('now', 'TimeZone', 'UTC', ...
+            'Format', 'yyyy-MM-dd''T''HH:mm:ss''Z''')));
+        lastBeat = toc(beatClock);
+    end
+
     reqFiles = dir(fullfile(requestDir, '*.json'));
     for i = 1:numel(reqFiles)
         reqPath = fullfile(reqFiles(i).folder, reqFiles(i).name);
         [~, reqId] = fileparts(reqFiles(i).name);
-        handleRequest(reqPath, reqId, responseDir, logFile);
+        handleRequest(reqPath, reqId, responseDir, logFile, nets);
     end
 
     pause(POLL_INTERVAL_SECONDS);
 end
 
+if isfile(heartbeatFile), delete(heartbeatFile); end
 logMsg(logFile, 'session stopped');
 end
 
 % ── Local functions ─────────────────────────────────────────────────────────
 
-function handleRequest(reqPath, reqId, responseDir, logFile)
+function names = SEG_SERVED()
+% Segmentation nets this session will run on request. red_lesion_unet_v1 (M5)
+% is loaded but deliberately NOT served: its conversion is the old 2-class
+% model, which the 3-class retrain replaces (backend plan §S.2). It stays on
+% the Python path until the new conversion is delivered.
+names = {'vessel_unet_v1', 'localization_v1', 'bright_lesion_unet_v1'};
+end
+
+function handleRequest(reqPath, reqId, responseDir, logFile, nets)
 respPath = fullfile(responseDir, [reqId '.json']);
 t0 = tic;
 try
     req = jsondecode(fileread(reqPath));
+
+    % ── Segmentation forward pass (backend plan §S) ───────────────────────
+    % {"model": "<net name>", "tensorPath": "<in .mat>", "outPath": "<out .mat>"}
+    % Forward pass ONLY. segInfer.py keeps every pre- and post-processing
+    % step (resize, padding, normalisation, thresholds, OD mask, counting,
+    % quadrants), so there is exactly one copy of that logic and the MATLAB
+    % and Python backends cannot drift apart on it. The tensor arrives HWCN
+    % (MATLAB 'SSCB'); the raw network output goes back the same way.
+    if isfield(req, 'model')
+        name = char(req.model);
+        if ~ismember(name, SEG_SERVED)
+            error('runMatlabInferenceSession:model', ...
+                  'Model "%s" is not served by this session (served: %s).', ...
+                  name, strjoin(SEG_SERVED, ', '));
+        end
+        td = load(req.tensorPath, 'x');
+        y = predict(nets.(name), dlarray(single(td.x), 'SSCB'));
+        y = gather(extractdata(y)); %#ok<NASGU>
+        save(req.outPath, 'y', '-v7');
+        writeAtomic(respPath, jsonencodeAscii(struct('ok', true, 'outPath', req.outPath)));
+        logMsg(logFile, sprintf('  request %s OK %s (%.0f ms)', reqId, name, toc(t0) * 1000));
+        delete(reqPath);
+        return;
+    end
+
+    % ── Clinical-rationale PDF (backend plan §O) ──────────────────────────
+    % {"report": "<input .json>", "outPath": "<.pdf>"} -- rendered here so a
+    % report does not pay a ~20 s MATLAB start of its own.
+    if isfield(req, 'report')
+        generateReport(char(req.report), char(req.outPath));
+        writeAtomic(respPath, jsonencodeAscii(struct('ok', true, 'outPath', req.outPath)));
+        logMsg(logFile, sprintf('  request %s OK report (%.0f ms)', reqId, toc(t0) * 1000));
+        delete(reqPath);
+        return;
+    end
+
     gradcamPath = '';
     if isfield(req, 'gradcamPath'), gradcamPath = req.gradcamPath; end
 
     out = branchAInferMatlab(req.tensorPath, gradcamPath);
-    writeAtomic(respPath, jsonencode(out));
+    writeAtomic(respPath, jsonencodeAscii(out));   % ASCII-safe: see jsonencodeAscii.m
     logMsg(logFile, sprintf('  request %s OK (%.0f ms)', reqId, toc(t0) * 1000));
 catch ME
-    writeAtomic(respPath, jsonencode(struct('error', ME.message)));
+    writeAtomic(respPath, jsonencodeAscii(struct('error', ME.message)));
     logMsg(logFile, sprintf('  request %s FAILED (%.0f ms): %s', reqId, toc(t0) * 1000, ME.message));
 end
 % Request file deleted LAST, after the response is written: the Node side

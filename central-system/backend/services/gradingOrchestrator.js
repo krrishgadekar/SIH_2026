@@ -59,6 +59,7 @@ const fs         = require('fs');
 const os         = require('os');
 const pool       = require('../db/pgClient');
 const mediaPaths = require('./mediaPaths');
+const { fromMatlab, fromMatlabDeep } = require('./matlabInterop');
 const matlabFallback = require('./matlabFallback');
 
 // Task: MATLAB workaround for a dev machine with no MATLAB install (no
@@ -305,7 +306,8 @@ function callMatlabSession(tensorPath, gradcamPath) {
         clearInterval(poll);
         let body;
         try {
-          body = JSON.parse(fs.readFileSync(respPath, 'utf8'));
+          // §Q: normalised at the boundary -- see matlabInterop.js.
+          body = fromMatlabDeep(JSON.parse(fs.readFileSync(respPath, 'utf8')));
         } catch (err) {
           fs.unlink(respPath, () => {});
           return reject(new Error(`Branch A (MATLAB session) response JSON parse failed: ${err.message}`));
@@ -642,7 +644,9 @@ async function processCase(caseId) {
     if (jsonStart === -1)
       throw new Error(`No JSON in MATLAB output.\nRaw:\n${raw}`);
     try {
-      mlResult = JSON.parse(raw.slice(jsonStart));
+      // §Q: every [] MATLAB emits for "no value" becomes null right here, so
+      // no field below can reach Postgres as the array literal '{}'.
+      mlResult = fromMatlabDeep(JSON.parse(raw.slice(jsonStart)));
     } catch (err) {
       throw new Error(`MATLAB JSON parse failed: ${err.message}\nRaw: ${raw.slice(jsonStart, jsonStart+300)}`);
     }
@@ -699,7 +703,9 @@ async function processCase(caseId) {
   // grade of 0 is a real result — "no DR by ICDR criteria" — and || would
   // discard Branch B's opinion on precisely the healthy eyes where agreement
   // matters most for clearing a case. `false` must survive for the same reason.
-  const fromMatlab = (v) => (Array.isArray(v) && v.length === 0 ? null : (v ?? null));
+  // (fromMatlab now lives in matlabInterop.js and mlResult is already
+  // normalised by fromMatlabDeep; the per-field calls below are kept as a
+  // second guard for the JS-fallback path, which does not go through it.)
 
   const ruleEngineGrade = fromMatlab(mlResult.ruleEngineGrade);
   const branchAgreement = fromMatlab(mlResult.branchAgreement);
@@ -750,6 +756,24 @@ async function processCase(caseId) {
   // tier signal. isCaptureUngradable reuses qualityGateMain.m's own
   // hard-retake thresholds — see that function's header.
   const qualityForced = isCaptureUngradable(qualityScores);
+
+  // §I: the localizer could not place the fovea (Tanuj's peak-confidence gate).
+  // true / false when reported, null when the localization output does not
+  // carry the field yet -- "not reported" is NOT the same as "reliable", and
+  // it is stored as NULL rather than false for that reason.
+  const foveaUnreliable = readFoveaUnreliable(segResult);
+
+  // §P / §10.4: the eye the image itself reports (DICOM ImageLaterality, read
+  // by readFundusImage.m) against the one the technician selected.
+  const detectedLaterality = { L: 'left', R: 'right' }[
+    String(fromMatlab(mlResult.imageLaterality) || '').toUpperCase()] || null;
+  const reportedLaterality = caseRow.eye_laterality_reported || null;
+  const lateralityMismatch = !!(detectedLaterality && reportedLaterality
+    && detectedLaterality !== reportedLaterality);
+  if (lateralityMismatch) {
+    console.warn(`[gradingOrchestrator] case ${caseId}: eye laterality mismatch — `
+      + `technician said ${reportedLaterality}, the DICOM file says ${detectedLaterality}`);
+  }
 
   // ── Tier: real conformal boundaries now, not the placeholder thresholds ────
   // branchAInfer.py assigns A/B/C from the conformal prediction set fitted by
@@ -805,17 +829,36 @@ async function processCase(caseId) {
     tierReason = 'capture quality is below the local retake threshold '
       + '(qualityGateMain.m-equivalent hard failure) — no shortcut on an '
       + 'image the quality gate itself would have rejected';
-  } else if (cameraProbationOverride) {
-    tier = 'B';
-    tierReason = `camera family mismatch on a camera/site with fewer than `
-      + `${CAMERA_PROBATION_MIN_CASES} prior graded cases — not yet enough `
-      + 'of a track record to auto-clear';
   } else if (branchA.conformalTier) {
     tier = branchA.conformalTier;
     tierReason = branchA.tierReason || 'conformal prediction set';
   } else {
     tier = assignTier(confidenceScore, branchAgreement);
     tierReason = 'uncalibrated fallback thresholds';
+  }
+
+  // ── Floors: can only raise A -> B, never lower a B or C ──────────────────
+  // Applied to the tier the conformal set (or fallback) produced. These used
+  // to sit INSIDE the chain above as `tier = 'B'`, which meant a probation-
+  // camera case the conformal set had put in Tier C came out as B -- the
+  // "floor" was lowering it. A floor is a minimum; it is applied as one now.
+  if (tier === 'A' && cameraProbationOverride) {
+    tier = 'B';
+    tierReason = `camera family mismatch on a camera/site with fewer than `
+      + `${CAMERA_PROBATION_MIN_CASES} prior graded cases — not yet enough `
+      + 'of a track record to auto-clear';
+  }
+  // §I: quadrants were assigned on the image axes, not anatomical ones, and the
+  // rule engine skipped its quadrant criteria -- not a basis for auto-clearing.
+  if (tier === 'A' && lateralityMismatch) {
+    tier = 'B';
+    tierReason = 'the image file and the technician disagree on which eye this is — '
+      + 'not auto-cleared until a human confirms the laterality';
+  }
+  if (tier === 'A' && foveaUnreliable === true) {
+    tier = 'B';
+    tierReason = 'fovea could not be located reliably, so lesion quadrants and '
+      + 'the quadrant-based severe-NPDR criteria are unreliable — not auto-cleared';
   }
   if (tier === 'C') {
     console.log(`[gradingOrchestrator] case ${caseId}: Tier C — ${tierReason}`);
@@ -896,18 +939,21 @@ async function processCase(caseId) {
   if (segResult) {
     const masks = segResult.masks || {};
 
-    // nv_suspicion_score stays NULL, deliberately. neovascularizationSuspicion.m
-    // exists but nothing runs it — segInfer produces a vessel mask and no NV
-    // score, and the orchestrator passes 0 into the rule engine only so the
-    // grade-4 branch stays shut. Writing that 0 here would claim the score was
-    // MEASURED and came out at zero, which is a different statement from "no
-    // detector ran". Unmeasured is NULL everywhere else in this project.
+    // nv_suspicion_score (§J): neovascularizationSuspicion.m now runs inside
+    // the per-case MATLAB call on segInfer's vessel mask. It is NULL -- never 0
+    // -- when it could not run (no vessel mask, no optic disc): 0 would claim
+    // the score was MEASURED and came out at zero, which is a different
+    // statement from "no detector ran". Unmeasured is NULL everywhere else in
+    // this project.
     await pool.query(`
       INSERT INTO segmentation_outputs
         (case_id, lesion_counts, nv_suspicion_score, vessel_map_path,
-         lesion_masks_path, optic_disc_x, optic_disc_y, fovea_x, fovea_y)
-      VALUES ($1, $2, NULL, $3, $4, $5, $6, $7, $8)
+         lesion_masks_path, optic_disc_x, optic_disc_y, fovea_x, fovea_y,
+         fovea_unreliable)
+      VALUES ($1, $2, $9, $3, $4, $5, $6, $7, $8, $10)
       ON CONFLICT (case_id) DO UPDATE SET
+        nv_suspicion_score = EXCLUDED.nv_suspicion_score,
+        fovea_unreliable  = EXCLUDED.fovea_unreliable,
         lesion_counts     = EXCLUDED.lesion_counts,
         vessel_map_path   = EXCLUDED.vessel_map_path,
         lesion_masks_path = EXCLUDED.lesion_masks_path,
@@ -933,7 +979,10 @@ async function processCase(caseId) {
         // models. Stored as JSON rather than picking one and dropping the other.
         JSON.stringify({ red: masks.red ?? null, bright: masks.bright ?? null }),
         segResult.opticDisc?.x ?? null, segResult.opticDisc?.y ?? null,
-        segResult.fovea?.x ?? null, segResult.fovea?.y ?? null]);
+        segResult.fovea?.x ?? null, segResult.fovea?.y ?? null,
+        Number.isFinite(fromMatlab(mlResult.nvSuspicionScore))
+          ? mlResult.nvSuspicionScore : null,
+        foveaUnreliable]);
   }
 
   // lesion_attention_consistency_score stays NULL on purpose (Task 7.1).
@@ -945,8 +994,9 @@ async function processCase(caseId) {
 
   // ── Step 5: mark case as graded ────────────────────────────────────────────
   await pool.query(
-    `UPDATE cases SET status = 'graded', camera_family_detected = $2
-     WHERE case_id = $1`, [caseId, mlResult.cameraFamily ?? null]);
+    `UPDATE cases SET status = 'graded', camera_family_detected = $2,
+       eye_laterality_detected = $3
+     WHERE case_id = $1`, [caseId, fromMatlab(mlResult.cameraFamily), detectedLaterality]);
 
   console.log(`[gradingOrchestrator] case ${caseId}: grade=${grade}, `
     + `confidence=${confidenceScore.toFixed(4)}, tier=${tier}, `
@@ -983,6 +1033,46 @@ function matlabMatrix(rows) {
   if (!rows.every((r) => Array.isArray(r) && r.length === width
                          && r.every((v) => Number.isFinite(v)))) return '[]';
   return `[${rows.map((r) => r.join(' ')).join('; ')}]`;
+}
+
+/** [x y] MATLAB literal from {x, y}, or [] when either is missing. */
+function matlabPoint(pt) {
+  if (!pt || !Number.isFinite(pt.x) || !Number.isFinite(pt.y)) return '[]';
+  return `[${pt.x} ${pt.y}]`;
+}
+
+/**
+ * readFoveaUnreliable(segResult) -> true | false | null (backend plan §I).
+ * Accepts the contract field `foveaUnreliable` at the top level of the
+ * localization/segmentation JSON. Anything but a real boolean is null --
+ * including MATLAB's [] -- because "not reported" must not read as "reliable".
+ */
+function readFoveaUnreliable(segResult) {
+  const v = segResult ? segResult.foveaUnreliable : undefined;
+  return typeof v === 'boolean' ? v : null;
+}
+
+/** 1x4 logical MATLAB literal, or null when not a 4-element boolean/0-1 array. */
+function matlabFlags4(arr) {
+  if (!Array.isArray(arr) || arr.length !== 4) return null;
+  if (!arr.every((v) => v === true || v === false || v === 0 || v === 1)) return null;
+  return `logical([${arr.map((v) => (v ? 1 : 0)).join(' ')}])`;
+}
+
+/**
+ * matlabRuleOpts(segResult) -- the ruleEngineGrade opts struct literal (§H, §I).
+ * Contract fields (agreed with Tanuj): venousBeadingQuadrants, irmaQuadrants
+ * (4 booleans, fundusQuadrants('names') order), foveaUnreliable (boolean).
+ * Only fields that are actually present and well-formed are included.
+ */
+function matlabRuleOpts(segResult) {
+  const parts = [];
+  const vb = matlabFlags4(segResult && segResult.venousBeadingQuadrants);
+  const irma = matlabFlags4(segResult && segResult.irmaQuadrants);
+  if (vb) parts.push(`'venousBeadingQuadrants', ${vb}`);
+  if (irma) parts.push(`'irmaQuadrants', ${irma}`);
+  if (readFoveaUnreliable(segResult) === true) parts.push(`'foveaUnreliable', true`);
+  return parts.length ? `struct(${parts.join(', ')})` : 'struct()';
 }
 
 function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId,
@@ -1113,16 +1203,33 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId,
     // then refuses rather than grading an eye nothing looked at.
     `redQ = ${matlabVector(segResult && segResult.redPerQuadrant)};`,
     `brightQ = ${matlabVector(segResult && segResult.brightPerQuadrant)};`,
-    `nvScore = ${Number.isFinite(segResult && segResult.nvSuspicionScore)
-      ? segResult.nvSuspicionScore : 0};`,
+    // ── §J: neovascularization suspicion, computed HERE ──────────────────
+    // Inside the MATLAB call every case already makes, so it adds no process
+    // start. Input: segInfer's vessel mask and optic disc, both in ORIGINAL
+    // image pixels (same frame). nvScore stays [] when it could not run --
+    // reported as NULL, never as a measured 0. The rule engine still gets 0 in
+    // that case (nvForRule), exactly as before, so a missing score keeps the
+    // grade-4 path shut rather than erroring.
+    `vesselPath = '${toMatlabStr((segResult && segResult.masks && segResult.masks.vessel) || '')}';`,
+    `odXY = ${matlabPoint(segResult && segResult.opticDisc)};`,
+    `nvScore = []; nvForRule = 0;`,
+    `if isfile(vesselPath) && numel(odXY) == 2,`,
+    `  [nvS, nvDetail] = neovascularizationSuspicion(imread(vesselPath) > 127, odXY);`,
+    `  if nvDetail.valid, nvScore = nvS; nvForRule = nvS; end;`,
+    `end;`,
+    // ── §H / §I: the detector signals, passed only when actually present ─
+    // An absent field stays absent: the rule engine then says (b)/(c) were NOT
+    // assessed. Passing all-false defaults instead would make the evidence
+    // claim an assessment that never happened.
+    `ruleOpts = ${matlabRuleOpts(segResult)};`,
     `branchAGrade = ${Number.isInteger(branchAGrade) ? branchAGrade : '[]'};`,
 
     `ruleGrade = []; branchAgree = []; evidenceInputs = struct(); ruleIsLowerBound = false; ruleMaxGrade = [];`,
     `if numel(redQ) == 4 && numel(brightQ) == 4,`,   // trailing comma: the whole
     // expression is joined onto ONE line, and MATLAB needs a separator after an
     // if-condition there or it parses the next statement as part of the test.
-    `  [ruleGrade, ruleEvidence] = ruleEngineGrade(redQ, brightQ, nvScore);`,
-    `  evidenceInputs = struct('redByQuadrant', redQ, 'brightByQuadrant', brightQ, 'nvSuspicionScore', nvScore);`,
+    `  [ruleGrade, ruleEvidence] = ruleEngineGrade(redQ, brightQ, nvForRule, ruleOpts);`,
+    `  evidenceInputs = struct('redByQuadrant', redQ, 'brightByQuadrant', brightQ, 'nvSuspicionScore', nvForRule);`,
     // branchesAgree returns [] — NOT false — when either branch is missing.
     // false means "compared and disagreed" and forces mandatory review; []
     // means "Branch B did not run". Collapsing them would send every
@@ -1163,7 +1270,10 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId,
     // still says segmentation has not been run rather than inventing "0
     // microaneurysms", because zero-measured and not-measured are different
     // clinical claims.
-    `[evidenceText, ~, ~] = generateEvidenceReport('${toMatlabStr(caseIdForReport)}', evidenceInputs);`,
+    // ruleOpts passed through so the report's own ruleEngineGrade call sees
+    // the same VB/IRMA/fovea inputs as the grade above -- otherwise the text
+    // could explain a different grade from the one recorded.
+    `[evidenceText, ~, ~] = generateEvidenceReport('${toMatlabStr(caseIdForReport)}', evidenceInputs, struct('ruleOpts', ruleOpts));`,
 
     // ── Output JSON
     `out.evidenceSummaryText = evidenceText;`,
@@ -1184,7 +1294,11 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId,
     `out.ruleIsLowerBound = ruleIsLowerBound;`,
     `out.ruleMaxGrade = ruleMaxGrade;`,
     `out.lesionAttentionConsistency = lesionAttention;`,
-    `disp(jsonencode(out));`,
+    // jsonencodeAscii, not jsonencode: stdout on Windows is the ANSI code page,
+    // which silently drops the em dashes the evidence text is full of. See
+    // ml-pipeline/inference/jsonencodeAscii.m.
+    `addpath('${p(path.join(ML_ROOT, 'inference'))}');`,
+    `disp(jsonencodeAscii(out));`,
   ].join(' ');
 }
 
@@ -1193,7 +1307,7 @@ function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId,
 // not -- a comment quoting the old chain would fail such a grep while the
 // generated code was perfectly correct.
 module.exports = {
-  processCase, assignTier, buildMatlabExpr,
+  processCase, assignTier, buildMatlabExpr, matlabRuleOpts, readFoveaUnreliable,
   runBranchAInference, runBranchAInferenceMatlab, INFERENCE_BACKEND,
   isCaptureUngradable, hasClearedCameraSiteProbation, CAMERA_PROBATION_MIN_CASES,
 };
