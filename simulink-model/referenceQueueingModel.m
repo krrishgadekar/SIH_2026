@@ -5,6 +5,10 @@ function varargout = referenceQueueingModel(mode, params)
 %   referenceQueueingModel()                 run the default scenario set
 %   p = referenceQueueingModel('defaults')   get the default parameter struct
 %   r = referenceQueueingModel('run', p)     run one configuration
+%   r = referenceQueueingModel('recommend', p)
+%                                            the resource-allocation answer
+%                                            as DATA, for the admin dashboard
+%                                            (backend plan §G) -- see below
 %
 %   ===================================================================
 %   THIS IS NOT THE SIMULINK DELIVERABLE.
@@ -41,6 +45,9 @@ switch lower(mode)
         varargout{1} = simulate(params);
     case 'scenarios'
         runScenarioSet();
+    case 'recommend'
+        if nargin < 2, params = defaultParams(); end
+        varargout{1} = recommend(params);
     otherwise
         error('referenceQueueingModel: unknown mode ''%s''.', mode);
 end
@@ -356,6 +363,55 @@ function v = prctile_local(x, q)
 x = sort(x(:));
 if isempty(x), v = NaN; return; end
 v = interp1(linspace(0, 100, numel(x)), x, q, 'linear', 'extrap');
+end
+
+% ── Recommendation (backend plan §G) ─────────────────────────────────────────
+function out = recommend(p)
+% What the admin dashboard's Resource Recommendations panel shows, computed
+% rather than typed in: the smallest reviewer pool that holds the p95 review
+% wait under 60 minutes, for routine operation and for camp mode (the same
+% annual volume compressed into 50 days, design doc §9.5), plus the bottleneck
+% diagnosis for the pool as it is staffed today.
+%
+% Missing fields in p fall back to defaultParams(), so a caller supplies only
+% what it has actually observed (tier mix, PHC count, reviewer count).
+d = defaultParams();
+f = fieldnames(d);
+for i = 1:numel(f)
+    if ~isfield(p, f{i}) || isempty(p.(f{i})), p.(f{i}) = d.(f{i}); end
+end
+
+P95_LIMIT_MIN = 60;
+t0 = tic;
+
+current = simulate(p);
+nRoutine = minReviewersFor(p, P95_LIMIT_MIN);
+q = p; q.workingDaysPerYear = 50;
+nCamp = minReviewersFor(q, P95_LIMIT_MIN);
+
+% [] (-> JSON null) when the search hit its ceiling: "more than 12, target
+% unmet" must never be readable as a number of reviewers that works.
+out.minOphthalmologistsRoutine = [];
+if ~isnan(nRoutine), out.minOphthalmologistsRoutine = nRoutine; end
+out.minOphthalmologistsCamp = [];
+if ~isnan(nCamp), out.minOphthalmologistsCamp = nCamp; end
+out.maxSearched        = 12;
+out.p95TargetMin       = P95_LIMIT_MIN;
+out.bottleneck         = current.bottleneck;
+out.recommendation     = current.recommendation;
+out.current = struct( ...
+    'numOphthalmologists', p.numOphthalmologists, ...
+    'reviewUtilisationPct', 100 * current.reviewUtilisation, ...
+    'reviewWaitP95Min', current.reviewWaitP95Min, ...
+    'uploadUtilisationPct', 100 * current.uploadUtilisation, ...
+    'uploadWaitP95Min', current.uploadWaitP95Min, ...
+    'casesReviewed', current.casesReviewed, ...
+    'casesAutoCleared', current.casesAutoCleared);
+out.params  = p;
+out.model   = 'referenceQueueingModel';
+out.caveat  = ['Every parameter is a modelled assumption unless stated as ' ...
+               'observed; this is a planning estimate, not a measurement.'];
+out.runSeconds = toc(t0);
 end
 
 % ── Scenario set ─────────────────────────────────────────────────────────────

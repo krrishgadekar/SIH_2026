@@ -12,12 +12,26 @@ a district program serving **100,000+ patients annually**.
 | File | What it is | Runs today |
 |---|---|---|
 | `referenceQueueingModel.m` | Pure-MATLAB discrete-event simulation | ✅ yes |
-| `buildDistrictScreeningModel.m` | Builds the SimEvents `.slx` programmatically | ❌ needs Simulink |
-| `districtScreeningSimEvents.slx` | The Simulink deliverable | ❌ not built yet |
+| `buildDistrictScreeningModel.m` | Builds the SimEvents `.slx` programmatically | ✅ yes |
+| `districtScreeningSimEvents.slx` | The Simulink deliverable | ✅ built 2026-09-08 |
+| `runDistrictScreeningModel.m` | Runs the `.slx` and checks it against the reference model | ✅ yes |
 
-**Simulink and SimEvents are licensed but not installed** on the dev machine
-(`licensed = 1, installed = 0` — see Task 0.0 in the implementation plan). Until
-they are installed, the `.slx` cannot be built or run.
+**Built and validated.** Simulink and SimEvents are installed, and the SimEvents
+model was built by `buildDistrictScreeningModel.m` on 2026-09-08 (commit
+`66638bb`, "Task 3.8: build and validate the SimEvents district model"). On the
+review stage it agrees with the independent reference model (auto-clear 71.0% vs
+68.4%, reviewer utilisation 20.0% vs 22.2%). This table used to say the `.slx`
+was not built; that was stale documentation, not a capability gap.
+
+**How it reaches the product (backend plan §G):** the central backend runs
+`referenceQueueingModel('recommend', params)` on a daily schedule, with the tier
+mix, PHC count and reviewer count observed in its own database, and stores the
+result in the `resource_recommendations` table. `GET
+/api/v1/admin/resource-recommendations` serves the latest row to the admin
+dashboard. The reference model is what runs on the schedule: it takes seconds,
+has no Simulink dependency at request time, and is the oracle the `.slx` was
+validated against. The `.slx` remains the PS-requirement-5 deliverable and the
+validation check, run with `runDistrictScreeningModel`.
 
 > [!IMPORTANT]
 > **`referenceQueueingModel.m` is NOT the Simulink deliverable and must never be
