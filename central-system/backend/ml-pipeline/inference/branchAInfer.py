@@ -73,7 +73,7 @@ def _fail(msg, code=3):
     sys.exit(code)
 
 
-def load_calibration():
+def load_calibration(ckpt=None):
     """Temperature and conformal threshold, fitted by calibrateBranchA.m.
 
     Absent calibration is NOT silently treated as "no calibration needed".
@@ -81,6 +81,17 @@ def load_calibration():
     uncalibrated confidence flowing into the Tier A/B/C routing would look
     exactly like a calibrated one and would route cases on numbers that mean
     something different.
+
+    VERSION GUARD (2026-09-19): pass the loaded checkpoint (load_checkpoint())
+    and this refuses to treat calibration_v1.json's qhat/temperature as valid
+    if the file's trainedImgSize doesn't match ckpt["img_size"] -- e.g. a v2
+    model trained at 512/640 with this v1-fitted file (qhat=0.8432, fitted
+    for 384) still in place. Exactly the mistake a v2 retrain must not make
+    silently: qhat is a quantile of ONE model's nonconformity scores and
+    means nothing for a differently-trained one. A legacy calibration file
+    with no trainedImgSize field at all is NOT treated as a mismatch (nothing
+    to compare), only as unverifiable -- it degrades the same way a missing
+    file does, calibrated=True but flagged, not a hard failure.
     """
     if not os.path.exists(CALIB_PATH):
         return {"temperature": 1.0, "probThreshold": None, "calibrated": False,
@@ -88,8 +99,44 @@ def load_calibration():
                            "Confidences are UNCALIBRATED."}
     with open(CALIB_PATH, "r", encoding="utf-8") as f:
         c = json.load(f)
+
+    trained_size = c.get("trainedImgSize")
+    ckpt_size = ckpt.get("img_size") if ckpt else None
+    if trained_size is not None and ckpt_size is not None and trained_size != ckpt_size:
+        return {"temperature": 1.0, "probThreshold": None, "calibrated": False,
+                "warning": (
+                    f"calibration_v1.json was fitted for trainedImgSize={trained_size} "
+                    f"but the loaded checkpoint's img_size={ckpt_size} -- REFUSING to "
+                    "apply this calibration (qhat/temperature from a different model "
+                    "mean nothing here). Re-run calibrateBranchA.m against THIS model's "
+                    "predictions and overwrite calibration_v1.json before deploying it. "
+                    "Confidences are UNCALIBRATED until then.")}
+
     c["calibrated"] = True
     return c
+
+
+def load_checkpoint():
+    """Just the checkpoint dict -- no model construction.
+
+    Split out of load_model() so preprocessBranchATensor.py (the MATLAB
+    backend's tensor-generation step, see that file) can read img_size /
+    channel_order / normalize_mean / normalize_std without paying to build
+    and load EfficientNet-B0 when all it needs is metadata.
+    """
+    global _CKPT
+    if _CKPT is not None:
+        return _CKPT
+
+    import torch
+    from modelPaths import resolve, CheckpointMissing
+    try:
+        ckpt_path = resolve("classifier")
+    except CheckpointMissing as exc:
+        _fail(str(exc))
+
+    _CKPT = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+    return _CKPT
 
 
 def load_model():
@@ -97,17 +144,10 @@ def load_model():
     if _MODEL is not None:
         return _MODEL, _CKPT
 
-    import torch
     import torch.nn as nn
     import timm
 
-    from modelPaths import resolve, CheckpointMissing
-    try:
-        ckpt_path = resolve("classifier")
-    except CheckpointMissing as exc:
-        _fail(str(exc))
-
-    ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+    ckpt = load_checkpoint()
 
     class DRClassifier(nn.Module):
         """Rebuilt from the checkpoint's own `arch` string:
@@ -167,7 +207,25 @@ def display_base(bgr, size):
 def preprocess(image_path, ckpt):
     """The training chain, imported rather than reimplemented.
 
-    Returns (model_input_NCHW, display_base_bgr).
+    THE shared preprocessing step -- branchAInfer.py's own main() below and
+    preprocessBranchATensor.py (the MATLAB backend's tensor-generation
+    script) both call this exact function, so the two inference backends see
+    identical input by construction rather than by two implementations (one
+    of them, formerly, a MATLAB port with a measured SSIM-0.981 residual)
+    trying to independently agree. Do not reimplement any piece of this
+    elsewhere for any caller, MATLAB included.
+
+    Returns (model_input_NCHW, display_base_bgr, enhanced_rgb_uint8):
+      model_input_NCHW    - what the network actually consumes (normalized).
+      display_base_bgr    - crop+resize only, no contrast boost, BGR -- this
+                             process's own Grad-CAM overlay background.
+      enhanced_rgb_uint8   - crop+resize+contrast boost, RGB, uint8, BEFORE
+                             normalization -- i.e. model_input_NCHW's pixels
+                             one step earlier. Exported for
+                             preprocessBranchATensor.py, whose consumer
+                             (MATLAB's gradCam.m) expects the same enhanced
+                             image the network saw, not the unenhanced one
+                             this process's own overlay uses.
     """
     import cv2
     from preprocessing.ben_graham import ben_graham_preprocess
@@ -186,10 +244,12 @@ def preprocess(image_path, ckpt):
     if ckpt["channel_order"] == "RGB":
         proc = cv2.cvtColor(proc, cv2.COLOR_BGR2RGB)
 
+    enhanced_rgb_uint8 = proc.copy()
+
     x = proc.astype(np.float32) / 255.0
     x = (x - np.array(ckpt["normalize_mean"], np.float32)) \
         / np.array(ckpt["normalize_std"], np.float32)
-    return x.transpose(2, 0, 1)[None, ...], base      # HWC -> NCHW
+    return x.transpose(2, 0, 1)[None, ...], base, enhanced_rgb_uint8   # HWC -> NCHW
 
 
 def softmax(v):
@@ -246,9 +306,11 @@ def main():
     try:
         import torch
         model, ckpt = load_model()
-        calib = load_calibration()
+        calib = load_calibration(ckpt)
 
-        x, base = preprocess(args.image, ckpt)
+        x, base, _enhanced = preprocess(args.image, ckpt)  # _enhanced unused here -- this
+        # process's own Grad-CAM overlay uses `base`; enhanced_rgb_uint8 exists for
+        # preprocessBranchATensor.py's caller (MATLAB), not this one.
         with torch.no_grad():
             logits = model(torch.from_numpy(x)).numpy()[0]
 
