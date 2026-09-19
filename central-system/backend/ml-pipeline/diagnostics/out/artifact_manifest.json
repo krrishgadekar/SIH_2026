@@ -1,0 +1,104 @@
+{
+  "generated": "2026-09-20",
+  "source_docs": [
+    "diagnostics/MODEL_INTERFACE_REFERENCE.md",
+    "training/importModels.m"
+  ],
+  "models": [
+    {
+      "name": "branchA_v1",
+      "role": "classifier (M1)",
+      "input_size_declared_by_checkpoint": "1x3x384x384 (H=384, W=384, C=3)",
+      "files": {
+        "onnx": {
+          "filename": "branchA_v1.onnx",
+          "relative_path": "training/onnx_out/branchA_v1.onnx",
+          "size_bytes": 16038705,
+          "sha256": "861a79568a28473ec660508ecc14124211739deb4c26b76c8aae77dd6e0d0a4e"
+        },
+        "mat": {
+          "filename": "branchA_v1.mat",
+          "relative_path": "models/branchA_v1.mat",
+          "size_bytes": 15008528,
+          "sha256": "21738c44b96273257189fac0337376e5c966fe18bdb0ee26daf6bbda4616dea6"
+        }
+      }
+    },
+    {
+      "name": "vessel_unet_v1",
+      "role": "vessel segmentation (M2)",
+      "input_size_declared_by_checkpoint": "1x1x512x512 (H=512, W=512, C=1, green channel)",
+      "files": {
+        "onnx": {
+          "filename": "vessel_unet_v1.onnx",
+          "relative_path": "training/onnx_out/vessel_unet_v1.onnx",
+          "size_bytes": 97719242,
+          "sha256": "5cf46fd46cc31ccdbd13bec93f345b6f9ee896084e842a22f0d0c82a8e23ff19"
+        },
+        "mat": {
+          "filename": "vessel_unet_v1.mat",
+          "relative_path": "models/vessel_unet_v1.mat",
+          "size_bytes": 90954651,
+          "sha256": "a90ca8aa332a966016b19c95eb204b91a0d8ba2935b119413df241b2092c6f21"
+        }
+      }
+    },
+    {
+      "name": "localization_v1",
+      "role": "OD/fovea heatmap localization (M3)",
+      "input_size_declared_by_checkpoint": "1x3x512x512 (H=512, W=512, C=3)",
+      "files": {
+        "onnx": {
+          "filename": "localization_v1.onnx",
+          "relative_path": "training/onnx_out/localization_v1.onnx",
+          "size_bytes": 57318368,
+          "sha256": "bde261e4d31c197f4203cdf9541d29e0bdc9debbd05a52aacb6ff554e84b8f45"
+        },
+        "mat": {
+          "filename": "localization_v1.mat",
+          "relative_path": "models/localization_v1.mat",
+          "size_bytes": 53338371,
+          "sha256": "3e00597a4c127b604aa34bfe3643755b6bb2d50ee34c667b7f721c02fa6e3534"
+        }
+      }
+    },
+    {
+      "name": "bright_lesion_unet_v1",
+      "role": "bright lesion (exudate) segmentation (M4)",
+      "input_size_declared_by_checkpoint": "1x3x512x512 (H=512, W=512, C=3; trained on 256x256 patches, full-frame 512 inference)",
+      "files": {
+        "onnx": {
+          "filename": "bright_lesion_unet_v1.onnx",
+          "relative_path": "training/onnx_out/bright_lesion_unet_v1.onnx",
+          "size_bytes": 97744332,
+          "sha256": "77a843e8798b1915e280e4d5ca8956125cd8adff22ba14522937e95a610f29ac"
+        },
+        "mat": {
+          "filename": "bright_lesion_unet_v1.mat",
+          "relative_path": "models/bright_lesion_unet_v1.mat",
+          "size_bytes": 91003465,
+          "sha256": "c96a37a9357f94ab18fa05a1c6678c05b67147a9b9061cf0fc734042fdeb386f"
+        }
+      }
+    },
+    {
+      "name": "red_lesion_unet_v1",
+      "role": "red lesion (MA+HE) segmentation (M5)",
+      "input_size_declared_by_checkpoint": "1x3x512x512 (H=512, W=512, C=3; trained on 256x256 patches, full-frame 512 inference)",
+      "files": {
+        "onnx": {
+          "filename": "red_lesion_unet_v1.onnx",
+          "relative_path": "training/onnx_out/red_lesion_unet_v1.onnx",
+          "size_bytes": 97744332,
+          "sha256": "822c921ff83c2966720f4000fc120221b5fa559bee3c8779459563d5a4686ec8"
+        },
+        "mat": {
+          "filename": "red_lesion_unet_v1.mat",
+          "relative_path": "models/red_lesion_unet_v1.mat",
+          "size_bytes": 91077264,
+          "sha256": "dee4971c82e9054e3fa02f9a3289d6c5c818fbdb1e7d0d874a7843b6b505a738"
+        }
+      }
+    }
+  ]
+}

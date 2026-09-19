@@ -1,0 +1,101 @@
+===== Parity check capture header =====
+Report generated: 2026-09-20 01:03:03
+Git commit (HEAD): c73d02395ada144f131f983fbb52a06fd452873c
+Git working tree: DIRTY (uncommitted changes present)
+
+MATLAB release:
+26.1.0.3346908 (R2026a) Update 5
+
+Installed toolboxes / support packages (ver):
+--------------------------------------------------------------------------------------
+MATLAB Version: 26.1.0.3346908 (R2026a) Update 5
+MATLAB License Number: 41005741
+Operating System: Microsoft Windows 11 Home Single Language Version 10.0 (Build 26200)
+Java Version: Java is not loaded
+--------------------------------------------------------------------------------------
+MATLAB                                                Version 26.1        (R2026a)
+Deep Learning Toolbox                                 Version 26.1        (R2026a)
+Image Processing Toolbox                              Version 26.1        (R2026a)
+MATLAB                                                Version 26.1        (R2026a)
+Medical Imaging Toolbox                               Version 26.1        (R2026a)
+Statistics and Machine Learning Toolbox               Version 26.1        (R2026a)
+
+===== Begin parityCheck() output =====
+
+===== parityCheck: PyTorch vs imported MATLAB dlnetwork (10 real images) =====
+
+-- branchA_v1 --
+  image  1   max|diff| = 0.000000
+  image  2   max|diff| = 0.000000
+  image  3   max|diff| = 0.000000
+  image  4   max|diff| = 0.000000
+  image  5   max|diff| = 0.000000
+  image  6   max|diff| = 0.000000
+  image  7   max|diff| = 0.000000
+  image  8   max|diff| = 0.000000
+  image  9   max|diff| = 0.000000
+  image 10   max|diff| = 0.000002
+  PASS  overall max|diff| = 0.000002  (threshold 0.01)
+
+-- vessel_unet_v1 --
+  image  1   max|diff| = 0.000011
+  image  2   max|diff| = 0.000021
+  image  3   max|diff| = 0.000015
+  image  4   max|diff| = 0.000014
+  image  5   max|diff| = 0.000023
+  image  6   max|diff| = 0.000010
+  image  7   max|diff| = 0.000009
+  image  8   max|diff| = 0.000009
+  image  9   max|diff| = 0.000009
+  image 10   max|diff| = 0.000008
+  PASS  overall max|diff| = 0.000023  (threshold 0.01)
+
+-- localization_v1 --
+  image  1   max|diff| = 0.000002
+  image  2   max|diff| = 0.000002
+  image  3   max|diff| = 0.000002
+  image  4   max|diff| = 0.000002
+  image  5   max|diff| = 0.000001
+  image  6   max|diff| = 0.000002
+  image  7   max|diff| = 0.000001
+  image  8   max|diff| = 0.000001
+  image  9   max|diff| = 0.000002
+  image 10   max|diff| = 0.000002
+  PASS  overall max|diff| = 0.000002  (threshold 0.01)
+
+-- bright_lesion_unet_v1 --
+  image  1   max|diff| = 0.000012
+  image  2   max|diff| = 0.000005
+  image  3   max|diff| = 0.000000
+  image  4   max|diff| = 0.000028
+  image  5   max|diff| = 0.000006
+  image  6   max|diff| = 0.000040
+  image  7   max|diff| = 0.000029
+  image  8   max|diff| = 0.000004
+  image  9   max|diff| = 0.000002
+  image 10   max|diff| = 0.000003
+  PASS  overall max|diff| = 0.000040  (threshold 0.01)
+
+-- red_lesion_unet_v1 --
+  image  1   max|diff| = 0.000007
+  image  2   max|diff| = 0.000012
+  image  3   max|diff| = 0.000009
+  image  4   max|diff| = 0.000006
+  image  5   max|diff| = 0.000008
+  image  6   max|diff| = 0.000017
+  image  7   max|diff| = 0.000011
+  image  8   max|diff| = 0.000006
+  image  9   max|diff| = 0.000007
+  image 10   max|diff| = 0.000007
+  PASS  overall max|diff| = 0.000017  (threshold 0.01)
+
+===== Summary =====
+  PASS    branchA_v1                max|diff| = 0.000002
+  PASS    vessel_unet_v1            max|diff| = 0.000023
+  PASS    localization_v1           max|diff| = 0.000002
+  PASS    bright_lesion_unet_v1     max|diff| = 0.000040
+  PASS    red_lesion_unet_v1        max|diff| = 0.000017
+
+All 5 models within parity threshold.
+
+===== End parityCheck() output =====
