@@ -111,6 +111,9 @@ function enqueue(caseId) {
   if (queued.has(caseId) || inflight.has(caseId) || retrying.has(caseId)) return false;
   queue.push({ caseId, attempts: 0 });
   queued.add(caseId);
+  // Fire-and-forget: a stale failure reason must not survive a re-queue, but
+  // clearing it is bookkeeping and must not delay or block the grading itself.
+  clearFailure(caseId);
   if (started) pump();
   return true;
 }
@@ -146,7 +149,7 @@ async function runJob(job) {
       console.error(
         `[gradingQueue] ${job.caseId} failed after ${job.attempts} attempt(s)`
         + `${permanent ? ' (permanent)' : ''}: ${err.message}`);
-      await markError(job.caseId);
+      await markError(job.caseId, err, job.attempts);
       return;
     }
 
@@ -175,20 +178,59 @@ async function runJob(job) {
 }
 
 /**
- * markError(caseId)
+ * markError(caseId, err, attempts)
  *
  * 'error', not left on 'processing'. A poller cannot distinguish "still
  * working" from "gave up" otherwise, and the case would look active forever.
+ *
+ * The CAUSE is written too (migration 0014). It used to live only in the line
+ * printed just above this call, which meant that by the time anyone looked at
+ * a failed case -- on the dashboard, or during a demo -- the reason was gone
+ * and the database could only say "error". err.code is the classification this
+ * queue already computes for the retry decision; keeping it makes failures
+ * groupable, which is the difference between 62 mysteries and one cause with
+ * 62 instances.
+ *
+ * The message is truncated at 500 characters: a stack-laden library error can
+ * run to kilobytes, and the first line is the part anyone reads.
  *
  * A failure to write the status is swallowed and logged: it means the database
  * is unreachable, which the next case will surface anyway, and throwing out of
  * a worker would take the queue down with it.
  */
-async function markError(caseId) {
+async function markError(caseId, err, attempts) {
+  const code = (err && err.code) || 'unknown';
+  const reason = [
+    err && err.message ? String(err.message) : 'no message',
+    attempts ? `(after ${attempts} attempt${attempts === 1 ? '' : 's'})` : '',
+  ].join(' ').trim().slice(0, 500);
   try {
-    await pool.query("UPDATE cases SET status = 'error' WHERE case_id = $1", [caseId]);
+    await pool.query(
+      `UPDATE cases
+          SET status = 'error', failure_code = $2, failure_reason = $3,
+              failed_at = now()
+        WHERE case_id = $1`, [caseId, code, reason]);
+  } catch (dbErr) {
+    console.error(`[gradingQueue] could not mark ${caseId} as error: ${dbErr.message}`);
+  }
+}
+
+/**
+ * clearFailure(caseId)
+ *
+ * A case being tried again has no current failure. Leaving the old reason in
+ * place would describe a state that no longer exists, and the dashboard would
+ * keep showing a cause for a case that has since graded -- someone would act
+ * on it. Cleared on enqueue rather than on success, so a case that is retrying
+ * does not read as still-broken while it runs.
+ */
+async function clearFailure(caseId) {
+  try {
+    await pool.query(
+      `UPDATE cases SET failure_code = NULL, failure_reason = NULL, failed_at = NULL
+        WHERE case_id = $1 AND failure_code IS NOT NULL`, [caseId]);
   } catch (err) {
-    console.error(`[gradingQueue] could not mark ${caseId} as error: ${err.message}`);
+    console.error(`[gradingQueue] could not clear the failure on ${caseId}: ${err.message}`);
   }
 }
 
@@ -322,7 +364,7 @@ function _reset() {
 }
 
 module.exports = {
-  enqueue, start, stop, onIdle, recoverStranded, stats,
+  enqueue, start, stop, onIdle, recoverStranded, stats, clearFailure,
   _setGradingFn, _reset,
   MAX_ATTEMPTS, CONCURRENCY,
 };

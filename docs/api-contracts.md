@@ -361,6 +361,16 @@ That is deliberate and is not a placeholder. It never says "0 microaneurysms" �
 
   **It is a safety net, not a proven detector.** Tanuj validated the gate against two known localization failures. Do not present it to a clinician as a measurement of image quality.
 
+### `GET /api/v1/cases/:caseId`: fields added 2026-09-20 (failures)
+- `status`: the case's own status (`processing` | `awaiting_image` | `graded` | `error`). It was missing from this response, which meant a failed case and a still-grading one looked identical: every ML field is `null` on both.
+- `failureCode`: why grading gave up, on an `error` case — e.g. `matlab_unavailable`, `python_unavailable`, `image_not_found`. `null` on every case that has not failed, and `not_recorded` never appears here (that grouping label is the admin health screen's, for the 62 cases that failed before the reason was stored).
+- `failedAt`: ISO-8601 timestamp of the moment it gave up, distinct from `receivedAt`.
+- The failure MESSAGE is deliberately not in this response. It can quote internal paths and library errors, so it is served only by `GET /admin/system-health`, to an admin.
+
+### `GET /api/v1/admin/system-health`: fields added 2026-09-20
+- `failedCases`: cases that gave up, grouped by `failureCode`, each with `count`, `lastFailedAt`, an `exampleReason` and an `exampleCaseId`. Separate from `stuckJobs` on purpose — a stuck case may still recover on its own, a failed one needs a person.
+- `failedCaseCount`: the total across those groups.
+
 ### `POST /api/v1/cases/:caseId/review`
 Request:
 ```json

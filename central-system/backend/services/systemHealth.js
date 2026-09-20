@@ -102,15 +102,53 @@ async function unreviewedCases() {
   }));
 }
 
+async function failedCases() {
+  // A case that gave up is NOT a stuck job: stuckJobs() looks at 'processing',
+  // which by definition is still moving or recoverable. An 'error' case will
+  // never move again on its own, and until migration 0014 the database could
+  // not say why any of them stopped -- the reason lived in a log line that is
+  // long gone.
+  //
+  // Grouped by cause, because that is the question an operator actually has.
+  // "62 failed" is a number to worry about; "58 of them are one missing
+  // executable" is something to fix.
+  const { rows } = await pool.query(`
+    SELECT COALESCE(failure_code, 'not_recorded') AS code,
+           count(*)::int AS n,
+           max(failed_at) AS last_failed_at,
+           (array_agg(failure_reason ORDER BY failed_at DESC NULLS LAST))[1] AS example,
+           (array_agg(case_id::text ORDER BY failed_at DESC NULLS LAST))[1] AS example_case
+      FROM cases
+     WHERE status = 'error'
+     GROUP BY 1
+     ORDER BY 2 DESC
+  `);
+  return rows.map((r) => ({
+    failureCode:  r.code,
+    count:        r.n,
+    lastFailedAt: r.last_failed_at ? r.last_failed_at.toISOString() : null,
+    // 'not_recorded' rows predate 0014. Saying so beats an empty string that
+    // reads as "failed for no reason".
+    exampleReason: r.example
+      || (r.code === 'not_recorded' ? 'failed before the reason was recorded' : null),
+    exampleCaseId: r.example_case,
+  }));
+}
+
 async function getSystemHealth() {
-  const [phcs, stuck, unreviewed, alerts] = await Promise.all([
-    silentPhcs(), stuckJobs(), unreviewedCases(), openAlerts(),
+  const [phcs, stuck, failed, unreviewed, alerts] = await Promise.all([
+    silentPhcs(), stuckJobs(), failedCases(), unreviewedCases(), openAlerts(),
   ]);
   const matlab = supervisor.getStatus();
   const segWorker = segSupervisor.getStatus();
   return {
     silentPhcs: phcs,
     stuckJobs: stuck,
+    // Cases that gave up, grouped by cause (migration 0014). Separate from
+    // stuckJobs on purpose: a stuck case may still recover on its own, a
+    // failed one needs a person.
+    failedCases: failed,
+    failedCaseCount: failed.reduce((n, f) => n + f.count, 0),
     matlabSessionStatus: matlab.status,
     unreviewedCases: unreviewed,
     // Additive to the plan's four keys: the detail behind the MATLAB status,
