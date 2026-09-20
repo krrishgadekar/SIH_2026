@@ -174,3 +174,8 @@ certs/
 # Model binaries delivered into training/ (copied to models/, already ignored).
 # ~340 MB; never commit. parity_data/*.mat is a subdirectory and unaffected.
 central-system/backend/ml-pipeline/training/*.mat
+
+# Exported training corpora (scripts/exportTrainingSet.js). Patient fundus
+# images plus their labels -- the same handling rule as media/, and the one
+# directory in this repo whose whole purpose is to collect them in one place.
+exports/
