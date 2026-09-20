@@ -26,6 +26,7 @@ const path = require('path');
 const pool       = require('../db/pgClient');
 const mediaPaths = require('./mediaPaths');
 const cfg        = require('./authConfig');
+const lesionCounts = require('./lesionCounts');
 
 // Task 4.6: .dcm accepted because real fundus cameras export DICOM under the
 // Ophthalmic Photography IOD, and readFundusImage.m now reads it. Central only
@@ -539,7 +540,9 @@ async function getCaseDetail(caseId) {
     gradCamOverlayUrl: mediaPaths.toPublicUrl(r.gradcam_path),
 
     // Phase 4 — segmentation
-    lesionCounts:      r.lesion_counts ?? null,
+    // Mapped to the contract's clinical key names at this boundary, never
+    // stored that way -- see services/lesionCounts.js.
+    lesionCounts:      lesionCounts.toContractShape(r.lesion_counts),
     nvSuspicionScore:  r.nv_suspicion_score ?? null,
 
     // Phase 7 — explainability safeguards

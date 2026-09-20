@@ -96,6 +96,10 @@ async function render(caseId, row) {
     conformalTier: row.conformal_tier,
     drGradeRuleEngine: row.dr_grade_rule_engine,
     branchAgreement: row.branch_agreement,
+    // The STORED shape, not the API's: generateReport.m reads red/bright and
+    // their per-quadrant arrays to build the evidence table. The clinical key
+    // names are an API-boundary concern (services/lesionCounts.js); the PDF is
+    // rendered from the measurement itself.
     lesionCounts: row.lesion_counts,
     nvSuspicionScore: row.nv_suspicion_score,
     evidenceSummaryText: row.evidence_summary_text,

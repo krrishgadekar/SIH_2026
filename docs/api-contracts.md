@@ -316,7 +316,8 @@ Response `200`:
   "patientReference": "PT-4821",
   "imageUrl": "/media/cases/a1b2c3d4/original.jpg",
   "gradCamOverlayUrl": "/media/cases/a1b2c3d4/gradcam.png",
-  "lesionCounts": { "microaneurysms": 6, "hemorrhages": 2, "hardExudates": 0, "softExudates": 0 },
+  "lesionCounts": { "microaneurysms": null, "hemorrhages": null, "hardExudates": 3, "softExudates": null,
+                    "detail": { "redTotal": 8, "redPerQuadrant": [3, 2, 2, 1], "brightPerQuadrant": [1, 1, 1, 0], "minAreaPx": 10, "procedure": "prob > 0.5, 8-connectivity, ..." } },
   "nvSuspicionScore": 0.12,
   "evidenceSummaryText": "6 microaneurysms (superior-temporal: 3, inferior-nasal: 3), 2 dot hemorrhages. Severe-NPDR criteria not met.",
   "drGradeCnn": 2,
@@ -331,8 +332,10 @@ Response `200`:
   "priorAssessments": [ { "caseId": "prev-case-id", "gradedAt": "2026-06-01T10:00:00.000Z", "drGradeCnn": 1 } ]
 }
 ```
-> [!WARNING]
-> **`lesionCounts` does not yet return these keys.** Today it returns `{red, bright, redTotal, brightTotal, …}`. The shape above is the target and the one to build against; the backend change is held so it happens once, with the M5 wiring, rather than breaking the panel twice. When it lands: `microaneurysms` and `hemorrhages` become real numbers, `hardExudates` is today's bright-lesion count under its correct name, and **`softExudates` stays `null` permanently** — nothing in the pipeline detects soft exudates, and it is a disclosed exclusion, not a measurement of zero.
+> [!NOTE]
+> **`lesionCounts` returns these keys as of 2026-09-20.** `hardExudates` is a real number — the bright-lesion count under its correct name. `microaneurysms` and `hemorrhages` are `null`: M5 detects red lesions as a SINGLE class today, so the split does not exist, and dividing a total by any ratio would be inventing a measurement. They become real numbers when Tanuj's 3-class retrain lands; the mapping is already written for it and the API shape does not move again. **`softExudates` is permanently `null`** — nothing in the pipeline detects cotton-wool spots, so it is a disclosed exclusion and must never become `0`.
+>
+> A fifth key, `detail`, carries the measurement the two null keys are hiding: `redTotal`, `redPerQuadrant`, `brightPerQuadrant`, `minAreaPx` and the counting `procedure`. The database still stores `{red, bright, redTotal, brightTotal}`; only the API boundary speaks clinical names (`services/lesionCounts.js`), so the per-quadrant detail is not lost and no migration was needed. A case whose segmentation has not run reports `lesionCounts: null`, not an object of four nulls — "segmentation did not run" and "it ran and found nothing" stay different statements.
 
 Every ML-derived field (`lesionCounts`, `nvSuspicionScore`, `drGradeRuleEngine`, `branchAgreement`, `uncertaintyScore`, `lesionAttentionConsistencyScore`) is `null` until its backing module ships — the frontend renders "not yet available" for `null`, never crashes on it and never shows a zero/empty value as if it were a real result.
 

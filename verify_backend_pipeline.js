@@ -198,6 +198,37 @@ async function main() {
   check('a failure on both paths resolves NULL, it does not throw',
     threw === null && result === null, threw ? threw.message : String(result));
 
+  // ── lesionCounts: the stored shape vs the contract shape ────────────────
+  // The clinical key names are an API-boundary mapping, not a second copy of
+  // the measurement. What matters here is that nothing invents a number: a
+  // detector that does not exist must surface as null, and null must survive
+  // JSON.stringify as a PRESENT key.
+  console.log('\n--- lesionCounts: clinical names, no invented numbers ---');
+  const { toContractShape } = require(path.join(CENTRAL, 'services', 'lesionCounts'));
+
+  const storedToday = {
+    red: [43, 15, 82, 56], bright: [53, 7, 28, 12],
+    redTotal: 196, brightTotal: 100, minAreaPx: 10, procedure: 'prob > 0.5 ...',
+  };
+  const mapped = toContractShape(storedToday);
+  check('hardExudates is the bright-lesion count', mapped.hardExudates === 100, mapped.hardExudates);
+  check('microaneurysms and hemorrhages are null while M5 is 2-class',
+    mapped.microaneurysms === null && mapped.hemorrhages === null,
+    JSON.stringify(mapped));
+  check('softExudates is null, never 0 (disclosed exclusion)',
+    mapped.softExudates === null, JSON.stringify(mapped.softExudates));
+  check('all four keys survive JSON.stringify as present keys',
+    ['microaneurysms', 'hemorrhages', 'hardExudates', 'softExudates']
+      .every((k) => k in JSON.parse(JSON.stringify(mapped))));
+  check('the red total is still reported, under detail',
+    mapped.detail.redTotal === 196 && mapped.detail.redPerQuadrant.length === 4);
+  check('no segmentation -> null, not an object of four nulls',
+    toContractShape(null) === null && toContractShape(undefined) === null);
+  const withM5 = toContractShape({ ...storedToday, ma: [10, 5, 2, 1], he: [3, 1, 0, 0] });
+  check('M5\'s 3-class output fills the two null keys without a code change',
+    withM5.microaneurysms === 18 && withM5.hemorrhages === 4,
+    JSON.stringify(withM5));
+
   console.log(failures === 0
     ? '\n===== The per-case MATLAB round trip is verified ====='
     : `\n===== ${failures} FAILURE(S) =====`);
