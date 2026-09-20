@@ -42,6 +42,9 @@ const pool = require('../db/pgClient');
 const TWILIO_SID   = process.env.TWILIO_ACCOUNT_SID;
 const TWILIO_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 const TWILIO_FROM  = process.env.TWILIO_FROM;
+// Public https URL of POST /api/v1/notifications/sms-status, when this backend
+// is reachable from the internet. Optional; see the send call below.
+const STATUS_CALLBACK_URL = process.env.TWILIO_STATUS_CALLBACK_URL || '';
 
 // Set SMS_DRY_RUN=1 to exercise the whole path without sending anything, even
 // with real credentials present. Useful for demos and for load-testing the
@@ -195,6 +198,9 @@ async function handleConfirmedReferral(caseId, opts = {}) {
   const to       = row.contact_number;
 
   if (!to) {
+    // §10.5: nothing can be sent, so this needs a person, now -- not at
+    // whatever point someone notices the tracker.
+    await flipToManualFollowUp(referralId, 'no contact number on record');
     return { referralId, alreadyReferred: false,
              sms: await record(caseId, row, 'no_contact_number', null,
                                'Patient has no contact number on record.') };
@@ -209,13 +215,22 @@ async function handleConfirmedReferral(caseId, opts = {}) {
 
   const client = getTwilioClient();
   if (!client) {
+    await flipToManualFollowUp(referralId, 'SMS client unavailable');
     return { referralId, alreadyReferred: false,
              sms: await record(caseId, row, 'client_unavailable', null,
                                twilioInitError ? twilioInitError.message : 'unknown') };
   }
 
   try {
-    const msg = await client.messages.create({ body, from: TWILIO_FROM, to });
+    // statusCallback: acceptance by the API is not delivery. Without this URL
+    // an undeliverable message is never reported and §10.5 cannot fire for the
+    // most common real failure (wrong or unreachable number). It needs a
+    // publicly reachable backend, so it is optional and simply absent on a
+    // laptop demo -- in which case only immediate failures flip the referral.
+    const msg = await client.messages.create({
+      body, from: TWILIO_FROM, to,
+      ...(STATUS_CALLBACK_URL ? { statusCallback: STATUS_CALLBACK_URL } : {}),
+    });
     console.log(`[referral] SMS sent to ${maskNumber(to)} (${msg.sid})`);
     return { referralId, alreadyReferred: false,
              sms: await record(caseId, row, 'sent', msg.sid, null, body) };
@@ -224,9 +239,65 @@ async function handleConfirmedReferral(caseId, opts = {}) {
     // record — the patient still needs following up, and the admin tracker is
     // now the mechanism that catches it.
     console.error(`[referral] SMS FAILED for case ${caseId}: ${err.message}`);
+    await flipToManualFollowUp(referralId, 'SMS send failed');
     return { referralId, alreadyReferred: false,
              sms: await record(caseId, row, 'failed', null, err.message, body) };
   }
+}
+
+/**
+ * flipToManualFollowUp(referralId, why)
+ *
+ * Design doc §10.5. The patient was NOT told, so somebody has to phone them.
+ * Only ever applied to a referral still sitting in 'referred': once a worker
+ * has moved it on (contacted / attended / lost), a late delivery report must
+ * not drag it backwards.
+ */
+async function flipToManualFollowUp(referralId, why) {
+  if (!referralId) return false;
+  try {
+    const { rowCount } = await pool.query(`
+      UPDATE referrals SET status = 'manual_follow_up', updated_at = now()
+      WHERE referral_id = $1 AND status = 'referred'
+    `, [referralId]);
+    if (rowCount) {
+      console.warn(`[referral] ${referralId} -> manual_follow_up (${why})`);
+    }
+    return rowCount > 0;
+  } catch (err) {
+    console.error(`[referral] could not flip ${referralId} to manual follow-up: ${err.message}`);
+    return false;
+  }
+}
+
+/**
+ * handleDeliveryReport(providerMessageId, deliveryStatus, errorDetail)
+ *
+ * Twilio's status callback (routes/notifications.js). A message can be accepted
+ * by the API and still never arrive -- wrong number, unreachable handset,
+ * carrier rejection -- and that outcome only shows up here, minutes later.
+ * 'undelivered' and 'failed' are terminal failures; everything else is progress.
+ */
+async function handleDeliveryReport(providerMessageId, deliveryStatus, errorDetail) {
+  const status = String(deliveryStatus || '').toLowerCase();
+  const terminalFailure = status === 'undelivered' || status === 'failed';
+
+  const { rows } = await pool.query(`
+    UPDATE notifications
+    SET status = $2, error_detail = COALESCE($3, error_detail)
+    WHERE provider_message_id = $1
+    RETURNING case_id
+  `, [providerMessageId, terminalFailure ? `delivery_${status}` : status, errorDetail || null]);
+  if (!rows.length) return { matched: false, flipped: false };
+
+  if (!terminalFailure) return { matched: true, flipped: false };
+
+  const ref = await pool.query(
+    'SELECT referral_id FROM referrals WHERE case_id = $1', [rows[0].case_id]);
+  const flipped = ref.rows.length
+    ? await flipToManualFollowUp(ref.rows[0].referral_id, `SMS ${status}`)
+    : false;
+  return { matched: true, flipped, caseId: rows[0].case_id };
 }
 
 /** Record what actually happened. status is never 'sent' unless it was sent. */
@@ -254,4 +325,5 @@ function maskNumber(n) {
 
 module.exports = {
   handleConfirmedReferral, isConfigured, buildMessage, TEMPLATES,
+  handleDeliveryReport, flipToManualFollowUp,
 };

@@ -26,12 +26,16 @@
 
 const express = require('express');
 const analytics = require('../services/analyticsAggregator');
+const requireAuth = require('../middleware/requireAuth');
+const requireRole = require('../middleware/requireRole');
+const { logAccess } = require('../services/accessLog');
 
 const router = express.Router();
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-router.get('/:phcId/sync-status', async (req, res, next) => {
+// Backs the admin's PHC Health screen, so district_admin only.
+router.get('/:phcId/sync-status', requireAuth, requireRole('district_admin'), async (req, res, next) => {
   const { phcId } = req.params;
   if (!UUID_RE.test(phcId)) {
     return res.status(404).json({
@@ -45,6 +49,7 @@ router.get('/:phcId/sync-status', async (req, res, next) => {
         error: 'phc_not_found', message: `No PHC site with id ${phcId}`,
       });
     }
+    await logAccess(req.user?.userId, 'view_phc_sync_status', 'phc_site', phcId);
     res.json(status);
   } catch (err) { next(err); }
 });

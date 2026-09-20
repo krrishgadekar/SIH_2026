@@ -6,7 +6,8 @@
  * Receives a case from a PHC sync manager, stores it, and reads it back in the
  * exact shape api-contracts.md specifies.
  *
- *   ingestCase(fields)     -> { caseId, receivedAt }
+ *   ingestCase(fields)     -> { caseId, receivedAt, status, duplicate, fromSummary }
+ *   ingestSummary(fields)  -> { caseId, receivedAt, status, duplicate }
  *   getCaseStatus(caseId)  -> { caseId, status } | null
  *   getCaseDetail(caseId)  -> full case detail | null
  *
@@ -24,6 +25,7 @@ const path = require('path');
 
 const pool       = require('../db/pgClient');
 const mediaPaths = require('./mediaPaths');
+const cfg        = require('./authConfig');
 
 // Task 4.6: .dcm accepted because real fundus cameras export DICOM under the
 // Ophthalmic Photography IOD, and readFundusImage.m now reads it. Central only
@@ -112,35 +114,131 @@ async function ensurePatientReference(client, patientId) {
 }
 
 /**
- * ingestCase(fields)
- *
- * @param {object} fields
- *   patientId, phcId, captureIdRef, cameraDeviceId  — strings
- *   imageFile        — multer file object ({ buffer, originalname }) or a path
- *   questionnaireData, captureMetadata              — JSON strings or objects
- *   patientName, patientAge, patientContactNumber   — optional, see below
- * @returns {Promise<{caseId: string, receivedAt: string}>}
+ * readCaseFields(fields) -- the validation and parsing shared by a full case
+ * (ingestCase) and a summary packet (ingestSummary). Throws 400-shaped errors.
  */
-async function ingestCase(fields) {
-  const {
-    patientId, phcId, captureIdRef, cameraDeviceId, imageFile,
-    patientName, patientAge, patientContactNumber, capturedAt, pendingCount,
-  } = fields;
-
-  // Parsed to an object, like the questionnaires: pg encodes a JS object to
-  // JSONB itself, and a pre-stringified value would be stored as a JSON STRING
-  // inside the column, which only surfaces later when a query on a nested key
-  // matches nothing.
-  const qualityScores = parseJsonField(fields.qualityScores, 'qualityScores');
-
+function readCaseFields(fields) {
+  const { patientId } = fields;
   if (!patientId) throw badRequest('patient_id_required', 'patientId is required.');
+
+  // Validated rather than handed to Postgres raw: a malformed timestamp would
+  // otherwise surface as a 500 from the INSERT instead of a 400 naming the field.
+  let consentGivenAt = null;
+  if (fields.consentGivenAt !== undefined && fields.consentGivenAt !== null &&
+      fields.consentGivenAt !== '') {
+    const t = new Date(fields.consentGivenAt);
+    if (Number.isNaN(t.getTime())) {
+      throw badRequest('invalid_field', 'consentGivenAt must be an ISO-8601 timestamp.');
+    }
+    consentGivenAt = t.toISOString();
+  }
+
+  const pendingCount = fields.pendingCount;
+
+  return {
+    patientId,
+    phcId:          fields.phcId || null,
+    captureIdRef:   fields.captureIdRef || null,
+    cameraDeviceId: fields.cameraDeviceId || null,
+    capturedAt:     fields.capturedAt || null,
+    consentGivenAt,
+    // Parsed to objects: pg encodes a JS object to JSONB itself, and a
+    // pre-stringified value would be stored as a JSON STRING inside the column,
+    // which only surfaces later when a query on a nested key matches nothing.
+    questionnaireData: parseJsonField(fields.questionnaireData, 'questionnaireData'),
+    captureMetadata:   parseJsonField(fields.captureMetadata, 'captureMetadata'),
+    qualityScores:     parseJsonField(fields.qualityScores, 'qualityScores'),
+    pendingCount: pendingCount === undefined || pendingCount === null || pendingCount === ''
+      ? null : parseInt(pendingCount, 10),
+    patientName:          fields.patientName,
+    patientAge:           fields.patientAge,
+    patientContactNumber: fields.patientContactNumber,
+  };
+}
+
+/** 'left' | 'right' | null from the capture metadata's eyeLaterality (§10.4). */
+function reportedLaterality(captureMetadata) {
+  const v = captureMetadata && captureMetadata.eyeLaterality;
+  return v === 'left' || v === 'right' ? v : null;
+}
+
+/**
+ * ensurePatient(client, f)
+ *
+ * cases.patient_id is a foreign key, so the patient must exist centrally
+ * first. api-contracts.md defines no central patient-creation endpoint, so the
+ * demographics ride along with the case: accepted when supplied and REQUIRED
+ * when the patient is unknown, because patients.name/age/contact_number are
+ * NOT NULL -- and contact_number is not bookkeeping: Task 3.6 sends the
+ * referral SMS to it.
+ */
+async function ensurePatient(client, f) {
+  const known = await client.query(
+    'SELECT patient_id FROM patients WHERE patient_id = $1', [f.patientId]);
+
+  if (known.rows.length === 0) {
+    if (!f.patientName || f.patientAge === undefined || !f.patientContactNumber) {
+      throw badRequest('patient_not_found',
+        `Patient ${f.patientId} is not known centrally. Send patientName, ` +
+        'patientAge and patientContactNumber with the case to register them.');
+    }
+    // Validated here rather than left to the NOT NULL column: parseInt('abc')
+    // is NaN, which reaches Postgres as null and surfaces as a 500 about a
+    // constraint instead of a 400 naming the field the PHC got wrong.
+    const age = parseInt(f.patientAge, 10);
+    if (!Number.isInteger(age) || age < 0 || age > 130) {
+      throw badRequest('invalid_field',
+        `patientAge must be an integer between 0 and 130 — got '${f.patientAge}'.`);
+    }
+    await client.query(`
+      INSERT INTO patients (patient_id, name, age, contact_number, registered_at,
+                            consent_given_at)
+      VALUES ($1, $2, $3, $4, now(), $5)
+      ON CONFLICT (patient_id) DO NOTHING
+    `, [f.patientId, f.patientName, age, f.patientContactNumber, f.consentGivenAt]);
+  } else if (f.consentGivenAt) {
+    // A known patient's FIRST recorded consent is kept: consent is given once
+    // at registration, and a later case must not quietly move that date.
+    await client.query(`
+      UPDATE patients SET consent_given_at = COALESCE(consent_given_at, $2)
+      WHERE patient_id = $1
+    `, [f.patientId, f.consentGivenAt]);
+  }
+
+  await ensurePatientReference(client, f.patientId);
+}
+
+/**
+ * touchPhc(client, f, { fullSync })
+ *
+ * last_contact_at: EVERY ingestion touchpoint -- a summary packet is contact
+ * even when no full sync completes (backend plan §F.1).
+ *
+ * last_sync_at + pending_count: only on a full case landing. pending_count is
+ * the PHC's own report of its queue (the queue lives in that site's SQLite, not
+ * here), true only as of last_sync_at, so the two are always written together:
+ * read apart, pending_count misleads, because the site whose backlog is really
+ * growing is the offline one whose number is frozen.
+ */
+async function touchPhc(client, f, { fullSync }) {
+  if (!f.phcId) return;
+  if (fullSync) {
+    await client.query(`
+      UPDATE phc_sites
+      SET last_sync_at = now(), last_contact_at = now(),
+          pending_count = COALESCE($2, pending_count)
+      WHERE phc_id = $1
+    `, [f.phcId, f.pendingCount]);
+  } else {
+    await client.query('UPDATE phc_sites SET last_contact_at = now() WHERE phc_id = $1',
+      [f.phcId]);
+  }
+}
+
+/** Resolves the upload into { buffer, ext }, before any DB work. */
+function readImage(imageFile) {
   if (!imageFile) throw badRequest('image_required', 'An image file is required.');
 
-  const questionnaireData = parseJsonField(fields.questionnaireData, 'questionnaireData');
-  const captureMetadata   = parseJsonField(fields.captureMetadata, 'captureMetadata');
-
-  // Resolve the image bytes before opening a transaction — no point holding a
-  // DB connection while reading a file that might not exist.
   let buffer, sourceName;
   if (typeof imageFile === 'string') {
     if (!fs.existsSync(imageFile)) {
@@ -161,89 +259,222 @@ async function ingestCase(fields) {
     if (ext) throw badRequest('invalid_image_type', `Unsupported image type '${ext}'.`);
     ext = '.jpg';
   }
+  return { buffer, ext };
+}
+
+/**
+ * ingestCase(fields)
+ *
+ * @param {object} fields
+ *   patientId, phcId, captureIdRef, cameraDeviceId  — strings
+ *   imageFile        — multer file object ({ buffer, originalname }) or a path
+ *   questionnaireData, captureMetadata              — JSON strings or objects
+ *   patientName, patientAge, patientContactNumber   — optional, see ensurePatient
+ *   consentGivenAt   — ISO timestamp the technician confirmed verbal consent
+ *                      (design doc §9.7, backend plan §M); optional here, the
+ *                      PHC front-ends enforce that it was collected
+ * @returns {Promise<{caseId, receivedAt, status, duplicate, fromSummary}>}
+ *
+ * ── IDEMPOTENT ON captureIdRef (design doc §10.6, backend plan §C) ──────────
+ * The PHC's capture id is the idempotency key, backed by the
+ * cases_capture_id_ref_unique constraint. Three outcomes:
+ *
+ *   new capture                -> a new case, status 'processing'. The caller
+ *                                 enqueues grading.
+ *   capture already has a case -> NOTHING is written or re-graded; the existing
+ *     with an image               case comes back with duplicate: true. This is
+ *                                 the retry after a lost response, and it must
+ *                                 look like success to the PHC, not an error.
+ *   capture has a summary-only -> the image fills THAT row (fromSummary: true),
+ *     case ('awaiting_image')     it moves to 'processing', and the caller
+ *                                 enqueues grading. Fields the summary already
+ *                                 set are kept unless this upload supplies them.
+ *
+ * With no captureIdRef there is nothing to deduplicate on, so every call makes
+ * a new case, as before.
+ */
+async function ingestCase(fields) {
+  const f = readCaseFields(fields);
+  // Resolve the image bytes before opening a transaction -- no point holding a
+  // DB connection while reading a file that might not exist.
+  const { buffer, ext } = readImage(fields.imageFile);
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    await ensurePatient(client, f);
 
-    // ── Patient ────────────────────────────────────────────────────────────
-    // cases.patient_id is a foreign key, so the patient must exist centrally
-    // first. api-contracts.md defines no central patient-creation endpoint and
-    // POST /cases carries no demographics, so there is a genuine gap in how a
-    // patient reaches the central DB — see the note in routes/cases.js.
-    //
-    // Demographics are accepted here when supplied (an additive extension the
-    // sync manager can use) and required when the patient is unknown, because
-    // patients.name/age/contact_number are NOT NULL — and contact_number is not
-    // bookkeeping: Task 3.6 sends the referral SMS to it.
-    const known = await client.query(
-      'SELECT patient_id FROM patients WHERE patient_id = $1', [patientId]);
-
-    if (known.rows.length === 0) {
-      if (!patientName || patientAge === undefined || !patientContactNumber) {
-        throw badRequest('patient_not_found',
-          `Patient ${patientId} is not known centrally. Send patientName, ` +
-          'patientAge and patientContactNumber with the case to register them.');
-      }
-      await client.query(`
-        INSERT INTO patients (patient_id, name, age, contact_number, registered_at)
-        VALUES ($1, $2, $3, $4, now())
-        ON CONFLICT (patient_id) DO NOTHING
-      `, [patientId, patientName, parseInt(patientAge, 10), patientContactNumber]);
-    }
-
-    await ensurePatientReference(client, patientId);
-
-    // ── Case ───────────────────────────────────────────────────────────────
     // image_path is written AFTER the row exists, because the filename is keyed
     // on the generated case_id. Insert with a placeholder, then update.
+    // ON CONFLICT DO NOTHING rather than a SELECT-then-INSERT: two concurrent
+    // retries of the same capture cannot both get past a unique index.
     const inserted = await client.query(`
       INSERT INTO cases
         (patient_id, phc_id, capture_id_ref, camera_device_id, image_path,
-         questionnaire_data, capture_metadata, status, captured_at, quality_scores)
-      VALUES ($1, $2, $3, $4, '', $5, $6, 'processing', $7, $8)
+         questionnaire_data, capture_metadata, status, captured_at, quality_scores,
+         eye_laterality_reported, processing_started_at)
+      VALUES ($1, $2, $3, $4, '', $5, $6, 'processing', $7, $8, $9, now())
+      ON CONFLICT (capture_id_ref) DO NOTHING
       RETURNING case_id, received_at
-    `, [patientId, phcId || null, captureIdRef || null, cameraDeviceId || null,
-        questionnaireData, captureMetadata,
+    `, [f.patientId, f.phcId, f.captureIdRef, f.cameraDeviceId,
+        f.questionnaireData, f.captureMetadata,
         // Falls back to now() only when the PHC did not send one. That fallback
         // is wrong for any case that synced late, so the sync manager (Task 3.4)
         // must always send the local captures.captured_at.
-        capturedAt || new Date().toISOString(), qualityScores]);
+        f.capturedAt || new Date().toISOString(), f.qualityScores,
+        reportedLaterality(f.captureMetadata)]);
 
-    const caseId    = inserted.rows[0].case_id;
-    const imagePath = mediaPaths.originalPath(caseId, ext);
+    let caseId, receivedAt, fromSummary = false;
 
-    fs.writeFileSync(imagePath, buffer);
+    if (inserted.rows.length) {
+      caseId = inserted.rows[0].case_id;
+      receivedAt = inserted.rows[0].received_at;
+    } else {
+      const existing = (await client.query(`
+        SELECT case_id, status, received_at FROM cases
+        WHERE capture_id_ref = $1 FOR UPDATE
+      `, [f.captureIdRef])).rows[0];
 
-    await client.query('UPDATE cases SET image_path = $1 WHERE case_id = $2',
-      [imagePath, caseId]);
+      if (existing.status !== 'awaiting_image') {
+        // A retry. The patient step above may have recorded consent for the
+        // first time, which is worth keeping, so COMMIT rather than roll back.
+        await touchPhc(client, f, { fullSync: false });
+        await client.query('COMMIT');
+        return {
+          caseId: existing.case_id,
+          receivedAt: existing.received_at.toISOString(),
+          status: existing.status,
+          duplicate: true,
+          fromSummary: false,
+        };
+      }
 
-    // Record the PHC's own view of its queue. pending_count cannot be computed
-    // here -- the sync queue lives in that site's local SQLite and this server
-    // has no visibility into it -- so the number is whatever the PHC last
-    // reported, true only as of last_sync_at. Both columns are written together
-    // for exactly that reason: read apart, pending_count is misleading, because
-    // the site whose backlog is really growing is the offline one whose number
-    // is frozen (api-contracts.md, GET /phc/:phcId/sync-status).
-    if (phcId) {
+      caseId = existing.case_id;
+      receivedAt = existing.received_at;
+      fromSummary = true;
+      // image_path and status in ONE statement: the
+      // cases_image_required_unless_awaiting constraint is checked per
+      // statement, so leaving 'awaiting_image' before the path is set fails.
+      const summaryImagePath = mediaPaths.originalPath(caseId, ext);
+      fs.writeFileSync(summaryImagePath, buffer);
       await client.query(`
-        UPDATE phc_sites
-        SET last_sync_at = now(),
-            pending_count = COALESCE($2, pending_count)
-        WHERE phc_id = $1
-      `, [phcId, pendingCount === undefined || pendingCount === null || pendingCount === ''
-                 ? null : parseInt(pendingCount, 10)]);
+        UPDATE cases
+        SET status             = 'processing',
+            -- NOT received_at: this row may have been created by a summary
+            -- packet days ago (§C). The watchdog and the stuck-job check
+            -- measure from here.
+            processing_started_at = now(),
+            image_path         = $8,
+            phc_id             = COALESCE(phc_id, $2),
+            camera_device_id   = COALESCE($3, camera_device_id),
+            questionnaire_data = COALESCE($4, questionnaire_data),
+            capture_metadata   = COALESCE($5, capture_metadata),
+            captured_at        = COALESCE($6, captured_at),
+            quality_scores     = COALESCE($7, quality_scores),
+            eye_laterality_reported = COALESCE($9, eye_laterality_reported)
+        WHERE case_id = $1
+      `, [caseId, f.phcId, f.cameraDeviceId, f.questionnaireData, f.captureMetadata,
+          f.capturedAt, f.qualityScores, summaryImagePath,
+          reportedLaterality(f.captureMetadata)]);
     }
 
+    if (!fromSummary) {
+      const imagePath = mediaPaths.originalPath(caseId, ext);
+      fs.writeFileSync(imagePath, buffer);
+      await client.query('UPDATE cases SET image_path = $1 WHERE case_id = $2',
+        [imagePath, caseId]);
+    }
+
+    await touchPhc(client, f, { fullSync: true });
     await client.query('COMMIT');
 
-    return { caseId, receivedAt: inserted.rows[0].received_at.toISOString() };
+    return {
+      caseId, receivedAt: receivedAt.toISOString(),
+      status: 'processing', duplicate: false, fromSummary,
+    };
   } catch (err) {
     await client.query('ROLLBACK');
     throw err;
   } finally {
     client.release();
   }
+}
+
+/**
+ * ingestSummary(fields) -- POST /api/v1/cases/summary (design doc §10.1).
+ *
+ * The same fields as ingestCase minus the image. Creates the case in state
+ * 'awaiting_image' so central knows it exists -- the patient, the
+ * questionnaires, and that this PHC is alive -- before a thin link manages to
+ * move the full image. Nothing is graded until the image arrives via
+ * POST /api/v1/cases or the chunk group, which fill in this same row.
+ *
+ * captureIdRef is REQUIRED here: it is the only thing that ties the later
+ * image to this row, so a summary without one could never be completed.
+ *
+ * Idempotent: a repeated summary, or a summary arriving after the image did,
+ * changes nothing and returns the existing case with duplicate: true.
+ */
+async function ingestSummary(fields) {
+  const f = readCaseFields(fields);
+  if (!f.captureIdRef) {
+    throw badRequest('capture_id_required',
+      'captureIdRef is required on a summary: it is how the image upload finds this case.');
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await ensurePatient(client, f);
+
+    const inserted = await client.query(`
+      INSERT INTO cases
+        (patient_id, phc_id, capture_id_ref, camera_device_id, image_path,
+         questionnaire_data, capture_metadata, status, captured_at, quality_scores,
+         eye_laterality_reported)
+      VALUES ($1, $2, $3, $4, NULL, $5, $6, 'awaiting_image', $7, $8, $9)
+      ON CONFLICT (capture_id_ref) DO NOTHING
+      RETURNING case_id, received_at, status
+    `, [f.patientId, f.phcId, f.captureIdRef, f.cameraDeviceId,
+        f.questionnaireData, f.captureMetadata,
+        f.capturedAt || new Date().toISOString(), f.qualityScores,
+        reportedLaterality(f.captureMetadata)]);
+
+    let row = inserted.rows[0];
+    const duplicate = !row;
+    if (duplicate) {
+      row = (await client.query(
+        'SELECT case_id, received_at, status FROM cases WHERE capture_id_ref = $1',
+        [f.captureIdRef])).rows[0];
+    }
+
+    await touchPhc(client, f, { fullSync: false });
+    await client.query('COMMIT');
+
+    return {
+      caseId: row.case_id, receivedAt: row.received_at.toISOString(),
+      status: row.status, duplicate,
+    };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+/**
+ * findCaseByCaptureRef(captureIdRef) -> { caseId, status } | null
+ *
+ * The idempotency lookup (§C), for callers that need to know whether a capture
+ * already has a case before doing expensive work -- the chunked upload checks
+ * it before accepting megabytes it would then discard.
+ */
+async function findCaseByCaptureRef(captureIdRef) {
+  if (!captureIdRef) return null;
+  const { rows } = await pool.query(
+    'SELECT case_id, status FROM cases WHERE capture_id_ref = $1', [captureIdRef]);
+  return rows.length ? { caseId: rows[0].case_id, status: rows[0].status } : null;
 }
 
 /** GET /api/v1/cases/:caseId/status */
@@ -266,10 +497,13 @@ async function getCaseDetail(caseId) {
   const { rows } = await pool.query(`
     SELECT
       c.case_id, c.image_path, c.questionnaire_data, c.capture_metadata,
-      c.patient_id,
+      c.patient_id, c.eye_laterality_reported, c.eye_laterality_detected,
+      s.fovea_unreliable,
       p.patient_reference,
       g.dr_grade_cnn, g.dr_grade_rule_engine, g.branch_agreement,
       g.confidence_score, g.uncertainty_score, g.conformal_tier,
+      g.claimed_by, g.claimed_at, claimant.name AS claimed_by_name,
+      g.claimed_at > now() - make_interval(mins => $2) AS claim_live,
       s.lesion_counts, s.nv_suspicion_score,
       e.gradcam_path, e.lesion_attention_consistency_score, e.evidence_summary_text
     FROM cases c
@@ -277,8 +511,9 @@ async function getCaseDetail(caseId) {
     LEFT JOIN grading_results        g ON g.case_id    = c.case_id
     LEFT JOIN segmentation_outputs   s ON s.case_id    = c.case_id
     LEFT JOIN explainability_outputs e ON e.case_id    = c.case_id
+    LEFT JOIN users                  claimant ON claimant.user_id = g.claimed_by
     WHERE c.case_id = $1
-  `, [caseId]);
+  `, [caseId, cfg.CLAIM_TTL_MINUTES]);
 
   if (!rows.length) return null;
   const r = rows[0];
@@ -328,6 +563,31 @@ async function getCaseDetail(caseId) {
     questionnaireData: r.questionnaire_data ?? null,
     captureMetadata:   r.capture_metadata ?? null,
 
+    // §10.4 / backend plan §P. The image's own DICOM tag wins over the
+    // technician's selection when both exist; a disagreement is surfaced, not
+    // resolved silently. null when neither is known.
+    eyeLaterality: r.eye_laterality_detected ?? r.eye_laterality_reported ?? null,
+    eyeLateralitySource: r.eye_laterality_detected ? 'dicom'
+      : (r.eye_laterality_reported ? 'technician' : null),
+    eyeLateralityMismatch: !!(r.eye_laterality_detected && r.eye_laterality_reported
+      && r.eye_laterality_detected !== r.eye_laterality_reported),
+
+    // §I: true when the fovea could not be located reliably (the lesion
+    // quadrants are still keyed to that unreliable fovea, so they cannot be
+    // trusted). null when not reported.
+    foveaUnreliable: r.fovea_unreliable ?? null,
+
+    // §10.8: who is reviewing this case right now, if anyone. null once the
+    // claim has expired. The reviewer's own client compares userId to decide
+    // between "you hold this" and "someone else does".
+    claim: r.claim_live
+      ? {
+        claimedBy: { userId: r.claimed_by, name: r.claimed_by_name ?? null },
+        claimedAt: r.claimed_at.toISOString(),
+        expiresAt: new Date(r.claimed_at.getTime() + cfg.CLAIM_TTL_MINUTES * 60000).toISOString(),
+      }
+      : null,
+
     priorAssessments: prior.rows.map((x) => ({
       caseId:     x.case_id,
       gradedAt:   x.graded_at.toISOString(),
@@ -343,4 +603,6 @@ function badRequest(code, message) {
   return e;
 }
 
-module.exports = { ingestCase, getCaseStatus, getCaseDetail };
+module.exports = {
+  ingestCase, ingestSummary, getCaseStatus, getCaseDetail, findCaseByCaptureRef,
+};

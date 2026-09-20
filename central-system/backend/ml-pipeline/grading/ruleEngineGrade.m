@@ -17,8 +17,12 @@ function [grade, evidence] = ruleEngineGrade(redLesionQuadrantCounts, brightLesi
 %       .brightFloor            1 - bright counts below this are noise
 %       .maxGrade               3 - cap on the output (see GRADE 4 IS CAPPED)
 %       .nvThreshold          0.6
-%       .venousBeadingQuadrants 0
-%       .irmaQuadrants          0
+%       .venousBeadingQuadrants []  1x4 logical, one per quadrant (Tanuj's
+%                                   detector), or a scalar quadrant count.
+%                                   [] / absent = NOT ASSESSED.
+%       .irmaQuadrants          []  same shape and meaning, for IRMA
+%       .foveaUnreliable     false  the fovea could not be placed reliably
+%                                   (backend plan §I) -- see below
 %
 %   Outputs:
 %     grade    - integer on the International Clinical DR severity scale,
@@ -116,6 +120,33 @@ function [grade, evidence] = ruleEngineGrade(redLesionQuadrantCounts, brightLesi
 %
 %   opts.venousBeadingQuadrants / opts.irmaQuadrants exist so a future detector
 %   plugs in without changing this signature or its semantics.
+%
+%   ── WHEN THE DETECTORS ARE SUPPLIED (backend plan §H) ──────────────────────
+%   The contract with the vessel-analysis side is a 1x4 logical per criterion,
+%   one entry per quadrant in fundusQuadrants('names') order:
+%     (b) fires when sum(venousBeadingQuadrants) >= 2
+%     (c) fires when any(irmaQuadrants)
+%   OR'd with (a): severe NPDR on ANY one of the three. A supplied array --
+%   even all false -- means that criterion WAS assessed, and the "not
+%   assessed" caveat is dropped for it. An absent or empty value keeps the
+%   caveat. That distinction is the point: an all-false mock must never be
+%   passed in just to make the evidence text look complete.
+%
+%   ══ FOVEA UNRELIABLE (backend plan §I) ═════════════════════════════════════
+%   Quadrants are defined around the fovea-to-disc axis. When the localizer
+%   says the fovea could not be placed (opts.foveaUnreliable = true), the
+%   upstream quadrant assignment does NOT fall back to anything (Tanuj,
+%   2026-09-20): segInfer still builds the axis from the flagged fovea
+%   coordinate, so the counts arrive keyed to an axis drawn through a point
+%   the gate has already called untrustworthy. They are not the anatomical
+%   quadrants the ETDRS rule is written for. So the two
+%   criteria that depend on WHICH quadrants are involved are skipped:
+%     (a) lesions in all four quadrants, and (b) venous beading in >= 2.
+%   Grading then rests on totals only -- the criteria that do not care where a
+%   lesion sits: (c) IRMA in any quadrant, NV, and the moderate/mild counts.
+%   The evidence says so, and the orchestrator holds such a case at Tier B or
+%   worse, so a human sees it. This can UNDER-call severe NPDR by (a)/(b); that
+%   is the stated trade against grading on quadrants that are not real.
 
 if nargin < 4, opts = struct(); end
 
@@ -125,8 +156,9 @@ moderateRedCount = getdef(opts, 'moderateRedCount',       5);
 brightFloor      = getdef(opts, 'brightFloor',            1);
 maxGrade         = getdef(opts, 'maxGrade',               3);
 nvThreshold      = getdef(opts, 'nvThreshold',          0.6);
-venousBeadingQ   = getdef(opts, 'venousBeadingQuadrants', 0);
-irmaQ            = getdef(opts, 'irmaQuadrants',          0);
+[venousBeadingQ, vbAssessed]   = quadrantFlags(opts, 'venousBeadingQuadrants');
+[irmaQ,          irmaAssessed] = quadrantFlags(opts, 'irmaQuadrants');
+foveaUnreliable  = isfield(opts, 'foveaUnreliable') && isequal(opts.foveaUnreliable, true);
 
 red    = validateCounts(redLesionQuadrantCounts,    'redLesionQuadrantCounts');
 bright = validateCounts(brightLesionQuadrantCounts, 'brightLesionQuadrantCounts');
@@ -138,7 +170,8 @@ end
 cfg = struct('redFloor', redFloor, 'grade3QuadMin', grade3QuadMin, ...
              'moderateRedCount', moderateRedCount, 'brightFloor', brightFloor, ...
              'nvThreshold', nvThreshold, 'venousBeadingQ', venousBeadingQ, ...
-             'irmaQ', irmaQ);
+             'irmaQ', irmaQ, 'vbAssessed', vbAssessed, 'irmaAssessed', irmaAssessed, ...
+             'foveaUnreliable', foveaUnreliable);
 
 [rawGrade, evidence] = applyCriteria(red, bright, nvSuspicionScore, cfg);
 
@@ -195,7 +228,9 @@ evidence = struct( ...
     'criterion', '', 'redTotal', totalRed, 'brightTotal', totalBright, ...
     'redByQuadrant', red, 'brightByQuadrant', bright, ...
     'nvSuspicionScore', nvSuspicionScore, ...
-    'venousBeadingAssessed', false, 'irmaAssessed', false, ...
+    'venousBeadingAssessed', cfg.vbAssessed, 'irmaAssessed', cfg.irmaAssessed, ...
+    'venousBeadingQuadrantCount', cfg.venousBeadingQ, 'irmaQuadrantCount', cfg.irmaQ, ...
+    'foveaUnreliable', cfg.foveaUnreliable, ...
     'redFloor', cfg.redFloor, 'grade3QuadMin', cfg.grade3QuadMin, ...
     'limitation', '');
 
@@ -226,7 +261,7 @@ end
 % are identical; they differ only on an EMPTY input, where all([]) is vacuously
 % true and any([]) is false. Keeping both means an empty count vector cannot
 % silently produce a severe-NPDR grade.
-if any(red >= cfg.grade3QuadMin) && all(red >= cfg.grade3QuadMin)
+if ~cfg.foveaUnreliable && any(red >= cfg.grade3QuadMin) && all(red >= cfg.grade3QuadMin)
     grade = 3;
     evidence.criterion = sprintf( ...
         ['Severe NPDR, ETDRS 4-2-1(a) structure: >=%d red lesions in all four ' ...
@@ -238,17 +273,20 @@ end
 
 % (b) Venous beading in >= 2 quadrants, (c) prominent IRMA in >= 1.
 % Both are FALSE unless a caller supplies a real detector's output. See the
-% under-grading note in the header.
-if cfg.venousBeadingQ >= 2
+% under-grading note in the header. (b) is quadrant-dependent and is skipped
+% when the fovea is unreliable; (c) needs only "any quadrant", so it stands.
+if ~cfg.foveaUnreliable && cfg.venousBeadingQ >= 2
     grade = 3;
     evidence.criterion = sprintf('ETDRS 4-2-1(b): venous beading in %d quadrants', cfg.venousBeadingQ);
-    evidence.venousBeadingAssessed = true;
+    evidence.limitation = foveaNote(cfg);
     return;
 end
 if cfg.irmaQ >= 1
     grade = 3;
     evidence.criterion = sprintf('ETDRS 4-2-1(c): prominent IRMA in %d quadrant(s)', cfg.irmaQ);
-    evidence.irmaAssessed = true;
+    evidence.limitation = joinNotes({ ...
+        'IRMA is a classical vessel-irregularity heuristic, not a validated detector.', ...
+        foveaNote(cfg)});
     return;
 end
 
@@ -261,12 +299,12 @@ if redPresent && (brightPresent || totalRed > cfg.moderateRedCount)
         evidence.criterion = sprintf( ...
             'Moderate NPDR: %d red lesion(s) with %d bright lesion(s)', ...
             totalRed, totalBright);
-        evidence.limitation = [severeCriteriaNote() ' ' brightFloorNote()];
+        evidence.limitation = [severeCriteriaNote(cfg) ' ' brightFloorNote()];
     else
         evidence.criterion = sprintf( ...
             'Moderate NPDR: %d red lesions (>%d), no bright lesions', ...
             totalRed, cfg.moderateRedCount);
-        evidence.limitation = severeCriteriaNote();
+        evidence.limitation = severeCriteriaNote(cfg);
     end
     return;
 end
@@ -275,7 +313,7 @@ end
 if redPresent
     grade = 1;
     evidence.criterion = sprintf('Mild NPDR: %d red lesion(s) only', totalRed);
-    evidence.limitation = severeCriteriaNote();
+    evidence.limitation = severeCriteriaNote(cfg);
     return;
 end
 
@@ -289,7 +327,7 @@ if totalRed > 0
         ['No DR: %d red detection(s), below the noise floor of %d. Every ' ...
          'grade-0 validation image produced 1-2 spurious detections, so counts ' ...
          'this low are not evidence of disease.'], totalRed, cfg.redFloor);
-    evidence.limitation = severeCriteriaNote();
+    evidence.limitation = severeCriteriaNote(cfg);
 elseif brightPresent
     % Bright lesions with NO red lesions falls through to 0 under the ICDR
     % criteria as specified: every DR grade above 0 is anchored on
@@ -305,14 +343,60 @@ elseif brightPresent
                            'non-DR pathology — worth a human look.'];
 else
     evidence.criterion = 'No DR: no lesions detected';
-    evidence.limitation = severeCriteriaNote();
+    evidence.limitation = severeCriteriaNote(cfg);
 end
 end
 
 % ── Helpers ─────────────────────────────────────────────────────────────────
-function note = severeCriteriaNote()
-note = ['Severe-NPDR criteria (b) venous beading and (c) IRMA were NOT ' ...
-        'assessed — no detector exists. This grade may be an under-call.'];
+function note = severeCriteriaNote(cfg)
+% Names only the criteria that were actually NOT assessed, so a supplied
+% detector result removes its own caveat and nothing else.
+missing = {};
+if ~cfg.vbAssessed,   missing{end+1} = '(b) venous beading'; end
+if ~cfg.irmaAssessed, missing{end+1} = '(c) IRMA'; end
+if isempty(missing)
+    note = '';
+elseif numel(missing) == 2
+    note = ['Severe-NPDR criteria (b) venous beading and (c) IRMA were NOT ' ...
+            'assessed — no detector exists. This grade may be an under-call.'];
+else
+    note = sprintf(['Severe-NPDR criterion %s was NOT assessed. This grade ' ...
+                    'may be an under-call.'], missing{1});
+end
+note = joinNotes({note, foveaNote(cfg)});
+end
+
+function note = foveaNote(cfg)
+if cfg.foveaUnreliable
+    note = ['Fovea could not be located reliably, so the quadrant assignment ' ...
+            'cannot be trusted and the quadrant-dependent criteria (a) ' ...
+            'all-four-quadrants and (b) venous beading were not applied.'];
+else
+    note = '';
+end
+end
+
+function s = joinNotes(parts)
+parts = parts(~cellfun(@isempty, parts));
+s = strjoin(parts, ' ');
+end
+
+function [count, assessed] = quadrantFlags(opts, name)
+% 1x4 logical (one per quadrant) -> number of quadrants flagged.
+% A scalar is accepted as an already-counted value (the original interface).
+% Absent or empty -> not assessed, count 0.
+count = 0; assessed = false;
+if ~isfield(opts, name) || isempty(opts.(name)), return; end
+v = opts.(name);
+if (islogical(v) || isnumeric(v)) && numel(v) == 4
+    count = sum(logical(v(:)));
+elseif isnumeric(v) && isscalar(v) && isfinite(v) && v >= 0 && mod(v, 1) == 0
+    count = double(v);
+else
+    error('ruleEngineGrade:badQuadrantFlags', ...
+          '%s must be a 1x4 logical (one per quadrant) or a quadrant count.', name);
+end
+assessed = true;
 end
 
 function note = provisionalNote(q)

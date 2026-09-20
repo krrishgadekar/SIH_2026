@@ -1,0 +1,5168 @@
+{
+  "disc_diam_native_px": 522.1323889590253,
+  "disc_diam_512_px": 76.49855194429256,
+  "chosen_threshold": 0.37,
+  "chosen_threshold_reason": "smallest threshold with 100% VAL gross-miss sensitivity",
+  "records": [
+    {
+      "id": "IDRiD_001",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.7430676817893982,
+      "err_native": 64.08831796825378,
+      "err_512": 10.780395377080241,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_002",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.6866771578788757,
+      "err_native": 34.131695771672405,
+      "err_512": 5.0897997198365115,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_003",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7981283664703369,
+      "err_native": 25.198276230726577,
+      "err_512": 3.8085883483339527,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_004",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8710262179374695,
+      "err_native": 25.190834146570058,
+      "err_512": 3.8494600846355564,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_005",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7770611643791199,
+      "err_native": 46.7526737203339,
+      "err_512": 8.404706424715771,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_006",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9479169845581055,
+      "err_native": 31.31143960280332,
+      "err_512": 5.486201860359657,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_007",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.5735325217247009,
+      "err_native": 119.91279383368565,
+      "err_512": 19.81063176884761,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_008",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.681620180606842,
+      "err_native": 26.75678944212104,
+      "err_512": 3.323442479262742,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_009",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.508855402469635,
+      "err_native": 62.550604513465736,
+      "err_512": 10.035517650721149,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_010",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9428159594535828,
+      "err_native": 14.405944953386431,
+      "err_512": 1.9852445447142577,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_011",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.9776884317398071,
+      "err_native": 29.34120396302783,
+      "err_512": 4.286314814147672,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_012",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8944294452667236,
+      "err_native": 5.927952850689688,
+      "err_512": 0.9201749437121955,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_013",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9791760444641113,
+      "err_native": 49.51593809067945,
+      "err_512": 6.098471665063947,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_014",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.557562530040741,
+      "err_native": 67.25940919306383,
+      "err_512": 8.377781974366389,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_015",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.18085774779319763,
+      "err_native": 515.9957341453996,
+      "err_512": 63.054837384831146,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_016",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.6583912372589111,
+      "err_native": 51.48820404956848,
+      "err_512": 9.126362761389792,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_017",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.3493189513683319,
+      "err_native": 112.67001042868506,
+      "err_512": 15.198941028752529,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_018",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.8110223412513733,
+      "err_native": 14.73781276173639,
+      "err_512": 2.6132432000520405,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_019",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.5706919431686401,
+      "err_native": 110.11485481078381,
+      "err_512": 13.221771117838985,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_020",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9491332173347473,
+      "err_native": 9.429011082823054,
+      "err_512": 1.375124292712436,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_021",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9968413710594177,
+      "err_native": 28.019245617967663,
+      "err_512": 4.65889773288045,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_022",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.3644152283668518,
+      "err_native": 707.5364169072855,
+      "err_512": 120.76688075399555,
+      "gross_miss_native": true,
+      "gross_miss_512": true
+    },
+    {
+      "id": "IDRiD_023",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.9492477178573608,
+      "err_native": 19.128676117285274,
+      "err_512": 2.2845769937606812,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_024",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.7532798647880554,
+      "err_native": 76.54614621259519,
+      "err_512": 9.546058544698239,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_025",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8974500298500061,
+      "err_native": 43.232836189637155,
+      "err_512": 5.707999481343835,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_026",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7139406800270081,
+      "err_native": 128.46649611863788,
+      "err_512": 16.05915074479718,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_027",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9052062630653381,
+      "err_native": 50.64042974738663,
+      "err_512": 7.969205795199765,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_028",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9748629331588745,
+      "err_native": 4.631751828412226,
+      "err_512": 0.8319963459793135,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_029",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.6991618871688843,
+      "err_native": 6.6673176765472935,
+      "err_512": 1.1943732112059133,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_030",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.6224579811096191,
+      "err_native": 21.4989098560834,
+      "err_512": 2.6760342082096336,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_031",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.635063111782074,
+      "err_native": 52.97758960164194,
+      "err_512": 6.434060535870807,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_032",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.684370219707489,
+      "err_native": 108.75454372691745,
+      "err_512": 19.19563754951177,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_033",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7709456086158752,
+      "err_native": 36.298458989329006,
+      "err_512": 5.728815299595373,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_034",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7800937294960022,
+      "err_native": 52.02673591529647,
+      "err_512": 6.557473954012413,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_035",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.3054392635822296,
+      "err_native": 416.81202672787646,
+      "err_512": 49.815760449861834,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_036",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.5631821155548096,
+      "err_native": 38.70097705484966,
+      "err_512": 6.23311115380445,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_037",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.829841673374176,
+      "err_native": 30.045018305868943,
+      "err_512": 4.452678353471362,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_038",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7324522137641907,
+      "err_native": 40.42837029859106,
+      "err_512": 6.069437351873968,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_039",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9442093968391418,
+      "err_native": 23.780572427929485,
+      "err_512": 2.970811385599868,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_040",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.008175015449524,
+      "err_native": 20.67796230289629,
+      "err_512": 3.662162830872296,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_041",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8577719926834106,
+      "err_native": 59.52008589543533,
+      "err_512": 8.961984765429518,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_042",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.6379355192184448,
+      "err_native": 58.143814159375545,
+      "err_512": 7.727524494955743,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_043",
+      "folder": "train",
+      "split": "test",
+      "peak": 1.015403151512146,
+      "err_native": 17.514725947042393,
+      "err_512": 2.2353979063447613,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_044",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.8653793334960938,
+      "err_native": 21.695693697137227,
+      "err_512": 2.65642018851861,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_045",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9278556108474731,
+      "err_native": 18.262837950329626,
+      "err_512": 2.702261026410687,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_046",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7689691185951233,
+      "err_native": 29.236642249068208,
+      "err_512": 3.911285445601292,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_047",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8102466464042664,
+      "err_native": 70.98250224527169,
+      "err_512": 8.603487422378526,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_048",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9344673156738281,
+      "err_native": 16.53830780339996,
+      "err_512": 1.9805029685032207,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_049",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.891136884689331,
+      "err_native": 12.022115038544591,
+      "err_512": 2.048588683707618,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_050",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.8945835828781128,
+      "err_native": 40.7961778234187,
+      "err_512": 5.095479544101989,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_051",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8788118362426758,
+      "err_native": 21.268007076357673,
+      "err_512": 2.5421848490835623,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_052",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8558332324028015,
+      "err_native": 86.3084946572468,
+      "err_512": 10.333182411501198,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_053",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.6025870442390442,
+      "err_native": 16.54125996561326,
+      "err_512": 2.0363021437018345,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_054",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8194600343704224,
+      "err_native": 143.1883593383205,
+      "err_512": 17.585553226680616,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_055",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.6890080571174622,
+      "err_native": 20.73681810211007,
+      "err_512": 3.666904445834643,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_056",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7743885517120361,
+      "err_native": 8.682777493406128,
+      "err_512": 1.1918762977071835,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_057",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9925609230995178,
+      "err_native": 4.698736532303125,
+      "err_512": 0.7887375961618467,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_058",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.5896917581558228,
+      "err_native": 28.970890562770073,
+      "err_512": 3.921861958416164,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_059",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9755868911743164,
+      "err_native": 24.38301150391395,
+      "err_512": 3.9510857592347763,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_060",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9118065237998962,
+      "err_native": 22.40988900017133,
+      "err_512": 4.025239985884426,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_061",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8569526672363281,
+      "err_native": 12.126932835634904,
+      "err_512": 1.5030766727702813,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_062",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.761185348033905,
+      "err_native": 36.488439950208885,
+      "err_512": 4.373928470160037,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_063",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9807605147361755,
+      "err_native": 5.648561763847502,
+      "err_512": 0.9640028622071088,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_064",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.9574249386787415,
+      "err_native": 34.048907838578316,
+      "err_512": 5.2635367380358975,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_065",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7829955816268921,
+      "err_native": 69.40033321245656,
+      "err_512": 9.886763060167256,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_066",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7572231888771057,
+      "err_native": 8.067101400131277,
+      "err_512": 1.4310676688793424,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_067",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.6924326419830322,
+      "err_native": 34.424282853822824,
+      "err_512": 4.228177457018911,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_068",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8485630750656128,
+      "err_native": 11.040408733375772,
+      "err_512": 1.9434101167047635,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_069",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8937704563140869,
+      "err_native": 12.691655723348314,
+      "err_512": 1.7087792425072785,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_070",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9464301466941833,
+      "err_native": 11.963486114005399,
+      "err_512": 2.0317092630668108,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_071",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8417422771453857,
+      "err_native": 32.27421571471567,
+      "err_512": 4.139626232786677,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_072",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9481305480003357,
+      "err_native": 21.551174561958334,
+      "err_512": 2.757562291154577,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_073",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9246629476547241,
+      "err_native": 6.879543952908507,
+      "err_512": 1.2363154807528354,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_074",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9112915992736816,
+      "err_native": 12.453036778232047,
+      "err_512": 1.5869145169001482,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_075",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9804214835166931,
+      "err_native": 10.256857462205469,
+      "err_512": 1.2257359407500552,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_076",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8732779026031494,
+      "err_native": 22.510067192258667,
+      "err_512": 3.958619099143719,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_077",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.09023093432188034,
+      "err_native": 1848.4190415392825,
+      "err_512": 292.98563910698834,
+      "gross_miss_native": true,
+      "gross_miss_512": true
+    },
+    {
+      "id": "IDRiD_078",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.636269211769104,
+      "err_native": 62.855240433873135,
+      "err_512": 7.687172048786285,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_079",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8248268365859985,
+      "err_native": 8.826451721954864,
+      "err_512": 1.0836118202622993,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_080",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8129122257232666,
+      "err_native": 77.43808010275048,
+      "err_512": 11.743944433317559,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_081",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.1415342390537262,
+      "err_native": 343.4668151728781,
+      "err_512": 57.64045055552463,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_082",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9119157195091248,
+      "err_native": 32.2538757361034,
+      "err_512": 5.155257298998699,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_083",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.6874912977218628,
+      "err_native": 21.301500093890102,
+      "err_512": 3.6944484519417293,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_084",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9895241856575012,
+      "err_native": 42.66035923430557,
+      "err_512": 5.881285819603174,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_085",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8525165915489197,
+      "err_native": 28.877434962267685,
+      "err_512": 3.4484202371165598,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_086",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8678165078163147,
+      "err_native": 82.5213040674952,
+      "err_512": 13.634803965576495,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_087",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7827426195144653,
+      "err_native": 15.56940108032419,
+      "err_512": 2.1732208950136847,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_088",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9125153422355652,
+      "err_native": 32.10334873498402,
+      "err_512": 5.255306075373132,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_089",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.4932592511177063,
+      "err_native": 245.13437800775722,
+      "err_512": 35.51654588480819,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_090",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8697818517684937,
+      "err_native": 1.6298006013006623,
+      "err_512": 0.19532682796972461,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_091",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9625047445297241,
+      "err_native": 19.455879574051643,
+      "err_512": 3.415012943049657,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_092",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.7819848656654358,
+      "err_native": 14.644218142324977,
+      "err_512": 1.8064363235333758,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_093",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9915195107460022,
+      "err_native": 13.795945962492025,
+      "err_512": 2.4135031037763235,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_094",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9751896262168884,
+      "err_native": 32.92534168387627,
+      "err_512": 5.814390342543643,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_095",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.6374213695526123,
+      "err_native": 38.89715004020218,
+      "err_512": 6.872060491416388,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_096",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.40706533193588257,
+      "err_native": 49.059434617614585,
+      "err_512": 8.053700817348886,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_097",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.6784289479255676,
+      "err_native": 89.12686270844497,
+      "err_512": 10.69874967963301,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_098",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9240594506263733,
+      "err_native": 34.56741601566423,
+      "err_512": 5.948715803165821,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_099",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8636521100997925,
+      "err_native": 21.876428524784387,
+      "err_512": 3.5716660381987304,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_100",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9301573634147644,
+      "err_native": 13.382007510086071,
+      "err_512": 2.0987556236259586,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_101",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9721165299415588,
+      "err_native": 4.759858191164943,
+      "err_512": 0.5881085147243372,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_102",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7304434776306152,
+      "err_native": 38.04807813806106,
+      "err_512": 6.82273221200574,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_103",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.7509430050849915,
+      "err_native": 51.83658215970648,
+      "err_512": 6.474014767006619,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_104",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8256057500839233,
+      "err_native": 12.615869222927131,
+      "err_512": 2.237705689163066,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_105",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8589087724685669,
+      "err_native": 13.070123373556962,
+      "err_512": 2.330146089714515,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_106",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.9440664649009705,
+      "err_native": 25.241644657193003,
+      "err_512": 3.442353604113637,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_107",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.6996021866798401,
+      "err_native": 21.654243233140242,
+      "err_512": 2.5899981432527635,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_108",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0265790224075317,
+      "err_native": 24.05495011426962,
+      "err_512": 3.5382803213662406,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_109",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9097257256507874,
+      "err_native": 76.31851430026661,
+      "err_512": 9.308287194054685,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_110",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.8226854801177979,
+      "err_native": 37.73468232276509,
+      "err_512": 4.522170883570665,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_111",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.9322654604911804,
+      "err_native": 82.8595385275588,
+      "err_512": 14.772473368349797,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_112",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0001252889633179,
+      "err_native": 25.837533260742983,
+      "err_512": 3.5961884998637923,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_113",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9578394293785095,
+      "err_native": 33.65449449924928,
+      "err_512": 4.151237253800362,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_114",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.7608324289321899,
+      "err_native": 33.76041505965233,
+      "err_512": 5.009130795171138,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_115",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.10550696402788162,
+      "err_native": 545.2170582667054,
+      "err_512": 71.85877581972301,
+      "gross_miss_native": true,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_116",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9721919298171997,
+      "err_native": 17.749119696480726,
+      "err_512": 2.1745736325893676,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_117",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.9955337047576904,
+      "err_native": 10.119597324004548,
+      "err_512": 1.7216165787470847,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_118",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.8147566318511963,
+      "err_native": 26.02162562177851,
+      "err_512": 3.1476687298376818,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_119",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.687840461730957,
+      "err_native": 29.03903622712021,
+      "err_512": 5.006807172254704,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_120",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9405108094215393,
+      "err_native": 7.567405433832655,
+      "err_512": 1.3044086963921335,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_121",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8695679903030396,
+      "err_native": 69.0684669368012,
+      "err_512": 10.099233801906685,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_122",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8146154880523682,
+      "err_native": 56.21512807954812,
+      "err_512": 6.891681631141702,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_123",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.6401612758636475,
+      "err_native": 133.8465189125216,
+      "err_512": 16.033938471653602,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_124",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.4223228096961975,
+      "err_native": 104.50366321330559,
+      "err_512": 12.478603450832985,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_125",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7334520220756531,
+      "err_native": 34.6757299851063,
+      "err_512": 4.982592946969187,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_126",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7172048687934875,
+      "err_native": 47.153008917777456,
+      "err_512": 5.634444076078249,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_127",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9021081924438477,
+      "err_native": 43.54756738326493,
+      "err_512": 5.815265627964914,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_128",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9168552160263062,
+      "err_native": 50.170023420365276,
+      "err_512": 6.071894732060607,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_129",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9641048908233643,
+      "err_native": 34.26778735197241,
+      "err_512": 4.583832393584436,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_130",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.9776455163955688,
+      "err_native": 30.025249790801077,
+      "err_512": 5.382718780061091,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_131",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.8916428685188293,
+      "err_native": 18.569548325147814,
+      "err_512": 3.171702831118034,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_132",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8610649704933167,
+      "err_native": 9.291292967074066,
+      "err_512": 1.5217226991965094,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_133",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7776514291763306,
+      "err_native": 71.30798079457867,
+      "err_512": 8.523148441213506,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_134",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9054177403450012,
+      "err_native": 25.487742151865866,
+      "err_512": 3.287428715905755,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_135",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9536522626876831,
+      "err_native": 6.010407640085654,
+      "err_512": 1.0546156817050865,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_136",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7545648813247681,
+      "err_native": 32.15514150178786,
+      "err_512": 5.13528462833673,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_137",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7618062496185303,
+      "err_native": 69.97600035012005,
+      "err_512": 8.986903656087998,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_138",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.9110285043716431,
+      "err_native": 29.8961745044412,
+      "err_512": 3.7531791480777446,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_139",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9780279397964478,
+      "err_native": 18.466608378367695,
+      "err_512": 3.1631224697601574,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_140",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.9329464435577393,
+      "err_native": 50.15678543327911,
+      "err_512": 8.381004629656726,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_141",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0364339351654053,
+      "err_native": 24.326554421043685,
+      "err_512": 3.9234562185115167,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_142",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.8971822261810303,
+      "err_native": 34.713560030627804,
+      "err_512": 6.132041939620367,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_143",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9323281645774841,
+      "err_native": 26.962068262653737,
+      "err_512": 4.813342079183522,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_144",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9423543810844421,
+      "err_native": 28.252488828420056,
+      "err_512": 3.373807949164495,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_145",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8472416996955872,
+      "err_native": 61.63463413536256,
+      "err_512": 7.634929733997753,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_146",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.6345713138580322,
+      "err_native": 23.98860406526399,
+      "err_512": 3.9859398015812557,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_147",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7329661846160889,
+      "err_native": 29.242520411209426,
+      "err_512": 4.869012581310054,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_148",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.4441840648651123,
+      "err_native": 96.2389807003898,
+      "err_512": 16.197371806816083,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_149",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.838944137096405,
+      "err_native": 45.18105936119692,
+      "err_512": 6.826513371688761,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_150",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8889670968055725,
+      "err_native": 26.740944729010604,
+      "err_512": 3.470816361099736,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_151",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9145087003707886,
+      "err_native": 21.46981893263192,
+      "err_512": 2.849083869691225,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_152",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9259326457977295,
+      "err_native": 5.89093583397409,
+      "err_512": 1.032598877776541,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_153",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.6628017425537109,
+      "err_native": 64.57965043262467,
+      "err_512": 9.2581359654961,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_154",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.8668408989906311,
+      "err_native": 12.050025933582052,
+      "err_512": 1.9348007125174662,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_155",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7803142070770264,
+      "err_native": 38.23140888065728,
+      "err_512": 4.814123027641581,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_156",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9638710021972656,
+      "err_native": 18.828170383762732,
+      "err_512": 2.29682232409958,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_157",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8678063154220581,
+      "err_native": 54.76155699941337,
+      "err_512": 8.73760517839201,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_158",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.9703962206840515,
+      "err_native": 40.967403200593516,
+      "err_512": 5.639049510580667,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_159",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8008809089660645,
+      "err_native": 11.424343525997458,
+      "err_512": 1.9992233012911493,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_160",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9609736800193787,
+      "err_native": 25.378694312355787,
+      "err_512": 4.1639916178836565,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_161",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.6782383322715759,
+      "err_native": 49.63900935756071,
+      "err_512": 6.003899211419679,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_162",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.717454195022583,
+      "err_native": 52.868350645731326,
+      "err_512": 8.742146143401664,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_163",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9421607255935669,
+      "err_native": 8.87852042853988,
+      "err_512": 1.2642270793769148,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_164",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.9434214234352112,
+      "err_native": 30.132260535844303,
+      "err_512": 4.957293317486403,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_165",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9608522653579712,
+      "err_native": 22.028745425012293,
+      "err_512": 2.6346398583339536,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_166",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.941085159778595,
+      "err_native": 7.986316422481644,
+      "err_512": 1.1763272143707748,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_167",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9276711940765381,
+      "err_native": 19.984759818421637,
+      "err_512": 2.4576128073252983,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_168",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.8317439556121826,
+      "err_native": 38.317954342579405,
+      "err_512": 4.69609423619551,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_169",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.68879234790802,
+      "err_native": 23.397716234709744,
+      "err_512": 2.8159435530168895,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_170",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8531444668769836,
+      "err_native": 25.28123068602476,
+      "err_512": 4.381033483819384,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_171",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7952836155891418,
+      "err_native": 57.863659796110376,
+      "err_512": 9.487011129504962,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_172",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9306185245513916,
+      "err_native": 11.98566852536812,
+      "err_512": 2.1436307864146613,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_173",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8354214429855347,
+      "err_native": 65.83656373930826,
+      "err_512": 8.56893325554985,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_174",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9575465321540833,
+      "err_native": 14.665542097038214,
+      "err_512": 2.392026817515289,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_175",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.907612681388855,
+      "err_native": 22.77779894985466,
+      "err_512": 2.7975394479735094,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_176",
+      "folder": "train",
+      "split": "test",
+      "peak": 1.0901161432266235,
+      "err_native": 18.685305055042587,
+      "err_512": 2.25880108359646,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_177",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9286721348762512,
+      "err_native": 4.808846015417836,
+      "err_512": 0.8586154330971694,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_178",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9976696968078613,
+      "err_native": 17.16919479766014,
+      "err_512": 2.8869881355582145,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_179",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.081149697303772,
+      "err_native": 7.675040716504376,
+      "err_512": 1.3747622507856498,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_180",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7566055655479431,
+      "err_native": 9.98514521677076,
+      "err_512": 1.4117259568673282,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_181",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0083130598068237,
+      "err_native": 39.92747331099227,
+      "err_512": 6.913098673256563,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_182",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8143761157989502,
+      "err_native": 16.772838906994846,
+      "err_512": 2.829740751536812,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_183",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.6118215322494507,
+      "err_native": 31.20722071892978,
+      "err_512": 4.725610160789134,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_184",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7679795622825623,
+      "err_native": 7.661796460360978,
+      "err_512": 1.0364756308155585,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_185",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8447761535644531,
+      "err_native": 32.82172489373464,
+      "err_512": 4.244297620222835,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_186",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.6803744435310364,
+      "err_native": 17.99522506110996,
+      "err_512": 2.2563804987610556,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_187",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9338154792785645,
+      "err_native": 22.18565133143492,
+      "err_512": 2.784139001172178,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_188",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8791627883911133,
+      "err_native": 27.837137963519165,
+      "err_512": 3.498610334602305,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_189",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.8172223567962646,
+      "err_native": 69.86261629977795,
+      "err_512": 12.504397530235602,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_190",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 1.0020177364349365,
+      "err_native": 16.210649470332765,
+      "err_512": 2.635821825071339,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_191",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.653329610824585,
+      "err_native": 23.006113317985722,
+      "err_512": 2.909112245091522,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_192",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.7788035273551941,
+      "err_native": 13.661647960623199,
+      "err_512": 1.908757905005439,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_193",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0055794715881348,
+      "err_native": 7.037844130129623,
+      "err_512": 1.2243065652384502,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_194",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 1.018533706665039,
+      "err_native": 8.500919067959652,
+      "err_512": 1.372593064973964,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_195",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9519230723381042,
+      "err_native": 38.772171076688494,
+      "err_512": 5.790097948127659,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_196",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.9576374292373657,
+      "err_native": 30.230882388709727,
+      "err_512": 5.3991032133530386,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_197",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0201003551483154,
+      "err_native": 26.404086449828178,
+      "err_512": 3.61674782660683,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_198",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.980515718460083,
+      "err_native": 22.995244073503546,
+      "err_512": 3.1263936522580504,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_199",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9949852824211121,
+      "err_native": 40.935352997134395,
+      "err_512": 5.131426910135729,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_200",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8547332882881165,
+      "err_native": 27.841628005560306,
+      "err_512": 3.89659362297916,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_201",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0850650072097778,
+      "err_native": 18.508866118701057,
+      "err_512": 3.289047944548499,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_202",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0464860200881958,
+      "err_native": 17.859258803209052,
+      "err_512": 2.900111593664423,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_203",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.8596406579017639,
+      "err_native": 6.452954749570154,
+      "err_512": 0.8940983111496028,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_204",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9751859903335571,
+      "err_native": 26.429446172782356,
+      "err_512": 4.0489116973931365,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_205",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9748790860176086,
+      "err_native": 15.484871649451925,
+      "err_512": 2.0669528756772215,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_206",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9340177774429321,
+      "err_native": 33.70019473237507,
+      "err_512": 4.035249863010387,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_207",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.6453129649162292,
+      "err_native": 214.3490964670717,
+      "err_512": 34.19084424787002,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_208",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9025287628173828,
+      "err_native": 17.568170792657956,
+      "err_512": 2.9444894233958507,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_209",
+      "folder": "train",
+      "split": "test",
+      "peak": 1.0127472877502441,
+      "err_native": 23.211325360694076,
+      "err_512": 2.7845051763235142,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_210",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.004075050354004,
+      "err_native": 17.62898891031474,
+      "err_512": 2.949667271244055,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_211",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9772712588310242,
+      "err_native": 41.33438338719957,
+      "err_512": 5.040713742881628,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_212",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0334244966506958,
+      "err_native": 38.544819690848215,
+      "err_512": 4.860318744029675,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_213",
+      "folder": "train",
+      "split": "test",
+      "peak": 1.0148208141326904,
+      "err_native": 16.29512964047847,
+      "err_512": 2.718338704043804,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_214",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.49332430958747864,
+      "err_native": 101.4447394212731,
+      "err_512": 16.993728978953122,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_215",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9508525729179382,
+      "err_native": 15.892706660603787,
+      "err_512": 2.8553372478625576,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_216",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8157532811164856,
+      "err_native": 4.419417382415922,
+      "err_512": 0.790049321624923,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_217",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0448342561721802,
+      "err_native": 10.165044269455986,
+      "err_512": 1.545991372218955,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_218",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9914754629135132,
+      "err_native": 28.06382235191778,
+      "err_512": 4.853473981046266,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_219",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9910929799079895,
+      "err_native": 22.75309044943126,
+      "err_512": 4.090132737744561,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_220",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9873794913291931,
+      "err_native": 33.377106675084946,
+      "err_512": 4.489157022602254,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_221",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.8856675624847412,
+      "err_native": 10.165044269455986,
+      "err_512": 1.545991372218955,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_222",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.036385178565979,
+      "err_native": 22.553408833256228,
+      "err_512": 2.7563868897125903,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_223",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.5655692219734192,
+      "err_native": 37.65509593667237,
+      "err_512": 5.7672186806387264,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_224",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.13965734839439392,
+      "err_native": 1649.5963758219766,
+      "err_512": 205.68092492490484,
+      "gross_miss_native": true,
+      "gross_miss_512": true
+    },
+    {
+      "id": "IDRiD_225",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.005929946899414,
+      "err_native": 22.40152059570957,
+      "err_512": 3.339328867178466,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_226",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0242958068847656,
+      "err_native": 7.103036322587686,
+      "err_512": 0.9617963632936042,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_227",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9057350158691406,
+      "err_native": 30.474630842718998,
+      "err_512": 4.8292616456296065,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_228",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9475882649421692,
+      "err_native": 14.355421449752006,
+      "err_512": 1.8015017066408354,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_229",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.103895902633667,
+      "err_native": 15.127065974603271,
+      "err_512": 2.3447566431827296,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_230",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0151299238204956,
+      "err_native": 6.1300999176196145,
+      "err_512": 0.7327229663501799,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_231",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7909438014030457,
+      "err_native": 18.517727992386106,
+      "err_512": 2.4370022433491947,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_232",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9506510496139526,
+      "err_native": 22.392102402409648,
+      "err_512": 4.023828505172618,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_233",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 1.0060395002365112,
+      "err_native": 8.2177399569468,
+      "err_512": 1.3947063146251608,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_234",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9786041378974915,
+      "err_native": 11.606167541441058,
+      "err_512": 1.5053875720688306,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_235",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9410596489906311,
+      "err_native": 38.543806246918585,
+      "err_512": 4.646309233937468,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_236",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.6975418925285339,
+      "err_native": 43.52190540406061,
+      "err_512": 7.250830030071544,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_237",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.5969967842102051,
+      "err_native": 72.88529086859707,
+      "err_512": 8.997627395758096,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_238",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.847196638584137,
+      "err_native": 15.461646096066227,
+      "err_512": 1.913721364188844,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_239",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8185184597969055,
+      "err_native": 63.689309346231724,
+      "err_512": 8.027319172246978,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_240",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7862940430641174,
+      "err_native": 25.994290238435056,
+      "err_512": 3.474833706716576,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_241",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.8746694326400757,
+      "err_native": 23.133444404152183,
+      "err_512": 3.3707745233037048,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_242",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9205033779144287,
+      "err_native": 21.373537961694595,
+      "err_512": 2.957785713054338,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_243",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.056036114692688,
+      "err_native": 7.771140521184776,
+      "err_512": 1.032827142284356,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_244",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0070881843566895,
+      "err_native": 32.453091147069486,
+      "err_512": 4.541630666806525,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_245",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.844059407711029,
+      "err_native": 4.685416203497828,
+      "err_512": 0.7202261230821424,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_246",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7765613198280334,
+      "err_native": 14.06805445859519,
+      "err_512": 2.221094317324293,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_247",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9814625382423401,
+      "err_native": 22.425222964331926,
+      "err_512": 3.321604671252231,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_248",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9849510192871094,
+      "err_native": 32.660421384299376,
+      "err_512": 5.573156938750754,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_249",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9969685673713684,
+      "err_native": 28.077181571518178,
+      "err_512": 3.491223212488711,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_250",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0165417194366455,
+      "err_native": 16.750466411416728,
+      "err_512": 2.0001262427017195,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_251",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.1459788084030151,
+      "err_native": 25.049014451670548,
+      "err_512": 3.9001552155932004,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_252",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9232456088066101,
+      "err_native": 56.02524542561148,
+      "err_512": 7.154397180035217,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_253",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9599059224128723,
+      "err_native": 23.407063570640382,
+      "err_512": 4.130027281484208,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_254",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.941672146320343,
+      "err_native": 24.26578094766373,
+      "err_512": 3.850956148235205,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_255",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0452165603637695,
+      "err_native": 32.36944933112085,
+      "err_512": 4.306037684774007,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_256",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9819862246513367,
+      "err_native": 29.93378108425329,
+      "err_512": 3.5830548834909286,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_257",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.6281773447990417,
+      "err_native": 35.01829878791944,
+      "err_512": 6.18139941490473,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_258",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9363792538642883,
+      "err_native": 11.830178570080843,
+      "err_512": 1.7256099360754493,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_259",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0235096216201782,
+      "err_native": 27.963424772370068,
+      "err_512": 4.772668630562894,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_260",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9676541090011597,
+      "err_native": 23.479046509600852,
+      "err_512": 3.872239340424342,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_261",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8809675574302673,
+      "err_native": 8.840602355043462,
+      "err_512": 1.4479941653993489,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_262",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.963983952999115,
+      "err_native": 22.806934252546966,
+      "err_512": 4.081876326044888,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_263",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.048836588859558,
+      "err_native": 17.141415489976318,
+      "err_512": 2.515005371242919,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_264",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0223021507263184,
+      "err_native": 14.66820541170596,
+      "err_512": 2.046369818346017,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_265",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9972381591796875,
+      "err_native": 15.7147422823284,
+      "err_512": 2.7911529487616247,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_266",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9951825737953186,
+      "err_native": 15.203823532256614,
+      "err_512": 2.3306081889047396,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_267",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.969585120677948,
+      "err_native": 9.257598230642762,
+      "err_512": 1.5073208832466232,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_268",
+      "folder": "train",
+      "split": "test",
+      "peak": 1.0352965593338013,
+      "err_native": 20.489707782201286,
+      "err_512": 2.4823190061823164,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_269",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8725560307502747,
+      "err_native": 31.68447963909144,
+      "err_512": 3.9376571657306116,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_270",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9598696231842041,
+      "err_native": 33.40775546186843,
+      "err_512": 4.955299591706772,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_271",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8829348087310791,
+      "err_native": 26.660481053424373,
+      "err_512": 4.356068162862616,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_272",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8031294941902161,
+      "err_native": 50.75938952548582,
+      "err_512": 6.155448317789433,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_273",
+      "folder": "train",
+      "split": "test",
+      "peak": 1.0055326223373413,
+      "err_native": 34.13690268609617,
+      "err_512": 6.098196829693116,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_274",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.6213065385818481,
+      "err_native": 49.9781202127491,
+      "err_512": 6.075893346386043,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_275",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9955966472625732,
+      "err_native": 28.300011042400673,
+      "err_512": 4.545785385994474,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_276",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.9377219080924988,
+      "err_native": 3.005203820042827,
+      "err_512": 0.37760822050510723,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_277",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7825201749801636,
+      "err_native": 5.057482081035977,
+      "err_512": 0.7974224683319744,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_278",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8055084347724915,
+      "err_native": 67.08416472052104,
+      "err_512": 8.207429736103302,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_279",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.8248268365859985,
+      "err_native": 2.481179155159901,
+      "err_512": 0.3889339280683358,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_280",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.8777905702590942,
+      "err_native": 41.36820185843228,
+      "err_512": 6.997051062919425,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_281",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9102623462677002,
+      "err_native": 4.251837837923738,
+      "err_512": 0.7272926141967617,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_282",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0089493989944458,
+      "err_native": 14.125553086516648,
+      "err_512": 2.276355690105406,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_283",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9280946254730225,
+      "err_native": 19.591531971747386,
+      "err_512": 2.5276863444507143,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_284",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9158311486244202,
+      "err_native": 45.16393749442136,
+      "err_512": 5.78714066444866,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_285",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9269558191299438,
+      "err_native": 15.951586911652395,
+      "err_512": 2.810242485928247,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_286",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9533383250236511,
+      "err_native": 30.688454669468126,
+      "err_512": 5.485604026646406,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_287",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.9597675800323486,
+      "err_native": 12.96630247988994,
+      "err_512": 2.1176093480030196,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_288",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.9992111921310425,
+      "err_native": 7.7479836086558675,
+      "err_512": 1.380583374206554,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_289",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9048620462417603,
+      "err_native": 13.612953390061982,
+      "err_512": 2.0669098725421584,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_290",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.1192078590393066,
+      "err_native": 11.8196076500026,
+      "err_512": 1.493018631396729,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_291",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.9567474126815796,
+      "err_native": 34.46964244084931,
+      "err_512": 4.378937619545907,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_292",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9723272919654846,
+      "err_native": 54.974141648596934,
+      "err_512": 7.642548158005841,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_293",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8243172764778137,
+      "err_native": 25.925147661103107,
+      "err_512": 3.176810956162129,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_294",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7470607161521912,
+      "err_native": 44.211494546101925,
+      "err_512": 6.673266381223416,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_295",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9822788834571838,
+      "err_native": 11.226364059658852,
+      "err_512": 1.6280516435857189,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_296",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.5224626064300537,
+      "err_native": 120.75931641078463,
+      "err_512": 21.483492402480802,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_297",
+      "folder": "train",
+      "split": "test",
+      "peak": 1.0621825456619263,
+      "err_native": 17.62677296047124,
+      "err_512": 2.621190130648005,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_298",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.7002511620521545,
+      "err_native": 70.54885275466923,
+      "err_512": 8.431127769205856,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_299",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8738844990730286,
+      "err_native": 32.038124262353435,
+      "err_512": 4.748903477525487,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_300",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9176424145698547,
+      "err_native": 41.8722013990189,
+      "err_512": 7.110982420733846,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_301",
+      "folder": "train",
+      "split": "test",
+      "peak": 1.0355238914489746,
+      "err_native": 11.740022359433564,
+      "err_512": 2.049509718659328,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_302",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 1.0701310634613037,
+      "err_native": 8.378730512434446,
+      "err_512": 1.001009463979433,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_303",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8628957271575928,
+      "err_native": 41.257196341971664,
+      "err_512": 5.636139487439203,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_304",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.8822349905967712,
+      "err_native": 45.083602895065965,
+      "err_512": 5.595981571830645,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_305",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0522913932800293,
+      "err_native": 23.335193378243087,
+      "err_512": 4.050482516011611,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_306",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9685099720954895,
+      "err_native": 20.28276669983659,
+      "err_512": 2.4639327252058116,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_307",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9520663022994995,
+      "err_native": 4.00780488547035,
+      "err_512": 0.7197204269778216,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_308",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7286213040351868,
+      "err_native": 47.54077197522144,
+      "err_512": 8.517481230620728,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_309",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8606875538825989,
+      "err_native": 31.816429030455318,
+      "err_512": 4.55410917089009,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_310",
+      "folder": "train",
+      "split": "test",
+      "peak": 1.0387483835220337,
+      "err_native": 11.74534482252437,
+      "err_512": 2.0622292786122363,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_311",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9760125875473022,
+      "err_native": 16.500473478055106,
+      "err_512": 2.17610346513233,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_312",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9550794959068298,
+      "err_native": 34.25022810143022,
+      "err_512": 5.731086093370066,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_313",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8217079043388367,
+      "err_native": 34.2775892530382,
+      "err_512": 5.098745050157269,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_314",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.9194493889808655,
+      "err_native": 31.91027459925721,
+      "err_512": 4.080883510507986,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_315",
+      "folder": "train",
+      "split": "test",
+      "peak": 1.089863896369934,
+      "err_native": 26.532114974121455,
+      "err_512": 4.654708817452502,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_316",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0172744989395142,
+      "err_native": 14.169730060943293,
+      "err_512": 2.5428762933352056,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_317",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.988523006439209,
+      "err_native": 1.7544586059522749,
+      "err_512": 0.21016011117975483,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_318",
+      "folder": "train",
+      "split": "test",
+      "peak": 1.0300793647766113,
+      "err_native": 33.936061203386586,
+      "err_512": 4.171529072396598,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_319",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9424421787261963,
+      "err_native": 23.77038598761072,
+      "err_512": 4.258740615310364,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_320",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9795710444450378,
+      "err_native": 25.981363513103002,
+      "err_512": 4.2052888816557665,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_321",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.8917247653007507,
+      "err_native": 34.4576279653722,
+      "err_512": 5.497024672427652,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_322",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.93052077293396,
+      "err_native": 46.27853849248051,
+      "err_512": 5.530109641018529,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_323",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9880262613296509,
+      "err_native": 17.552154426166606,
+      "err_512": 2.8052673053828894,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_324",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9564288258552551,
+      "err_native": 38.14548629916782,
+      "err_512": 4.826198312389828,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_325",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7731100916862488,
+      "err_native": 143.17411820926296,
+      "err_512": 17.102844318784147,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_326",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.31020134687423706,
+      "err_native": 61.60002029220445,
+      "err_512": 8.878419894487811,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_327",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9748629331588745,
+      "err_native": 38.62580905301532,
+      "err_512": 6.943884387017894,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_328",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8143345713615417,
+      "err_native": 12.993387741462962,
+      "err_512": 1.9776109714945143,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_329",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0170377492904663,
+      "err_native": 38.681794813581234,
+      "err_512": 6.25401725246072,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_330",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9830337762832642,
+      "err_native": 32.658268478288925,
+      "err_512": 5.349605745118507,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_331",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0748331546783447,
+      "err_native": 20.239966650170153,
+      "err_512": 2.57551061420738,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_332",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.5368931889533997,
+      "err_native": 80.43359061983992,
+      "err_512": 10.099539905125704,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_333",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9278556108474731,
+      "err_native": 28.143049763662788,
+      "err_512": 4.210337873738003,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_334",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.789175808429718,
+      "err_native": 61.96852149478798,
+      "err_512": 10.962621373678337,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_335",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.905555784702301,
+      "err_native": 14.316184023684524,
+      "err_512": 1.7193546029162166,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_336",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9029675722122192,
+      "err_native": 21.357083134173543,
+      "err_512": 3.110310443779655,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_337",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8189574480056763,
+      "err_native": 19.02013735491939,
+      "err_512": 3.305878893388136,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_338",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9925618171691895,
+      "err_native": 21.415896549059067,
+      "err_512": 3.395741751414738,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_339",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.7965016961097717,
+      "err_native": 11.675963557668378,
+      "err_512": 1.4560314203246452,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_340",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9009500741958618,
+      "err_native": 13.953606164715987,
+      "err_512": 1.7668095858986153,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_341",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.15658403933048248,
+      "err_native": 126.71880779900039,
+      "err_512": 18.551860275794013,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_342",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9493952393531799,
+      "err_native": 8.661156100660003,
+      "err_512": 1.1099828553252185,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_343",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7659080028533936,
+      "err_native": 105.68090236651085,
+      "err_512": 14.788097834470982,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_344",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.4738317131996155,
+      "err_native": 111.44954015158609,
+      "err_512": 13.375100361573548,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_345",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9870608448982239,
+      "err_native": 9.280355596635292,
+      "err_512": 1.6653309023000802,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_346",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9447113275527954,
+      "err_native": 13.831576193623054,
+      "err_512": 2.4783902068653183,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_347",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.6700425148010254,
+      "err_native": 72.29550902372844,
+      "err_512": 8.769567038468182,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_348",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.4857645332813263,
+      "err_native": 14.342354234922523,
+      "err_512": 2.5691351286528175,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_349",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9589037895202637,
+      "err_native": 16.78401397163384,
+      "err_512": 2.3852765542938297,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_350",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9237929582595825,
+      "err_native": 18.769156880371586,
+      "err_512": 2.3348995768620537,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_351",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.8961751461029053,
+      "err_native": 15.129648046137756,
+      "err_512": 2.7194697683936875,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_352",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 1.023371696472168,
+      "err_native": 36.44559301205017,
+      "err_512": 5.9209872545442215,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_353",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9820197224617004,
+      "err_native": 16.37690828575406,
+      "err_512": 2.3445839198160745,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_354",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7022366523742676,
+      "err_native": 71.94290270763337,
+      "err_512": 8.893170252004616,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_355",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9930348992347717,
+      "err_native": 17.890727346868825,
+      "err_512": 3.019156043673579,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_356",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.911675751209259,
+      "err_native": 24.888815259067677,
+      "err_512": 2.992665590840072,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_357",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8359434008598328,
+      "err_native": 79.49756776939783,
+      "err_512": 12.341497968808154,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_358",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.890440046787262,
+      "err_native": 18.23501096791554,
+      "err_512": 2.283661812862778,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_359",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8161265850067139,
+      "err_native": 3.7291084725440746,
+      "err_512": 0.5895394720819463,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_360",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8221849799156189,
+      "err_native": 73.1447622868514,
+      "err_512": 9.50326706017851,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_361",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8954042196273804,
+      "err_native": 14.950438956766453,
+      "err_512": 2.6801484468349708,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_362",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9686943888664246,
+      "err_native": 15.72517885430878,
+      "err_512": 2.063870384666803,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_363",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.892814576625824,
+      "err_native": 24.628806812348827,
+      "err_512": 3.136942449813851,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_364",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8382335901260376,
+      "err_native": 76.39228527803053,
+      "err_512": 9.124080970921982,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_365",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9892271161079407,
+      "err_native": 20.171530060954723,
+      "err_512": 3.6091412817287796,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_366",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9295483231544495,
+      "err_native": 35.61885911985391,
+      "err_512": 6.205619462172871,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_367",
+      "folder": "train",
+      "split": "test",
+      "peak": 1.0969858169555664,
+      "err_native": 21.419179489420223,
+      "err_512": 3.6021903733042455,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_368",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.959898829460144,
+      "err_native": 10.275121653781039,
+      "err_512": 1.8321791161384278,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_369",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.6731616854667664,
+      "err_native": 80.26713212766481,
+      "err_512": 11.92117906148006,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_370",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8967667818069458,
+      "err_native": 28.732059619874104,
+      "err_512": 5.10461023976033,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_371",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.908230185508728,
+      "err_native": 32.276636286949106,
+      "err_512": 3.876743305609404,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_372",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7990298867225647,
+      "err_native": 30.410216211003828,
+      "err_512": 4.672008193670566,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_373",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.9916123747825623,
+      "err_native": 12.655285457072868,
+      "err_512": 2.07903792288275,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_374",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7120701670646667,
+      "err_native": 31.56144800227011,
+      "err_512": 5.20829846809019,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_375",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9246629476547241,
+      "err_native": 12.250637738501617,
+      "err_512": 1.4628591799987307,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_376",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8549255132675171,
+      "err_native": 43.9212718964285,
+      "err_512": 5.538414128311894,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_377",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9003744721412659,
+      "err_native": 45.04966876959252,
+      "err_512": 6.945010927664564,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_378",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9391396641731262,
+      "err_native": 41.13430745740106,
+      "err_512": 6.561631757840473,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_379",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0069392919540405,
+      "err_native": 36.80459380294802,
+      "err_512": 4.686974162749777,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_380",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9160416722297668,
+      "err_native": 18.710374795818495,
+      "err_512": 2.765230031977641,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_381",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8034754395484924,
+      "err_native": 33.67607644901644,
+      "err_512": 5.1338850542446925,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_382",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0289372205734253,
+      "err_native": 41.592141685659804,
+      "err_512": 5.771168541624776,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_383",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9644490480422974,
+      "err_native": 4.962751882776329,
+      "err_512": 0.8896459046665981,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_384",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.7288175821304321,
+      "err_native": 39.169902348614556,
+      "err_512": 5.808154116656857,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_385",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9349849820137024,
+      "err_native": 30.713647210971217,
+      "err_512": 5.363817515318426,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_386",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0552396774291992,
+      "err_native": 19.730211605555578,
+      "err_512": 3.2468754796667603,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_387",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9954171180725098,
+      "err_native": 35.372349724042934,
+      "err_512": 6.06383481267169,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_388",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8857718110084534,
+      "err_native": 31.21097563358121,
+      "err_512": 4.90676190530264,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_389",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8762704133987427,
+      "err_native": 30.42331548335914,
+      "err_512": 5.439453415758953,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_390",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.5095000863075256,
+      "err_native": 51.92832349739398,
+      "err_512": 8.311775670637553,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_391",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9968413710594177,
+      "err_native": 17.293875360947876,
+      "err_512": 2.9933929438901976,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_392",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.6338081955909729,
+      "err_native": 29.85485722625382,
+      "err_512": 5.356638483038092,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_393",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.8288145065307617,
+      "err_native": 41.27745298586142,
+      "err_512": 6.293889277390821,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_394",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.4998108148574829,
+      "err_native": 30.8125,
+      "err_512": 5.539325842696655,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_395",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9477287530899048,
+      "err_native": 33.7094664004045,
+      "err_512": 4.4941328421791775,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_396",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 1.0189738273620605,
+      "err_native": 9.519716382329886,
+      "err_512": 1.5878908852153197,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_397",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9328466057777405,
+      "err_native": 25.4564579232854,
+      "err_512": 3.8952155056318296,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_398",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9240755438804626,
+      "err_native": 12.163598357394081,
+      "err_512": 1.922723556127541,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_399",
+      "folder": "train",
+      "split": "test",
+      "peak": 0.9397274255752563,
+      "err_native": 3.6443449342783127,
+      "err_512": 0.43805448125453456,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_400",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.6984084248542786,
+      "err_native": 42.22378069583537,
+      "err_512": 7.587147593496284,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_401",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9933420419692993,
+      "err_native": 5.045109017652641,
+      "err_512": 0.7540725583963945,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_402",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.946810245513916,
+      "err_native": 30.42536975946225,
+      "err_512": 3.732542170698011,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_403",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9550331830978394,
+      "err_native": 47.554245341504476,
+      "err_512": 5.742393909172333,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_404",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9697684049606323,
+      "err_native": 41.29864555890423,
+      "err_512": 5.138467723868169,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_405",
+      "folder": "train",
+      "split": "val_reconstructed",
+      "peak": 0.9107873439788818,
+      "err_native": 31.837477915186685,
+      "err_512": 4.920874711006563,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_406",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9464351534843445,
+      "err_native": 30.40482075263724,
+      "err_512": 4.271713651649404,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_407",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9327260255813599,
+      "err_native": 55.740750353758244,
+      "err_512": 7.031403132660816,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_408",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9234622120857239,
+      "err_native": 67.5620085551044,
+      "err_512": 10.184012299627348,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_409",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9369244575500488,
+      "err_native": 16.85090872920508,
+      "err_512": 2.438439570540832,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_410",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9440796971321106,
+      "err_native": 45.55255378406353,
+      "err_512": 5.7001252772419155,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_411",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.908638596534729,
+      "err_native": 41.184986645621244,
+      "err_512": 7.053531314314847,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_412",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9078368544578552,
+      "err_native": 14.881301186388239,
+      "err_512": 2.649638211783916,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_413",
+      "folder": "train",
+      "split": "train_seen_by_model",
+      "peak": 0.9270307421684265,
+      "err_native": 24.323663889307465,
+      "err_512": 3.282091886335975,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_001",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.24847254157066345,
+      "err_native": 57.7512175196333,
+      "err_512": 7.3245290273401515,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_002",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9463567733764648,
+      "err_native": 33.1485765154403,
+      "err_512": 5.931858602560442,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_003",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.7966290712356567,
+      "err_native": 57.9904356338181,
+      "err_512": 7.549012320659949,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_004",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 1.021959662437439,
+      "err_native": 28.736137962502895,
+      "err_512": 4.885268122615517,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_005",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.5773500800132751,
+      "err_native": 97.32757188998399,
+      "err_512": 12.594587933474452,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_006",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.7427058219909668,
+      "err_native": 82.84944930414444,
+      "err_512": 12.379272295705393,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_007",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.5842559337615967,
+      "err_native": 146.0942012025118,
+      "err_512": 17.477185988312122,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_008",
+      "folder": "test",
+      "split": "test",
+      "peak": 1.0258373022079468,
+      "err_native": 30.410216211003828,
+      "err_512": 5.004494814062075,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_009",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.7404245734214783,
+      "err_native": 28.90771955723938,
+      "err_512": 3.8314553451915145,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_010",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9874963164329529,
+      "err_native": 24.34292761768806,
+      "err_512": 2.9206148443092017,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_011",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.968821108341217,
+      "err_native": 16.810060231896852,
+      "err_512": 2.10624370975225,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_012",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.9661098122596741,
+      "err_native": 15.019258470377292,
+      "err_512": 2.587144399711748,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_013",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.9081940650939941,
+      "err_native": 28.127499888898765,
+      "err_512": 4.354653977963207,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_014",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.7785321474075317,
+      "err_native": 24.730105640696323,
+      "err_512": 3.881914920319296,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_015",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.40435799956321716,
+      "err_native": 92.26744415014431,
+      "err_512": 13.60332143703452,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_016",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.9306877851486206,
+      "err_native": 38.351377093919325,
+      "err_512": 6.1796166980545255,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_017",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.5809715390205383,
+      "err_native": 54.14524015322122,
+      "err_512": 9.091613723289235,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_018",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9662235975265503,
+      "err_native": 21.695693697137227,
+      "err_512": 2.6564201885185827,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_019",
+      "folder": "test",
+      "split": "test",
+      "peak": 0.8884716033935547,
+      "err_native": 30.12603732653865,
+      "err_512": 5.415812603017813,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_020",
+      "folder": "test",
+      "split": "test",
+      "peak": 0.8923673033714294,
+      "err_native": 16.03365600853405,
+      "err_512": 2.866549777490812,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_021",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.39971160888671875,
+      "err_native": 128.338237189857,
+      "err_512": 16.977252137572005,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_022",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.498981773853302,
+      "err_native": 35.57254910742271,
+      "err_512": 4.3142188801391494,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_023",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9315192103385925,
+      "err_native": 13.278860079088114,
+      "err_512": 2.3469117367421113,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_024",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.8711127042770386,
+      "err_native": 45.73189532481679,
+      "err_512": 7.174384166503681,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_025",
+      "folder": "test",
+      "split": "test",
+      "peak": 0.5734955072402954,
+      "err_native": 32.56459926054672,
+      "err_512": 5.284221396285053,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_026",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.7681704163551331,
+      "err_native": 12.057803489856683,
+      "err_512": 1.5199314903975751,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_027",
+      "folder": "test",
+      "split": "test",
+      "peak": 0.7981575727462769,
+      "err_native": 6.370096153120453,
+      "err_512": 1.1207744903263084,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_028",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.884323239326477,
+      "err_native": 15.774286830154953,
+      "err_512": 2.220459099003683,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_029",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.9145204424858093,
+      "err_native": 12.526222495229757,
+      "err_512": 1.794277456123537,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_030",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9527149796485901,
+      "err_native": 45.8000068231436,
+      "err_512": 6.056942317192115,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_031",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9020562171936035,
+      "err_native": 78.7385904433144,
+      "err_512": 9.437590810690326,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_032",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.7748154401779175,
+      "err_native": 47.49506553316881,
+      "err_512": 5.689163028873845,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_033",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.7928271889686584,
+      "err_native": 80.47993247543141,
+      "err_512": 11.495060988769891,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_034",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9446101784706116,
+      "err_native": 40.134539364492525,
+      "err_512": 6.942317633941308,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_035",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9518927335739136,
+      "err_native": 9.155770038614994,
+      "err_512": 1.2745196253921427,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_036",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.8676576614379883,
+      "err_native": 39.53993234693251,
+      "err_512": 6.748020035449733,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_037",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9424964785575867,
+      "err_native": 14.966238046015437,
+      "err_512": 2.662670999848631,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_038",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9302706122398376,
+      "err_native": 21.717288619899126,
+      "err_512": 3.0101957426361197,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_039",
+      "folder": "test",
+      "split": "test",
+      "peak": 1.0185494422912598,
+      "err_native": 31.136042217982684,
+      "err_512": 3.8475929587453837,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_040",
+      "folder": "test",
+      "split": "test",
+      "peak": 0.846084475517273,
+      "err_native": 25.801223323710836,
+      "err_512": 3.81556285796913,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_041",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 1.0442123413085938,
+      "err_native": 22.71735294879225,
+      "err_512": 3.4510417983006283,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_042",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.5663900971412659,
+      "err_native": 125.19715701644347,
+      "err_512": 14.959822330772163,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_043",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 1.0399469137191772,
+      "err_native": 7.726779730262796,
+      "err_512": 1.3788880850556555,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_044",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9984391331672668,
+      "err_native": 26.92582403567252,
+      "err_512": 3.725123521821526,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_045",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.947224497795105,
+      "err_native": 39.65830619176769,
+      "err_512": 7.126237472231836,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_046",
+      "folder": "test",
+      "split": "test",
+      "peak": 0.8888571858406067,
+      "err_native": 6.544320056354212,
+      "err_512": 1.0989909815419936,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_047",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9607276320457458,
+      "err_native": 26.890983619049713,
+      "err_512": 3.4431210284056903,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_048",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9264349937438965,
+      "err_native": 51.655862445612115,
+      "err_512": 6.775941373644299,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_049",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.8718444108963013,
+      "err_native": 7.945124291035352,
+      "err_512": 1.3599138719301327,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_050",
+      "folder": "test",
+      "split": "test",
+      "peak": 0.7269467115402222,
+      "err_native": 58.56366727758773,
+      "err_512": 10.11437606452069,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_051",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.8160481452941895,
+      "err_native": 14.633544512523272,
+      "err_512": 2.629891216033159,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_052",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.8044732213020325,
+      "err_native": 15.21358356864023,
+      "err_512": 2.5555783346590744,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_053",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.08751601725816727,
+      "err_native": 2129.5076198795346,
+      "err_512": 337.8025348591647,
+      "gross_miss_native": true,
+      "gross_miss_512": true
+    },
+    {
+      "id": "IDRiD_054",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9380837082862854,
+      "err_native": 4.685416203497828,
+      "err_512": 0.7202261230821424,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_055",
+      "folder": "test",
+      "split": "test",
+      "peak": 0.8769842386245728,
+      "err_native": 17.6869478712411,
+      "err_512": 2.587562141226185,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_056",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.8961086273193359,
+      "err_native": 6.884084906507182,
+      "err_512": 0.9388237102128386,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_057",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.5883457064628601,
+      "err_native": 27.345589223858386,
+      "err_512": 3.6953001949141213,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_058",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9295280575752258,
+      "err_native": 20.126552735130772,
+      "err_512": 2.5295557463195397,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_059",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.994477391242981,
+      "err_native": 29.799853187557822,
+      "err_512": 4.131635683503034,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_060",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9905515909194946,
+      "err_native": 22.176141458784034,
+      "err_512": 3.5752590807279114,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_061",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.8565661311149597,
+      "err_native": 1.3975424859373686,
+      "err_512": 0.24898687332597133,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_062",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9007521271705627,
+      "err_native": 22.766820704700955,
+      "err_512": 2.720968690496502,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_063",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9696094393730164,
+      "err_native": 24.825012588113626,
+      "err_512": 3.136320650542215,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_064",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.8147566318511963,
+      "err_native": 11.3852975367357,
+      "err_512": 1.4498520787678495,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_065",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.7126544117927551,
+      "err_native": 71.01059009929435,
+      "err_512": 8.629325714796273,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_066",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.5843510031700134,
+      "err_native": 134.3750581395223,
+      "err_512": 16.523336888585085,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_067",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.7507985234260559,
+      "err_native": 22.139472667613383,
+      "err_512": 3.8792625892053167,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_068",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.7925402522087097,
+      "err_native": 7.956915231419774,
+      "err_512": 1.2246748156406344,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_069",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9967386722564697,
+      "err_native": 16.267778735893845,
+      "err_512": 2.180689895837954,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_070",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9058505296707153,
+      "err_native": 32.17335854398791,
+      "err_512": 4.909797060541553,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_071",
+      "folder": "test",
+      "split": "test",
+      "peak": 0.7469621896743774,
+      "err_native": 43.066264349256016,
+      "err_512": 5.404505119922431,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_072",
+      "folder": "test",
+      "split": "test",
+      "peak": 0.20995278656482697,
+      "err_native": 68.3202477308155,
+      "err_512": 8.407086172435683,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_073",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9629917740821838,
+      "err_native": 10.266754599190534,
+      "err_512": 1.5977875745746875,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_074",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.9703251123428345,
+      "err_native": 13.807832921932391,
+      "err_512": 1.8427724272660344,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_075",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.9447062015533447,
+      "err_native": 32.464644230300756,
+      "err_512": 5.162972948885756,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_076",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9744517207145691,
+      "err_native": 6.751157308195388,
+      "err_512": 0.8062833672054706,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_077",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.8761417269706726,
+      "err_native": 20.941137743685275,
+      "err_512": 2.5474534303647887,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_078",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.9379597902297974,
+      "err_native": 8.389912097274918,
+      "err_512": 1.5068011688564107,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_079",
+      "folder": "test",
+      "split": "test",
+      "peak": 0.9364899396896362,
+      "err_native": 31.032744802869114,
+      "err_512": 5.563089564052741,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_080",
+      "folder": "test",
+      "split": "test",
+      "peak": 1.0135295391082764,
+      "err_native": 38.56325971698969,
+      "err_512": 5.800685357082314,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_081",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.8274416923522949,
+      "err_native": 51.916098177732884,
+      "err_512": 8.128691802927872,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_082",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9221576452255249,
+      "err_native": 30.320424221966288,
+      "err_512": 4.600805681703262,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_083",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.8946753144264221,
+      "err_native": 34.94571683339748,
+      "err_512": 5.243277777214663,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_084",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 1.0139611959457397,
+      "err_native": 10.59628472626137,
+      "err_512": 1.333112691564158,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_085",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.8670636415481567,
+      "err_native": 18.548079415400398,
+      "err_512": 2.412842993245734,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_086",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 1.0160454511642456,
+      "err_native": 25.496629679234076,
+      "err_512": 4.447541259100336,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_087",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.8805319666862488,
+      "err_native": 48.58320826170293,
+      "err_512": 6.458471559901085,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_088",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.9368447065353394,
+      "err_native": 4.142010381445223,
+      "err_512": 0.4971296468935733,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_089",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.907456636428833,
+      "err_native": 27.238816512469846,
+      "err_512": 3.5937645182073683,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_090",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 1.050772786140442,
+      "err_native": 18.52785065786099,
+      "err_512": 2.6890982595110744,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_091",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.7576953768730164,
+      "err_native": 35.4447192822852,
+      "err_512": 6.118205247767974,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_092",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.7197478413581848,
+      "err_native": 68.63786309319369,
+      "err_512": 8.765059993259147,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_093",
+      "folder": "test",
+      "split": "test",
+      "peak": 0.8403750658035278,
+      "err_native": 42.9106994233373,
+      "err_512": 7.5365590398848665,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_094",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.8880823254585266,
+      "err_native": 36.406773064911974,
+      "err_512": 6.368009003590064,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_095",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9397668838500977,
+      "err_native": 22.659504076656223,
+      "err_512": 4.070153240323192,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_096",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.8062878251075745,
+      "err_native": 20.24112459820353,
+      "err_512": 2.6251300628282097,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_097",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.724675714969635,
+      "err_native": 14.254933356561159,
+      "err_512": 2.3104117317477924,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_098",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.5330020189285278,
+      "err_native": 86.24909419814216,
+      "err_512": 10.317140468425807,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_099",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.9485058188438416,
+      "err_native": 10.174262872562316,
+      "err_512": 1.3570508101902947,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_100",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 1.0266913175582886,
+      "err_native": 12.865894838681063,
+      "err_512": 1.7926813803766344,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_101",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 0.9680137634277344,
+      "err_native": 26.889240413221046,
+      "err_512": 3.585435054199292,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    },
+    {
+      "id": "IDRiD_102",
+      "folder": "test",
+      "split": "val_reconstructed",
+      "peak": 0.08184213191270828,
+      "err_native": 2196.408596472034,
+      "err_512": 299.43178753939964,
+      "gross_miss_native": true,
+      "gross_miss_512": true
+    },
+    {
+      "id": "IDRiD_103",
+      "folder": "test",
+      "split": "train_seen_by_model",
+      "peak": 1.0228036642074585,
+      "err_native": 18.03208945186331,
+      "err_512": 2.7622179710384023,
+      "gross_miss_native": false,
+      "gross_miss_512": false
+    }
+  ]
+}
