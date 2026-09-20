@@ -71,6 +71,20 @@ IMAGENET_STD = np.array([0.229, 0.224, 0.225], np.float32)
 # checkpoint's own od_mask_radius field. The model does not apply it.
 OD_MASK_RADIUS = 58
 
+# Fovea peak-confidence gate (ML plan section 5). Below this, the fovea
+# heatmap has no real peak and pts["fovea"]'s coordinate should not be
+# trusted as a quadrant-axis endpoint.
+#
+# 0.37, chosen on VAL only (experiments/foveaGateValidation.py, all 516 IDRiD
+# localization images, "peak" is a raw unnormalised regression output, not a
+# probability -- see that script's module docstring): the smallest threshold
+# with 100% VAL gross-miss sensitivity (2/2, Clopper-Pearson 95% CI
+# [15.8%,100%] -- n=2 is small, see the script's own caveat) at a 1.3% VAL
+# false-alarm rate (1/75, CI [0%,7.2%]). Confirmed on the untouched TEST
+# split (78 images): sensitivity 100% (2/2), false-alarm rate 5.3% (4/76,
+# CI [1.5%,12.9%]). Across all 516 images this flags 14 (2.71%).
+FOVEA_PEAK_THRESHOLD = 0.37
+
 _MODELS = {}
 
 
@@ -116,6 +130,25 @@ def _forward(model, x):
         return model(torch.from_numpy(x))[0].numpy()
 
 
+def fovea_unreliable(heatmap):
+    """True when the fovea heatmap (ML plan section 5) has no reliable peak.
+
+    heatmap is the raw 2D fovea channel the model emits (no activation, no
+    clamp -- see FOVEA_PEAK_THRESHOLD's comment). A missing heatmap (None) or
+    one whose max is not finite (NaN/inf, e.g. a corrupt forward pass) always
+    counts as unreliable -- this must never silently resolve to False just
+    because the peak could not be computed.
+
+    Always returns a real Python bool, never numpy.bool_/None/[].
+    """
+    if heatmap is None or np.size(heatmap) == 0:
+        return True
+    peak = float(np.max(heatmap))
+    if not np.isfinite(peak):
+        return True
+    return bool(peak < FOVEA_PEAK_THRESHOLD)
+
+
 # ── M3: optic disc and fovea ───────────────────────────────────────────────
 def localize(bgr):
     """Disc and fovea in ORIGINAL image pixels.
@@ -140,6 +173,16 @@ def localize(bgr):
             "y": float(iy) * h / INPUT_SIZE,
             "peak": float(hm[idx].max()),
         }
+
+    # Fovea peak-confidence gate: below FOVEA_PEAK_THRESHOLD the heatmap has
+    # no real peak, so pts["fovea"]'s coordinate should not be trusted as a
+    # quadrant-axis endpoint. Logged to the server log (stderr) regardless of
+    # outcome -- there is no existing detail/debug object in this JSON to
+    # attach it to instead.
+    pts["foveaUnreliable"] = fovea_unreliable(hm[1])
+    print(f"segInfer: fovea peak={pts['fovea']['peak']!r} "
+          f"threshold={FOVEA_PEAK_THRESHOLD} "
+          f"foveaUnreliable={pts['foveaUnreliable']}", file=sys.stderr)
     return pts
 
 
@@ -285,6 +328,13 @@ def quadrant_counts(components, fovea_xy, disc_xy):
     naming (superior-temporal and so on) for the evidence report, including the
     mirrored-eye case where superior and inferior swap; that logic is tested
     there and is not duplicated.
+
+    NOTE (ML plan section 5/6.4): this function does not check
+    foveaUnreliable. It always builds the axis from fovea_xy, reliable or
+    not -- an unreliable-fovea fallback belongs in MATLAB alongside the
+    section 6.4 quadrant-assignment port, not here. Until that lands, a
+    caller with foveaUnreliable=True still gets a fovea-centred axis from a
+    coordinate the gate has already flagged as untrustworthy.
     """
     axis = np.array(disc_xy, float) - np.array(fovea_xy, float)
     norm = np.linalg.norm(axis)
@@ -378,6 +428,7 @@ def main():
         h, w = bgr.shape[:2]
 
         pts = localize(bgr)
+        fovea_unreliable_flag = pts.pop("foveaUnreliable")
         disc = (pts["opticDisc"]["x"], pts["opticDisc"]["y"])
 
         vessel = vessels(bgr)
@@ -400,6 +451,7 @@ def main():
             "imageSize": [int(h), int(w)],
             "opticDisc": pts["opticDisc"],
             "fovea": pts["fovea"],
+            "foveaUnreliable": fovea_unreliable_flag,
             "vessel": {"pixels": int(vessel.sum()),
                        "fraction": float(vessel.mean())},
             "redLesions": summarise(red512, args.min_area),
