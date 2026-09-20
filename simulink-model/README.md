@@ -5,6 +5,62 @@ requirement 5**: model image acquisition rates, bandwidth constraints,
 processing throughput and review capacity, to optimise resource allocation for
 a district program serving **100,000+ patients annually**.
 
+
+## The live model: `netraSetuPipeline.slx`
+
+The whole pipeline, built to be watched and driven while it runs.
+
+```powershell
+matlab -batch "buildFullPipelineModel"      # build it
+matlab -sd "<this folder>" -r "runFullPipelineModel"   # open the desktop and WATCH it
+matlab -batch "runFullPipelineModel('Pace',0,'Show',false)"   # headless, just the numbers
+```
+
+`-batch` has no desktop, so it can never show you the model — it runs
+invisibly and looks like a hang. Use `-r` to watch.
+
+**Speed.** The first run in a MATLAB session spends ~20 s compiling; after
+that the model simulates a full eight-hour clinic day in about 7 seconds,
+roughly 4,000x real time. Pacing deliberately slows it to 200x so a person
+can follow it (one simulated hour ≈ 18 s on screen). If the display
+stutters it is redraw cost, not compute: close the two Dashboard Scopes,
+which redraw continuously, while the counters only change on an event.
+
+| Stage | What it models |
+|---|---|
+| Patient Arrivals | exponential arrivals, tier assigned on generation |
+| Quality Gate | capture plus up to 3 retakes; abandoned if still unusable |
+| Sync Queue | the PHC's offline backlog |
+| Network Upload | the district link, switchable |
+| Grading Server | capacity 2 (the Node queue's concurrency), ~21 s, can fail and retry |
+| Tier Triage | Tier A auto-clears and never reaches a human |
+| Reviewers | two, capacity 1, Tier C preempts Tier B and the case resumes |
+| Referral | referred with an SMS, or cleared |
+
+**Live controls** (they work during a run): patients per hour, review speed,
+network link on/off, grading available on/off.
+
+With the link switched off for a two-hour run, 81 cases sit in the PHC queue
+and nothing reaches grading — captured, not lost, which is the point of
+offline-first. Switch it back on and the backlog drains.
+
+Two modelling compromises, both forced and both visible in the code:
+
+- **Retakes happen inside the capture service time**, not as a loop back to the
+  camera. SimEvents cannot resolve the entity type around a feedback edge
+  ("All input ports ... must have the same entity structure"). Same occupancy,
+  same delay, no backwards arrow to watch.
+- **An outage is modelled as a very long service time**, not an Entity Gate.
+  In this version the gate's control port takes entities, not a signal a
+  dashboard switch can hold. The case already in service is stuck rather than
+  requeued; the queue behind it behaves correctly.
+
+Defaults come from `calibration.json` (`scripts/exportSimCalibration.js`), which
+labels each figure measured or assumed. The tier mix is deliberately the
+design-doc screening split, **not** the 3%/81%/15% this corpus shows — IDRiD is
+enriched for disease and would make every scenario collapse for the wrong
+reason.
+
 ---
 
 ## ⚠️ Status

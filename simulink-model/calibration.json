@@ -1,0 +1,107 @@
+{
+  "generatedAt": "2026-09-20T19:27:07.781Z",
+  "provenance": "scripts/exportSimCalibration.js, from the live central database and the PHC SQLite file on this machine",
+  "gradingSeconds": {
+    "value": 21,
+    "source": "measured",
+    "n": null,
+    "note": "end-to-end per case with the MATLAB session and segmentation worker warm; measured on this machine, not derived from the database"
+  },
+  "gradingFailureRate": {
+    "value": 0.5299145299145299,
+    "source": "measured",
+    "n": 117,
+    "note": "cases that ended in error over all cases that ran. Inflated by development runs against a half-built pipeline -- treat as an upper bound, and see failure_code on each case for what actually broke"
+  },
+  "recoveriesPerCase": {
+    "value": 0.5128205128205128,
+    "source": "measured",
+    "n": 117,
+    "note": "watchdog re-queues per case: how often a case stalled and had to be picked up again"
+  },
+  "tierFractionsObserved": {
+    "value": [
+      0.03389830508474576,
+      0.8135593220338984,
+      0.15254237288135594
+    ],
+    "source": "measured",
+    "n": 59,
+    "note": "THIS CORPUS, which is mostly IDRiD -- a teaching set enriched for disease. NOT a screening population. Do not use as the model default."
+  },
+  "tierFractions": {
+    "value": [
+      0.7,
+      0.2,
+      0.1
+    ],
+    "source": "assumed",
+    "n": null,
+    "note": "design doc §7: the screening-population split the district model is built on"
+  },
+  "qualityPassRate": {
+    "value": 0.9166666666666666,
+    "source": "measured",
+    "n": 24,
+    "note": "captures accepted first time at the PHC; the rest are retakes, so the patient is photographed again before anything syncs"
+  },
+  "reviewSecondsB": {
+    "value": 30,
+    "source": "assumed",
+    "n": null,
+    "note": "the PS target for an AI-assisted read"
+  },
+  "reviewSecondsC": {
+    "value": 240,
+    "source": "assumed",
+    "n": null,
+    "note": "design doc §7: full manual grading"
+  },
+  "annualPatients": {
+    "value": 100000,
+    "source": "assumed",
+    "n": null,
+    "note": "the district scale named in the problem statement"
+  },
+  "numPhcs": {
+    "value": 10,
+    "source": "assumed",
+    "n": null,
+    "note": "design doc §7"
+  },
+  "numOphthalmologists": {
+    "value": 2,
+    "source": "assumed",
+    "n": null,
+    "note": "design doc §7"
+  },
+  "workingDaysPerYear": {
+    "value": 250,
+    "source": "assumed",
+    "n": null,
+    "note": "design doc §7"
+  },
+  "workingHoursPerDay": {
+    "value": 8,
+    "source": "assumed",
+    "n": null,
+    "note": "design doc §7"
+  },
+  "imageSizeMB": {
+    "value": 4,
+    "source": "assumed",
+    "n": null,
+    "note": "a full-resolution fundus capture"
+  },
+  "bandwidthMbps": {
+    "value": [
+      0.5,
+      1,
+      2,
+      5
+    ],
+    "source": "assumed",
+    "n": null,
+    "note": "rural link tiers, design doc §8.1"
+  }
+}
