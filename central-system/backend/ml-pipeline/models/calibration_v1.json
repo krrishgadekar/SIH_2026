@@ -1,13 +1,32 @@
 {
+  "method": "ordinal_mode_interval_stratified_v3",
   "modelVersion": "branchA_v1",
   "trainedImgSize": 384,
-  "temperature": 1.5310892832656358,
-  "alpha": 0.1,
-  "qhat": 0.843151453885262,
-  "probThreshold": 0.15684854611473797,
-  "coverage": 0.9,
+  "temperature": 1.5113232364275615,
+  "stratumOf": [
+    0,
+    0,
+    1,
+    1,
+    1
+  ],
+  "qhatPerStratum": [
+    0,
+    0.87725074039880468
+  ],
+  "alphaPerStratum": [
+    0.3,
+    0.05
+  ],
+  "nCalPerStratum": [
+    711,
+    543
+  ],
+  "referableThreshold": 0.22934096856268571,
+  "referableTargetSensitivity": 0.05,
   "referableFrom": 2,
-  "fittedOn": "val split, n=626",
-  "fittedAt": "2026-09-09T16:40:55Z",
-  "note": "fitted by calibrateBranchA.m. Do not hand-edit qhat/temperature: they come from one fit on one fold and are only jointly meaningful. trainedImgSize added retroactively (2026-09-19, v2-training-run task item 8) as a real, accurate fact -- branchA_v1 trained and evaluated at 384x384 (confirmed repeatedly: preprocessModel1.m, MODEL_INTERFACE_REFERENCE.md, training/parityCheck.m) -- so branchAInfer.py / branchAInferMatlab.m's version guard has something to check THIS file against immediately, not only after the next re-fit. If a v2 model (different img_size) is ever deployed with this file still in place, that guard will now refuse to treat qhat=0.8432 as valid for it, per this task's own mandatory-recalibration warning."
+  "fittedOn": "pooled val+test, n=1254 (val=626, test=628)",
+  "fittedAt": "2026-09-20T11:12:33Z",
+  "calibrationProtocol": "pooled val+test; validated by cross-fitting",
+  "note": "fitted by calibrateBranchA.m (score v3, referable-stratified Mondrian). Do not hand-edit: temperature, qhatPerStratum and referableThreshold come from one fit on one pool and are only jointly meaningful. Replaces the v2 per-class schema (ordinal_mode_interval_mondrian_v2, qhatPerClass) -- both loaders (branchAInfer.py, branchAInferMatlab.m) refuse a file whose method differs, including v2 and the archived marginal-LAC schema."
 }

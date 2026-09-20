@@ -316,7 +316,8 @@ Response `200`:
   "patientReference": "PT-4821",
   "imageUrl": "/media/cases/a1b2c3d4/original.jpg",
   "gradCamOverlayUrl": "/media/cases/a1b2c3d4/gradcam.png",
-  "lesionCounts": { "microaneurysms": 6, "hemorrhages": 2, "hardExudates": 0, "softExudates": 0 },
+  "lesionCounts": { "microaneurysms": null, "hemorrhages": null, "hardExudates": 3, "softExudates": null,
+                    "detail": { "redTotal": 8, "redPerQuadrant": [3, 2, 2, 1], "brightPerQuadrant": [1, 1, 1, 0], "minAreaPx": 10, "procedure": "prob > 0.5, 8-connectivity, ..." } },
   "nvSuspicionScore": 0.12,
   "evidenceSummaryText": "6 microaneurysms (superior-temporal: 3, inferior-nasal: 3), 2 dot hemorrhages. Severe-NPDR criteria not met.",
   "drGradeCnn": 2,
@@ -331,8 +332,10 @@ Response `200`:
   "priorAssessments": [ { "caseId": "prev-case-id", "gradedAt": "2026-06-01T10:00:00.000Z", "drGradeCnn": 1 } ]
 }
 ```
-> [!WARNING]
-> **`lesionCounts` does not yet return these keys.** Today it returns `{red, bright, redTotal, brightTotal, …}`. The shape above is the target and the one to build against; the backend change is held so it happens once, with the M5 wiring, rather than breaking the panel twice. When it lands: `microaneurysms` and `hemorrhages` become real numbers, `hardExudates` is today's bright-lesion count under its correct name, and **`softExudates` stays `null` permanently** — nothing in the pipeline detects soft exudates, and it is a disclosed exclusion, not a measurement of zero.
+> [!NOTE]
+> **`lesionCounts` returns these keys as of 2026-09-20.** `hardExudates` is a real number — the bright-lesion count under its correct name. `microaneurysms` and `hemorrhages` are `null`: M5 detects red lesions as a SINGLE class today, so the split does not exist, and dividing a total by any ratio would be inventing a measurement. They become real numbers when Tanuj's 3-class retrain lands; the mapping is already written for it and the API shape does not move again. **`softExudates` is permanently `null`** — nothing in the pipeline detects cotton-wool spots, so it is a disclosed exclusion and must never become `0`.
+>
+> A fifth key, `detail`, carries the measurement the two null keys are hiding: `redTotal`, `redPerQuadrant`, `brightPerQuadrant`, `minAreaPx` and the counting `procedure`. The database still stores `{red, bright, redTotal, brightTotal}`; only the API boundary speaks clinical names (`services/lesionCounts.js`), so the per-quadrant detail is not lost and no migration was needed. A case whose segmentation has not run reports `lesionCounts: null`, not an object of four nulls — "segmentation did not run" and "it ran and found nothing" stay different statements.
 
 Every ML-derived field (`lesionCounts`, `nvSuspicionScore`, `drGradeRuleEngine`, `branchAgreement`, `uncertaintyScore`, `lesionAttentionConsistencyScore`) is `null` until its backing module ships — the frontend renders "not yet available" for `null`, never crashes on it and never shows a zero/empty value as if it were a real result.
 
@@ -357,6 +360,16 @@ That is deliberate and is not a placeholder. It never says "0 microaneurysms" �
   When it is `true`: the case is held at **Tier B or worse** (never auto-cleared), and the quadrant-based severe-NPDR criteria — ETDRS 4-2-1 (a) and (b) — are **not applied**, because the four quadrant counts are built on the fovea axis whether or not the fovea was found, so they are not the anatomical quadrants those criteria are written for. Grading falls back to totals. The evidence text says which criteria were skipped.
 
   **It is a safety net, not a proven detector.** Tanuj validated the gate against two known localization failures. Do not present it to a clinician as a measurement of image quality.
+
+### `GET /api/v1/cases/:caseId`: fields added 2026-09-20 (failures)
+- `status`: the case's own status (`processing` | `awaiting_image` | `graded` | `error`). It was missing from this response, which meant a failed case and a still-grading one looked identical: every ML field is `null` on both.
+- `failureCode`: why grading gave up, on an `error` case — e.g. `matlab_unavailable`, `python_unavailable`, `image_not_found`. `null` on every case that has not failed, and `not_recorded` never appears here (that grouping label is the admin health screen's, for the 62 cases that failed before the reason was stored).
+- `failedAt`: ISO-8601 timestamp of the moment it gave up, distinct from `receivedAt`.
+- The failure MESSAGE is deliberately not in this response. It can quote internal paths and library errors, so it is served only by `GET /admin/system-health`, to an admin.
+
+### `GET /api/v1/admin/system-health`: fields added 2026-09-20
+- `failedCases`: cases that gave up, grouped by `failureCode`, each with `count`, `lastFailedAt`, an `exampleReason` and an `exampleCaseId`. Separate from `stuckJobs` on purpose — a stuck case may still recover on its own, a failed one needs a person.
+- `failedCaseCount`: the total across those groups.
 
 ### `POST /api/v1/cases/:caseId/review`
 Request:

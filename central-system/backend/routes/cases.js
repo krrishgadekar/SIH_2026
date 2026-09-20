@@ -51,6 +51,7 @@ const requireAuth = require('../middleware/requireAuth');
 const requireRole = require('../middleware/requireRole');
 const { requirePhcApiKey, requireUserOrPhc } = require('../middleware/requirePhcApiKey');
 const { logAccess } = require('../services/accessLog');
+const datasetCollector = require('../services/datasetCollector');
 
 const router = express.Router();
 
@@ -406,6 +407,21 @@ router.post('/:caseId/review', ophthalmologist, async (req, res, next) => {
       await client.query(
         'INSERT INTO corrections (case_id, review_id) VALUES ($1, $2)', [caseId, reviewId]);
     }
+
+    // The retraining corpus. Every review labels a real image -- an override
+    // says the grade is X, a confirm says the model's grade was right, and both
+    // are a human's judgement on that photograph. Written in THIS transaction
+    // for the same reason `corrections` is: a label recorded afterwards and
+    // best-effort is a label that vanishes whenever the second write fails,
+    // leaving a hole in the corpus that nothing downstream can see.
+    //
+    // `corrections` stays as it is. It is the design doc's §6.11 record of
+    // which corrections fed which model version, and this table answers a
+    // different question -- what is the labelled image set.
+    await datasetCollector.recordLabel(client, {
+      caseId, reviewId, decision, reviewerId,
+      correctedGrade: Number.isInteger(correctedGrade) ? correctedGrade : undefined,
+    });
 
     await client.query('COMMIT');
 

@@ -26,6 +26,7 @@ const path = require('path');
 const pool       = require('../db/pgClient');
 const mediaPaths = require('./mediaPaths');
 const cfg        = require('./authConfig');
+const lesionCounts = require('./lesionCounts');
 
 // Task 4.6: .dcm accepted because real fundus cameras export DICOM under the
 // Ophthalmic Photography IOD, and readFundusImage.m now reads it. Central only
@@ -498,6 +499,7 @@ async function getCaseDetail(caseId) {
     SELECT
       c.case_id, c.image_path, c.questionnaire_data, c.capture_metadata,
       c.patient_id, c.eye_laterality_reported, c.eye_laterality_detected,
+      c.status, c.failure_code, c.failed_at,
       s.fovea_unreliable,
       p.patient_reference,
       g.dr_grade_cnn, g.dr_grade_rule_engine, g.branch_agreement,
@@ -539,7 +541,9 @@ async function getCaseDetail(caseId) {
     gradCamOverlayUrl: mediaPaths.toPublicUrl(r.gradcam_path),
 
     // Phase 4 — segmentation
-    lesionCounts:      r.lesion_counts ?? null,
+    // Mapped to the contract's clinical key names at this boundary, never
+    // stored that way -- see services/lesionCounts.js.
+    lesionCounts:      lesionCounts.toContractShape(r.lesion_counts),
     nvSuspicionScore:  r.nv_suspicion_score ?? null,
 
     // Phase 7 — explainability safeguards
@@ -576,6 +580,19 @@ async function getCaseDetail(caseId) {
     // quadrants are still keyed to that unreliable fovea, so they cannot be
     // trusted). null when not reported.
     foveaUnreliable: r.fovea_unreliable ?? null,
+
+    // Why grading gave up, on a case whose status is 'error' (migration 0014).
+    // The CODE only: failure_reason can quote internal paths and library
+    // messages, which belong on the admin health screen, not on a clinical
+    // case view. null on every case that has not failed.
+    // api-contracts.md: "a case with status: error must not be
+    // indistinguishable from a graded one". Every ML field below is null on
+    // BOTH a failed case and one still being graded, so without the status
+    // the two read identically -- the reader sees blanks and cannot tell
+    // "not yet" from "never".
+    status: r.status ?? null,
+    failureCode: r.failure_code ?? null,
+    failedAt:    r.failed_at ? r.failed_at.toISOString() : null,
 
     // §10.8: who is reviewing this case right now, if anyone. null once the
     // claim has expired. The reviewer's own client compares userId to decide
