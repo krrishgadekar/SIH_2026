@@ -24,7 +24,7 @@ Status as of 2026-09-20. Every item below was verified by running it, not by rea
 | K | Camera probation | No action needed (as planned) | none |
 | M | `consentGivenAt` accepted and stored, at both the PHC and central | Done | tests |
 | N | ID-format spec for the mobile team, `docs/id-format-spec.md` | Done | self-check run against `ids.js` |
-| O | Clinical-rationale PDF, `GET /cases/:id/report`. Rendered by `generateReport.m`; MATLAB Report Generator is not installed, so it uses core-MATLAB figures and exportgraphics. | Done | real case rendered and served |
+| O | Clinical-rationale PDF, `GET /cases/:id/report`. Rendered by `generateReport.m` with **MATLAB Report Generator** (`mlreportgen.dom`), as the plan specifies; `generateReportFigures.m` is a core-MATLAB fallback for a machine without that toolbox. | Done | real case rendered and served |
 | P | DICOM through `readFundusImage`; the DICOM eye tag is recorded and a mismatch with the technician's choice is flagged | Done | `testReadFundusDicom.m` (8), on a synthetic DICOM |
 | Q | One `fromMatlabDeep` boundary for `[]`→null, plus `jsonencodeAscii`, which fixes em dashes being silently dropped from MATLAB output on Windows | Done | live runs |
 | R | Rename to `hard_exudate` / `hardExudates` in the JS layer | **Waiting on Tanuj's rename** | none |

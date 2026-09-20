@@ -401,7 +401,7 @@ Call this when a reviewer opens a case in Case Detail. It takes no body. Require
 The per-case clinical-rationale PDF.
 - **Response `200`:** `{ "reportUrl": "/media/cases/<id>/report.pdf", "generatedAt", "cached": true|false }`.
 - **When it is generated:** on the first request, then cached. A case re-graded since the last PDF gets a fresh one automatically, and `?regenerate=1` forces one.
-- **Timing:** about 2 s when the MATLAB session is up, about 35 s when it is not.
+- **Timing:** about 7 s when the MATLAB session is up, about 27 s when it is not (a MATLAB start).
 - **Contents:** patient reference (never the raw ID), age, eye, site, capture time, the photo and Grad-CAM overlay, the grade with a plain-language description and its tier, both branches' grades and whether they agree, lesion evidence (with the disclosed limits of each detector), the evidence summary, and the "requires ophthalmologist review" disclaimer on every page.
 - **Errors:** `409 case_not_graded`, `404 case_not_found`, `502 report_generation_failed`.
 - **Auth:** ophthalmologist or district_admin. The PDF itself needs a session, like everything under `/media`.

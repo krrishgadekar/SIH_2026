@@ -14,19 +14,29 @@ function outPath = generateReport(inputJsonPath, outPath)
 %   lesionCounts {red, bright, redTotal, brightTotal},  nvSuspicionScore,
 %   evidenceSummaryText, generatedAt
 %
-% Any field may be null; a null is printed as "not available", never as 0 --
-% the same not-measured-vs-measured-zero rule as the rest of the pipeline.
-%
-% ── WHY NOT mlreportgen ────────────────────────────────────────────────────
-% The plan named MATLAB Report Generator (mlreportgen). It is not installed on
-% the deployment machine (verified 2026-09-20: "MATLAB Report Generator is not
-% installed"), so this uses core MATLAB only: two laid-out figure pages
-% exported with exportgraphics(..., 'ContentType', 'vector', 'Append', true).
-% The result is a real multi-page PDF with selectable text. Porting to
-% mlreportgen later changes the layout code, not this function's contract.
+% Any field may be null; a null prints as "not available", never as 0 -- the
+% same not-measured-vs-measured-zero rule as the rest of the pipeline.
 %
 % Identity on the report is the display-safe patientReference only, never the
 % raw patient ID (api-contracts.md, "Global patient-reference rule").
+%
+% ── RENDERER ───────────────────────────────────────────────────────────────
+% MATLAB Report Generator (mlreportgen.dom), as the plan specifies: real
+% document structure, tables and a repeating page footer. When that toolbox is
+% not installed or its licence cannot be checked out, this falls back to
+% generateReportFigures.m, which draws the same report with core MATLAB only.
+% Both write the same file; the fallback exists so a machine without the
+% toolbox still produces a report rather than failing the request.
+
+if ~reportGeneratorAvailable()
+    warning('generateReport:fallback', ...
+        ['MATLAB Report Generator is unavailable; rendering with the core-MATLAB ' ...
+         'fallback (generateReportFigures.m).']);
+    outPath = generateReportFigures(inputJsonPath, outPath);
+    return;
+end
+
+import mlreportgen.dom.*
 
 in = jsondecode(fileread(inputJsonPath));
 get = @(name) fieldOr(in, name);
@@ -37,190 +47,262 @@ GRADE_TEXT = { ...
     'Grade 2 - Moderate non-proliferative DR', ...
     'Grade 3 - Severe non-proliferative DR', ...
     'Grade 4 - Proliferative DR (possible new vessel growth)'};
-TIER_TEXT = struct('A', 'Tier A - high-confidence, eligible for auto-clear', ...
-                   'B', 'Tier B - assisted review recommended', ...
-                   'C', 'Tier C - mandatory full ophthalmologist review');
-DISCLAIMER = ['AI-ASSISTED SCREEN - REQUIRES OPHTHALMOLOGIST REVIEW. This report ' ...
-    'is generated automatically from a screening photograph. It is not a ' ...
-    'diagnosis and must not be used to make treatment decisions without ' ...
-    'review by a qualified ophthalmologist.'];
+TIER_TEXT = struct( ...
+    'A', 'Tier A - high-confidence, eligible for auto-clear', ...
+    'B', 'Tier B - assisted review recommended', ...
+    'C', 'Tier C - mandatory full ophthalmologist review');
+DISCLAIMER = ['AI-ASSISTED SCREEN - REQUIRES OPHTHALMOLOGIST REVIEW. This report is ' ...
+    'generated automatically from a screening photograph. It is not a diagnosis ' ...
+    'and must not be used to make treatment decisions without review by a ' ...
+    'qualified ophthalmologist.'];
+NAVY = '#1f4a7d';
 
-W = 8.27; H = 11.69;   % A4, inches
+[outDir, outName] = fileparts(outPath);
+d = Document(fullfile(outDir, outName), 'pdf');
+d.OutputPath = fullfile(outDir, outName);
+open(d);
+cleanupDoc = onCleanup(@() closeIfOpen(d));
 
-% ═══ Page 1: identification, images, grade ══════════════════════════════════
-f1 = newPage(W, H);
-header(f1, W, H, 'NetraSetu - Diabetic Retinopathy Screening Report', get('caseId'));
+% A4 portrait with room for the standing disclaimer at the foot of every page.
+layout = d.CurrentPageLayout;
+layout.PageSize = PageSize('11.69in', '8.27in', 'portrait');
+layout.PageMargins.Top = '0.6in';
+layout.PageMargins.Bottom = '1.3in';
+layout.PageMargins.Left = '0.7in';
+layout.PageMargins.Right = '0.7in';
+layout.PageMargins.Footer = '0.4in';
 
-txt(f1, 0.6, H - 1.45, sprintf('Patient reference: %s     Age: %s     Eye: %s', ...
-    str(get('patientReference')), str(get('patientAge')), eyeText(get('eyeLaterality'))), 10);
-txt(f1, 0.6, H - 1.75, sprintf('Screening site: %s     Captured: %s', ...
-    str(get('phcName')), str(get('capturedAt'))), 10);
+% ── The disclaimer, on EVERY page ──────────────────────────────────────────
+% A page footer rather than a block at the end: a printed page that travels on
+% its own must still carry the statement that this is not a diagnosis.
+footer = PDFPageFooter();
+fp = Paragraph(DISCLAIMER);
+fp.Style = {FontFamily('Helvetica'), FontSize('7.5pt'), Bold(true), ...
+            Color('#8a4b00'), OuterMargin('0pt', '0pt', '0pt', '2pt')};
+append(footer, fp);
+layout.PageFooters = footer;
 
-imgW = (W - 1.6) / 2; imgH = imgW;
-putImage(f1, get('imagePath'), [0.6, H - 2.35 - imgH, imgW, imgH], 'Fundus photograph');
-putImage(f1, get('gradcamPath'), [0.6 + imgW + 0.4, H - 2.35 - imgH, imgW, imgH], ...
-         'Grad-CAM attention (where the classifier looked)');
+% ═══ Page 1 ════════════════════════════════════════════════════════════════
+append(d, banner('NetraSetu - Diabetic Retinopathy Screening Report', ...
+                 sprintf('Case %s', str(get('caseId'))), NAVY));
 
-y = H - 2.85 - imgH;
+append(d, kvLine('Patient reference', str(get('patientReference')), ...
+                 'Age', str(get('patientAge')), ...
+                 'Eye', eyeText(get('eyeLaterality'))));
+append(d, kvLine('Screening site', str(get('phcName')), ...
+                 'Captured', str(get('capturedAt')), '', ''));
+
+% Images side by side, in a borderless table so they stay aligned.
+imgTable = Table();
+imgRow = TableRow();
+append(imgRow, imageCell(get('imagePath'), 'Fundus photograph'));
+append(imgRow, imageCell(get('gradcamPath'), ...
+                         'Grad-CAM attention (where the classifier looked)'));
+append(imgTable, imgRow);
+imgTable.Style = {Border('none'), Width('100%'), ...
+                  OuterMargin('0pt', '0pt', '10pt', '10pt')};
+imgTable.TableEntriesStyle = {Border('none'), HAlign('center'), ...
+                              InnerMargin('4pt', '4pt', '2pt', '2pt')};
+append(d, imgTable);
+
+append(d, heading('AI screening grade'));
 g = get('drGradeCnn');
 if isnumeric(g) && isscalar(g) && g >= 0 && g <= 4
     gradeLine = GRADE_TEXT{g + 1};
 else
     gradeLine = 'Grade not available';
 end
-txt(f1, 0.6, y, 'AI screening grade', 12, 'bold');
-txt(f1, 0.6, y - 0.32, gradeLine, 13, 'bold');
+pg = Paragraph(gradeLine);
+pg.Style = {FontFamily('Helvetica'), FontSize('14pt'), Bold(true), ...
+            OuterMargin('0pt', '0pt', '2pt', '6pt')};
+append(d, pg);
+
 tier = get('conformalTier');
 tierLine = 'Review tier not available';
 if ischar(tier) && isfield(TIER_TEXT, tier), tierLine = TIER_TEXT.(tier); end
-txt(f1, 0.6, y - 0.64, sprintf('%s     Classifier confidence: %s', tierLine, pct(get('confidenceScore'))), 10);
+append(d, body(sprintf('%s     Classifier confidence: %s', ...
+                       tierLine, pct(get('confidenceScore')))));
 if ~isempty(get('tierReason'))
-    txt(f1, 0.6, y - 0.92, ['Why: ' str(get('tierReason'))], 9, 'normal', W - 1.2);
+    append(d, body(['Why: ' str(get('tierReason'))], '9pt'));
 end
 
-footer(f1, W, DISCLAIMER, 1, 2);
+% ═══ Page 2 ════════════════════════════════════════════════════════════════
+br = Paragraph(' ');
+br.Style = {PageBreakBefore(true)};
+append(d, br);
+append(d, banner('Clinical rationale', sprintf('Case %s', str(get('caseId'))), NAVY));
 
-% ═══ Page 2: both branches, lesion evidence, rationale ══════════════════════
-f2 = newPage(W, H);
-header(f2, W, H, 'Clinical rationale', get('caseId'));
+append(d, heading('Two independent assessments'));
+append(d, body(sprintf('Branch A - image classifier (CNN):  %s', gradeOnly(get('drGradeCnn')))));
+append(d, body(sprintf('Branch B - ICDR/ETDRS rule engine on detected lesions:  %s', ...
+                       gradeOnly(get('drGradeRuleEngine')))));
 
-y = H - 1.5;
-txt(f2, 0.6, y, 'Two independent assessments', 12, 'bold');
-txt(f2, 0.6, y - 0.32, sprintf('Branch A - image classifier (CNN):  %s', gradeOnly(get('drGradeCnn'))), 10);
-txt(f2, 0.6, y - 0.58, sprintf('Branch B - ICDR/ETDRS rule engine on detected lesions:  %s', ...
-    gradeOnly(get('drGradeRuleEngine'))), 10);
 ag = get('branchAgreement');
 if isequal(ag, true)
     agText = 'The two branches AGREE.';
 elseif isequal(ag, false)
     agText = 'The two branches DISAGREE - this case requires an explicit grade from the reviewer.';
-elseif isnumeric(get('drGradeCnn')) && isnumeric(get('drGradeRuleEngine')) ...
-        && ~isempty(get('drGradeCnn')) && ~isempty(get('drGradeRuleEngine'))
-    % Both graded, yet no verdict: the rule engine's grade is at its ceiling,
-    % which means "this grade OR WORSE" -- it can neither confirm nor contradict
-    % the classifier at that level (see branchesAgree.m).
+elseif ~isempty(get('drGradeCnn')) && ~isempty(get('drGradeRuleEngine'))
+    % Both graded, yet no verdict: the rule-engine grade is at its ceiling,
+    % which means "this grade OR WORSE" -- it can neither confirm nor
+    % contradict the classifier there (see branchesAgree.m).
     agText = ['Agreement not established: the rule-engine grade is its maximum ' ...
               '("this grade or worse"), so it cannot confirm the classifier here.'];
 else
     agText = 'Agreement could not be assessed: one branch did not produce a grade.';
 end
-txt(f2, 0.6, y - 0.86, agText, 10, 'bold');
+pa = Paragraph(agText);
+pa.Style = {FontFamily('Helvetica'), FontSize('10pt'), Bold(true), ...
+            OuterMargin('0pt', '0pt', '4pt', '8pt')};
+append(d, pa);
 
-y = y - 1.45;
-txt(f2, 0.6, y, 'Lesion evidence', 12, 'bold');
-lc = get('lesionCounts');
+append(d, heading('Lesion evidence'));
 rows = {
-    'Microaneurysms + haemorrhages (red lesions)', countOf(lc, 'redTotal'), quadOf(lc, 'red')
-    'Hard exudates',                               countOf(lc, 'brightTotal'), quadOf(lc, 'bright')
-    'Soft exudates (cotton-wool spots)',           'not assessed', 'no validated detector (disclosed scope exclusion)'
-    'Neovascularization suspicion score',          num3(get('nvSuspicionScore')), 'suspicion signal only - not a validated NV detector'
+    'Microaneurysms + haemorrhages', countOf(get('lesionCounts'), 'redTotal'), ...
+        quadOf(get('lesionCounts'), 'red')
+    'Hard exudates', countOf(get('lesionCounts'), 'brightTotal'), ...
+        quadOf(get('lesionCounts'), 'bright')
+    'Soft exudates (cotton-wool spots)', 'not assessed', ...
+        'no validated detector (disclosed scope exclusion)'
+    'Neovascularization suspicion score', num3(get('nvSuspicionScore')), ...
+        'suspicion signal only - not a validated NV detector'
     };
-for i = 1:size(rows, 1)
-    yy = y - 0.35 - 0.42 * (i - 1);
-    txt(f2, 0.6, yy, rows{i, 1}, 10, 'bold');
-    txt(f2, 4.4, yy, rows{i, 2}, 10);
-    txt(f2, 0.8, yy - 0.2, rows{i, 3}, 8, 'normal', W - 1.4);
-end
-txt(f2, 0.6, y - 0.35 - 0.42 * 4, ['Red lesions are counted as one class: the segmentation model ' ...
-    'does not separate microaneurysms from haemorrhages.'], 8, 'italic', W - 1.2);
+lesionTable = Table([{'Finding', 'Count', 'Detail'}; rows]);
+lesionTable.Style = {Border('solid', '#c8d2de', '0.5pt'), ...
+                     ColSep('solid', '#c8d2de', '0.5pt'), ...
+                     RowSep('solid', '#c8d2de', '0.5pt'), ...
+                     Width('100%'), FontFamily('Helvetica'), FontSize('9pt')};
+lesionTable.TableEntriesStyle = {InnerMargin('4pt', '4pt', '2pt', '2pt'), VAlign('top')};
+lesionTable.Children(1).Style = {BackgroundColor('#eef2f7'), Bold(true)};
+% Column widths: set on the header row's entries, which the PDF renderer
+% applies to the whole column (TableColSpec takes no constructor arguments).
+hdr = lesionTable.Children(1);
+hdr.Children(1).Style = [hdr.Children(1).Style, {Width('38%')}];
+hdr.Children(2).Style = [hdr.Children(2).Style, {Width('14%')}];
+hdr.Children(3).Style = [hdr.Children(3).Style, {Width('48%')}];
+append(d, lesionTable);
+append(d, body(['Red lesions are counted as one class: the segmentation model does not ' ...
+                'separate microaneurysms from haemorrhages.'], '8pt', true));
 
-y = y - 2.55;
-txt(f2, 0.6, y, 'Evidence summary', 12, 'bold');
-txt(f2, 0.6, y - 0.3, str(get('evidenceSummaryText')), 9, 'normal', W - 1.2);
+append(d, heading('Evidence summary'));
+append(d, body(str(get('evidenceSummaryText')), '9pt'));
 
-footer(f2, W, DISCLAIMER, 2, 2);
-
-% ═══ Write ══════════════════════════════════════════════════════════════════
-if isfile(outPath), delete(outPath); end
-exportgraphics(f1, outPath, 'ContentType', 'vector');
-exportgraphics(f2, outPath, 'ContentType', 'vector', 'Append', true);
-close([f1 f2]);
-end
-
-% ── Layout helpers ──────────────────────────────────────────────────────────
-function f = newPage(W, H)
-f = figure('Visible', 'off', 'Units', 'inches', 'Position', [0 0 W H], ...
-           'Color', 'w', 'PaperUnits', 'inches', 'PaperSize', [W H]);
-% R2025a+ renders batch-mode figures in the DARK graphics theme by default,
-% which turns default-coloured text near-white on this white page. Pin light.
-try, f.Theme = 'light'; catch, end
-axes(f, 'Units', 'normalized', 'Position', [0 0 1 1], 'Visible', 'off', ...
-     'XLim', [0 W], 'YLim', [0 H]);
+close(d);
+clear cleanupDoc
+outPath = fullfile(outDir, [outName '.pdf']);
 end
 
-function header(f, W, H, title, caseId)
-ax = f.Children(end);
-patch(ax, [0 W W 0], [H - 0.95 H - 0.95 H H], [0.12 0.29 0.49], 'EdgeColor', 'none');
-text(ax, 0.6, H - 0.42, title, 'Color', 'w', 'FontSize', 15, 'FontWeight', 'bold');
-% Own line: a case id is a 36-character UUID and collides with the title if
-% right-aligned on the same line.
-text(ax, 0.6, H - 0.75, sprintf('Case %s', str(caseId)), 'Color', [0.85 0.9 1], ...
-     'FontSize', 8);
+% ── Availability ────────────────────────────────────────────────────────────
+function tf = reportGeneratorAvailable()
+% Both halves matter: the classes can exist while the licence is out.
+tf = false;
+if exist('mlreportgen.dom.Document', 'class') ~= 8, return; end
+try
+    tf = license('test', 'MATLAB_Report_Gen') == 1 ...
+         && builtin('license', 'checkout', 'MATLAB_Report_Gen') == 1;
+catch
+    tf = false;
+end
 end
 
-function footer(f, W, disclaimer, page, pages)
-ax = f.Children(end);
-patch(ax, [0.5 W - 0.5 W - 0.5 0.5], [0.45 0.45 1.25 1.25], [1 0.95 0.85], ...
-      'EdgeColor', [0.85 0.55 0.1]);
-t = text(ax, 0.65, 0.85, disclaimer, 'FontSize', 8.5, 'FontWeight', 'bold', ...
-         'VerticalAlignment', 'middle', 'Color', [0.45 0.2 0]);
-wrapTo(t, W - 1.3);
-text(ax, W / 2, 0.22, sprintf('Page %d of %d', page, pages), 'FontSize', 8, ...
-     'HorizontalAlignment', 'center', 'Color', [0.4 0.4 0.4]);
+function closeIfOpen(d)
+try, close(d); catch, end
 end
 
-function t = txt(f, x, y, s, size, weight, wrapWidth)
-if nargin < 6, weight = 'normal'; end
-ax = f.Children(end);
-angle = 'normal';
-if strcmp(weight, 'italic'), angle = 'italic'; weight = 'normal'; end
-t = text(ax, x, y, s, 'FontSize', size, 'FontWeight', weight, 'FontAngle', angle, ...
-         'VerticalAlignment', 'top', 'Interpreter', 'none', 'Color', [0.1 0.1 0.12]);
-if nargin >= 7, wrapTo(t, wrapWidth); end
+% ── Building blocks ─────────────────────────────────────────────────────────
+function t = banner(titleText, subtitleText, navy)
+import mlreportgen.dom.*
+titlePara = Paragraph(titleText);
+titlePara.Style = {FontFamily('Helvetica'), FontSize('15pt'), Bold(true), ...
+                   Color('white'), OuterMargin('0pt', '0pt', '0pt', '1pt')};
+subPara = Paragraph(subtitleText);
+subPara.Style = {FontFamily('Helvetica'), FontSize('8pt'), Color('#d7e3f4')};
+cell = TableEntry();
+append(cell, titlePara);
+append(cell, subPara);
+% Table() cannot take pre-built TableEntry objects in a cell array -- rows are
+% assembled explicitly instead.
+row = TableRow();
+append(row, cell);
+t = Table();
+append(t, row);
+t.Style = {Border('none'), Width('100%'), BackgroundColor(navy), ...
+           OuterMargin('0pt', '0pt', '0pt', '10pt')};
+t.TableEntriesStyle = {Border('none'), BackgroundColor(navy), ...
+                       InnerMargin('10pt', '10pt', '7pt', '7pt')};
 end
 
-function wrapTo(t, widthIn)
-% Approximate character-count wrap at the text's font size.
-charsPerLine = max(20, floor(widthIn * 72 / (t.FontSize * 0.52)));
-words = strsplit(t.String, ' ');
-lines = {''};
-for i = 1:numel(words)
-    candidate = strtrim([lines{end} ' ' words{i}]);
-    if numel(candidate) > charsPerLine && ~isempty(lines{end})
-        lines{end + 1} = words{i}; %#ok<AGROW>
-    else
-        lines{end} = candidate;
+function p = kvLine(k1, v1, k2, v2, k3, v3)
+import mlreportgen.dom.*
+parts = {};
+for pair = {{k1, v1}, {k2, v2}, {k3, v3}}
+    if ~isempty(pair{1}{1})
+        parts{end + 1} = sprintf('%s: %s', pair{1}{1}, pair{1}{2}); %#ok<AGROW>
     end
 end
-t.String = lines;
+% ' | ', not spaces: a run of spaces collapses to one in the rendered PDF,
+% which ran the fields together ("Patient reference: PT-K3M9XQ Age: 54").
+p = Paragraph(strjoin(parts, '  |  '));
+p.Style = {FontFamily('Helvetica'), FontSize('10pt'), ...
+           OuterMargin('0pt', '0pt', '0pt', '3pt')};
 end
 
-function putImage(f, p, posIn, caption)
-W = f.Position(3); H = f.Position(4);
-ax = axes(f, 'Units', 'normalized', ...
-          'Position', [posIn(1) / W, posIn(2) / H, posIn(3) / W, posIn(4) / H]);
-if ischar(p) && isfile(p)
+function p = heading(text)
+import mlreportgen.dom.*
+p = Paragraph(text);
+p.Style = {FontFamily('Helvetica'), FontSize('12pt'), Bold(true), ...
+           Color('#1f4a7d'), OuterMargin('0pt', '0pt', '10pt', '4pt')};
+end
+
+function p = body(text, size, italic)
+import mlreportgen.dom.*
+if nargin < 2, size = '10pt'; end
+if nargin < 3, italic = false; end
+p = Paragraph(text);
+p.Style = {FontFamily('Helvetica'), FontSize(size), Italic(italic), ...
+           OuterMargin('0pt', '0pt', '0pt', '3pt')};
+end
+
+function cell = imageCell(imgPath, caption)
+% Downscaled to a temp copy before embedding: a 4288x2848 fundus photograph
+% embedded at full resolution makes a needlessly huge PDF for a 3-inch
+% printed image.
+import mlreportgen.dom.*
+cell = TableEntry();
+usable = ischar(imgPath) && ~isempty(imgPath) && isfile(imgPath);
+if usable
     try
-        im = readFundusImage(p);
+        im = readFundusImage(imgPath);
     catch
-        im = imread(p);
+        im = imread(imgPath);
     end
-    % Downscale before embedding: a 4288x2848 fundus photo embedded at full
-    % resolution made exportgraphics take ~25 s per report. ~1200 px is far
-    % more than a 3.4-inch printed image can show.
     if max(size(im, 1), size(im, 2)) > 1200
         im = imresize(im, 1200 / max(size(im, 1), size(im, 2)));
     end
-    imshow(im, 'Parent', ax);
+    tmp = [tempname '.png'];
+    imwrite(im, tmp);
+    img = Image(tmp);
+    img.Style = {Width('3.1in'), Height('3.1in')};
+    holder = Paragraph();
+    holder.Style = {HAlign('center'), OuterMargin('0pt', '0pt', '0pt', '0pt')};
+    append(holder, img);
+    append(cell, holder);
 else
-    set(ax, 'XTick', [], 'YTick', [], 'Box', 'on', 'Color', [0.95 0.95 0.95]);
-    text(ax, 0.5, 0.5, 'not available', 'HorizontalAlignment', 'center', ...
-         'Units', 'normalized', 'Color', [0.35 0.35 0.35]);
+    % Same footprint as an image, so the two captions stay on one line.
+    miss = Paragraph('not available');
+    miss.Style = {FontFamily('Helvetica'), FontSize('9pt'), Color('#777777'), ...
+                  HAlign('center'), Width('3.1in'), Height('3.1in'), ...
+                  Border('solid', '#dddddd', '0.5pt'), ...
+                  BackgroundColor('#f4f4f4'), VAlign('middle')};
+    append(cell, miss);
 end
-title(ax, caption, 'FontSize', 9, 'FontWeight', 'normal', 'Color', [0.1 0.1 0.12]);
+cap = Paragraph(caption);
+cap.Style = {FontFamily('Helvetica'), FontSize('8.5pt'), Color('#444444'), ...
+             HAlign('center'), OuterMargin('0pt', '0pt', '3pt', '0pt')};
+append(cell, cap);
 end
 
-% ── Value formatting ────────────────────────────────────────────────────────
+% ── Value formatting (identical rules to the fallback renderer) ─────────────
 function v = fieldOr(s, name)
 if isfield(s, name) && ~isempty(s.(name)), v = s.(name); else, v = []; end
 end
@@ -233,7 +315,10 @@ end
 end
 
 function s = eyeText(v)
-if strcmp(v, 'left'), s = 'Left (OS)'; elseif strcmp(v, 'right'), s = 'Right (OD)'; else, s = 'not recorded'; end
+if strcmp(v, 'left'), s = 'Left (OS)';
+elseif strcmp(v, 'right'), s = 'Right (OD)';
+else, s = 'not recorded';
+end
 end
 
 function s = gradeOnly(g)
