@@ -12,6 +12,9 @@
  *                                        unreviewedCases, ... }  (backend plan §F)
  *   GET  /api/v1/admin/resource-recommendations          latest model output (§G)
  *   POST /api/v1/admin/resource-recommendations/refresh  re-run the model now
+ *   GET  /api/v1/admin/simulink-validation               is that model still
+ *                                                        validated? (§G.2)
+ *   POST /api/v1/admin/simulink-validation/refresh       re-run the .slx now
  *
  * Thin by intent: the SQL lives in services/analyticsAggregator.js so the
  * queries can be read and changed in one place, and so the timezone handling in
@@ -28,6 +31,7 @@ const requireRole = require('../middleware/requireRole');
 const { logAccess } = require('../services/accessLog');
 const { getSystemHealth } = require('../services/systemHealth');
 const resourceModel = require('../services/resourceRecommendations');
+const simulinkValidation = require('../services/simulinkValidation');
 
 const router = express.Router();
 
@@ -84,6 +88,37 @@ router.post('/resource-recommendations/refresh', adminOnly, async (req, res, nex
     res.json(body);
   } catch (err) {
     res.status(502).json({ error: 'resource_model_failed', message: err.message });
+  }
+});
+
+// §G.2's other half. The recommendations above come from the reference
+// queueing model; its right to be believed comes from agreeing with the
+// SimEvents deliverable. This says when that was last checked and how it went,
+// so a panel can show the recommendation WITH its validation rather than
+// implying one.
+router.get('/simulink-validation', adminOnly, async (req, res, next) => {
+  try {
+    const body = simulinkValidation.latest();
+    if (!body) {
+      return res.status(404).json({
+        error: 'validation_not_run',
+        message: 'The SimEvents validation has not run on this machine yet. It runs '
+               + 'weekly; POST /api/v1/admin/simulink-validation/refresh to run it now.',
+      });
+    }
+    res.json(body);
+  } catch (err) { next(err); }
+});
+
+// Minutes, not seconds: it loads Simulink and simulates the whole model.
+// Concurrent calls share one run.
+router.post('/simulink-validation/refresh', adminOnly, async (req, res, next) => {
+  try {
+    const body = await simulinkValidation.refresh();
+    await logAccess(req.user?.userId, 'refresh_simulink_validation', 'simulink_validation');
+    res.json(body);
+  } catch (err) {
+    res.status(502).json({ error: 'simulink_validation_failed', message: err.message });
   }
 });
 

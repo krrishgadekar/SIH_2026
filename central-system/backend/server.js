@@ -154,6 +154,9 @@ if (require.main === module) {
   require('./services/segWorkerSupervisor').start();
   // §G: daily district resource-model run (RESOURCE_MODEL_CRON).
   require('./services/resourceRecommendations').start();
+  // §G.2's other half: the weekly SimEvents run that keeps the reference
+  // model's recommendations validated rather than merely once-validated.
+  require('./services/simulinkValidation').start();
 
   // §A.14: TLS when a key and certificate are configured (a self-signed pair
   // for the demo: `node scripts/generateDevCert.js`). Plain HTTP otherwise,

@@ -511,6 +511,33 @@ District admin. The latest run of the district resource model (`simulink-model/r
 ### `POST /api/v1/admin/resource-recommendations/refresh`
 District admin (CSRF header required). Runs the model now, which takes about 10–30 s. Returns the new row in the same shape as above, or `502 resource_model_failed`.
 
+### `GET /api/v1/admin/simulink-validation`  *(added 2026-09-20, backend plan §G.2)*
+District admin. **Is the model behind those recommendations still validated?**
+
+The recommendations above come from `referenceQueueingModel.m`. Its right to be believed comes from agreeing with the SimEvents `.slx`, which is the actual PS-requirement-5 deliverable. That comparison now runs weekly, and this reports the last run.
+```json
+{
+  "ranAt": "2026-09-20T03:00:00Z",
+  "status": "agree",
+  "checks": [ { "metric": "auto-clear share", "simEvents": 71.0, "reference": 68.4,
+                "tolerance": 5, "unit": "%", "agree": true } ],
+  "simEvents": { "tierAAutoCleared", "reviewed", "uploadUtilisation",
+                 "reviewerUtilisation", "reviewWaitMeanSec" },
+  "reference": { "casesSimulated", "casesAutoCleared", "casesReviewed",
+                 "uploadUtilisation", "reviewUtilisation", "reviewWaitMeanMin" },
+  "params": { … }, "simSeconds": 31,
+  "note": "All parameters are modelled assumptions, not measured field data."
+}
+```
+- **`status`:** `"agree" | "diverged" | "error"`. These are three states, not two. `"error"` means the run could not happen at all — the model is then **unvalidated**, which is not the same as failing validation, and must not be shown as either a pass or a failure.
+- **Upload figures are not compared** and have no entry in `checks`. The two models queue uploads differently by construction, so they are expected to differ.
+- **Show `note` wherever these numbers appear.** Every parameter is a modelled assumption, not field data (design doc §16).
+- **A `"diverged"` or `"error"` run also raises a `simulink_model_diverged` alert** in `GET /admin/system-health`, resolved automatically on the next run that agrees.
+- **Errors:** `404 validation_not_run` before the first run on that machine.
+
+### `POST /api/v1/admin/simulink-validation/refresh`
+District admin (CSRF header required). Runs the `.slx` now: about **49 s**, most of it Simulink starting and simulating. Returns the same shape, or `502 simulink_validation_failed`.
+
 ### `GET /api/v1/admin/system-health`  *(added 2026-09-20, design doc §10.7)*
 District admin. One call returns four checks: silent PHCs, stuck grading jobs, the MATLAB session and unreviewed referable cases.
 ```json

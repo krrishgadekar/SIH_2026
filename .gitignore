@@ -164,6 +164,10 @@ central-system/backend/ml-pipeline/inference/segSession/stop.flag
 central-system/backend/ml-pipeline/inference/segSession/requests/
 central-system/backend/ml-pipeline/inference/segSession/responses/
 
+# The weekly SimEvents validation's result: one current fact about THIS
+# machine's last run, not history worth versioning.
+simulink-model/out/
+
 # Self-signed dev TLS pair (scripts/generateDevCert.js) -- never commit keys
 certs/
 

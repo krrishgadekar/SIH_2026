@@ -37,7 +37,8 @@ cleanup = onCleanup(@() close_system(modelName, 0));
 
 t0  = tic;
 out = sim(modelName, 'ReturnWorkspaceOutputs', 'on');
-fprintf('simulated in %.1fs\n\n', toc(t0));
+simSeconds = toc(t0);
+fprintf('simulated in %.1fs\n\n', simSeconds);
 
 % ── Extract statistics ──────────────────────────────────────────────────────
 % Each To Workspace sink logs a timeseries; the LAST sample is the running
@@ -60,6 +61,9 @@ results = struct( ...
     'uploadUtilisation',  upUtil, ...
     'reviewWaitMeanSec',  revWait, ...
     'reviewerUtilisation', mean(revUtil));
+results.simSeconds = simSeconds;
+results.ranAt = char(datetime('now', 'TimeZone', 'UTC', ...
+    'Format', 'yyyy-MM-dd''T''HH:mm:ss''Z'''));
 
 fprintf('--- SimEvents results ---\n');
 fprintf('  Tier A auto-cleared : %d entities\n', tierA);
@@ -81,11 +85,44 @@ fprintf('  upload utilisation  : %.1f%%\n', 100*r.uploadUtilisation);
 fprintf('  reviewer utilisation: %.1f%%\n', 100*r.reviewUtilisation);
 fprintf('  mean review wait    : %.1f min\n', r.reviewWaitMeanMin);
 
+% ── Agreement, as data and not only as printed text ─────────────────────────
+% The three comparisons are built into a struct array so a caller -- the
+% backend's weekly validation job (backend plan §G.2) -- can read the verdict
+% instead of parsing this function's console output. Tolerances stay HERE,
+% next to the metrics they belong to, rather than being re-stated in the
+% scheduler: a tolerance that lives in two places is one that will be relaxed
+% in only one of them.
+%
+% Upload figures are deliberately NOT compared. They differ by construction:
+% the reference model queues uploads per PHC, this model pools them into one
+% server of capacity numPhcs, so at high utilisation they must disagree. A
+% comparison that is expected to fail teaches a reader to ignore failures.
+checks = struct('metric', {}, 'simEvents', {}, 'reference', {}, ...
+                'tolerance', {}, 'unit', {}, 'agree', {});
+checks(1) = check('auto-clear share', 100*tierA/max(1,tierA+reviewed), ...
+                  100*r.casesAutoCleared/max(1,r.casesSimulated), 5, '%');
+checks(2) = check('reviewer utilisation', 100*mean(revUtil), ...
+                  100*r.reviewUtilisation, 10, '%');
+checks(3) = check('mean review wait (min)', revWait/60, r.reviewWaitMeanMin, 5, ' min');
+
 fprintf('\n--- Agreement ---\n');
-cmp('auto-clear share', 100*tierA/max(1,tierA+reviewed), ...
-    100*r.casesAutoCleared/max(1,r.casesSimulated), 5, '%');
-cmp('reviewer utilisation', 100*mean(revUtil), 100*r.reviewUtilisation, 10, '%');
-cmp('mean review wait (min)', revWait/60, r.reviewWaitMeanMin, 5, ' min');
+for i = 1:numel(checks)
+    c = checks(i);
+    fprintf('  %-24s SimEvents %7.1f%s   reference %7.1f%s   %s\n', ...
+            c.metric, c.simEvents, c.unit, c.reference, c.unit, ...
+            ternary(c.agree, 'AGREE', 'DIVERGE'));
+end
+
+results.checks = checks;
+results.agree = all([checks.agree]);
+results.reference = struct( ...
+    'casesSimulated',      r.casesSimulated, ...
+    'casesAutoCleared',    r.casesAutoCleared, ...
+    'casesReviewed',       r.casesReviewed, ...
+    'uploadUtilisation',   r.uploadUtilisation, ...
+    'reviewUtilisation',   r.reviewUtilisation, ...
+    'reviewWaitMeanMin',   r.reviewWaitMeanMin);
+results.params = p;
 
 fprintf(['\nUpload figures are EXPECTED to differ: the reference model queues\n' ...
          'per PHC, this model pools uploads into one server of capacity %d.\n' ...
@@ -115,10 +152,9 @@ catch
 end
 end
 
-function cmp(label, a, b, tol, unit)
-ok = abs(a - b) <= tol;
-fprintf('  %-24s SimEvents %7.1f%s   reference %7.1f%s   %s\n', ...
-        label, a, unit, b, unit, ternary(ok, 'AGREE', 'DIVERGE'));
+function c = check(label, a, b, tol, unit)
+c = struct('metric', label, 'simEvents', a, 'reference', b, ...
+           'tolerance', tol, 'unit', unit, 'agree', abs(a - b) <= tol);
 end
 
 function s = ternary(c, a, b)

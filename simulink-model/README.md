@@ -31,7 +31,22 @@ result in the `resource_recommendations` table. `GET
 dashboard. The reference model is what runs on the schedule: it takes seconds,
 has no Simulink dependency at request time, and is the oracle the `.slx` was
 validated against. The `.slx` remains the PS-requirement-5 deliverable and the
-validation check, run with `runDistrictScreeningModel`.
+validation check -- and that check now runs **weekly, on a schedule**
+(`services/simulinkValidation.js`, `SIMULINK_VALIDATION_CRON`, default Sunday
+03:00) rather than only when somebody types `runDistrictScreeningModel`.
+
+The result goes to `simulink-model/out/last-validation.json` and is served by
+`GET /api/v1/admin/simulink-validation`. If the two models stop agreeing, or
+the run cannot happen at all, it raises a `simulink_model_diverged` alert on
+System Health. That matters because of the direction the dependency runs: the
+dashboard's numbers come from the reference model, and the reference model's
+right to be believed comes entirely from agreeing with this one. A validation
+that ran once, in September, on parameters nobody has touched since is a
+memory of a check, not a check.
+
+Measured: about 49 s per run, of which 31 s is the simulation itself. The
+`.slx` is opened read-only and closed without saving -- a validation run never
+modifies the deliverable.
 
 > [!IMPORTANT]
 > **`referenceQueueingModel.m` is NOT the Simulink deliverable and must never be

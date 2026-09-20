@@ -37,11 +37,15 @@ process.env.MATLAB_MAX_RESTARTS = '3';
 process.env.MATLAB_HEARTBEAT_PATH = require('path').join(
   require('os').tmpdir(), `verify_health_${process.pid}.heartbeat`);
 process.env.GRADING_RETRY_BASE_MS = '600000';   // a failed job stays in backoff for the test
+// §G.2: write the validation result somewhere disposable, not over the real one.
+process.env.SIMULINK_VALIDATION_PATH = require('path').join(
+  require('os').tmpdir(), `verify_health_${process.pid}_validation.json`);
 
 const pool         = require(path.join(CENTRAL, 'db', 'pgClient'));
 const gradingQueue = require(path.join(CENTRAL, 'services', 'gradingQueue'));
 const watchdog     = require(path.join(CENTRAL, 'services', 'gradingWatchdog'));
 const supervisor   = require(path.join(CENTRAL, 'services', 'matlabSessionSupervisor'));
+const simulink     = require(path.join(CENTRAL, 'services', 'simulinkValidation'));
 const app          = require(path.join(CENTRAL, 'server.js'));
 
 let failures = 0;
@@ -226,7 +230,72 @@ async function main() {
 
     const sync = await (await fetch(`${BASE}/api/v1/phc/${siteId}/sync-status`)).json();
     check('PHC sync-status now also carries lastContactAt', 'lastContactAt' in sync && sync.lastContactAt, sync);
+
+    // ── §G.2: the scheduled SimEvents validation ──────────────────────────
+    // The admin dashboard's resource recommendations come from the reference
+    // queueing model, and its right to be believed comes entirely from having
+    // agreed with the SimEvents deliverable. What is asserted here is that the
+    // check is capable of FAILING -- a validation that can only ever report
+    // agreement is decoration.
+    console.log('\n--- §G.2: SimEvents validation ---');
+    const AGREE = {
+      ranAt: '2026-09-20T03:00:00Z', agree: true, simSeconds: 31,
+      checks: [{ metric: 'auto-clear share', simEvents: 71, reference: 68.4,
+                 tolerance: 5, unit: '%', agree: true }],
+      reference: { casesReviewed: 2510 }, params: { simDays: 20 },
+    };
+    const DIVERGED = JSON.parse(JSON.stringify(AGREE));
+    DIVERGED.agree = false;
+    DIVERGED.checks[0] = { metric: 'auto-clear share', simEvents: 71, reference: 40,
+                           tolerance: 5, unit: '%', agree: false };
+
+    check('no result before it has ever run', simulink.latest() === null);
+
+    let restore = simulink._setRunner(async () => AGREE);
+    let vr = await simulink.refresh();
+    check('a run that agrees is recorded as agreeing', vr.status === 'agree', vr.status);
+    check('the result is readable back from the file it wrote',
+      simulink.latest() && simulink.latest().status === 'agree');
+    check('agreement raises no alert',
+      !(await (await fetch(`${BASE}/api/v1/admin/system-health`)).json())
+        .alerts.some((a) => a.kind === simulink.ALERT_KIND));
+
+    simulink._setRunner(async () => DIVERGED);
+    vr = await simulink.refresh();
+    check('divergence is recorded as divergence, not as a pass',
+      vr.status === 'diverged', vr.status);
+    const alerted = await (await fetch(`${BASE}/api/v1/admin/system-health`)).json();
+    const divergeAlert = alerted.alerts.find((a) => a.kind === simulink.ALERT_KIND);
+    check('divergence raises an alert on System Health', !!divergeAlert);
+    check('the alert names the metric and both numbers',
+      divergeAlert && /auto-clear share/.test(divergeAlert.message)
+        && /71/.test(divergeAlert.message) && /40/.test(divergeAlert.message),
+      divergeAlert && divergeAlert.message);
+
+    // A run that could not happen is NOT agreement. Recording it as one would
+    // let a broken MATLAB install read as "validated" forever.
+    simulink._setRunner(async () => { throw new Error('Simulink licence unavailable'); });
+    vr = await simulink.refresh();
+    check('a run that failed is neither agreement nor divergence',
+      vr.status === 'error' && /licence/.test(vr.error), vr);
+    check('a failed run still alerts, so nothing looks validated when it is not',
+      (await (await fetch(`${BASE}/api/v1/admin/system-health`)).json())
+        .alerts.some((a) => a.kind === simulink.ALERT_KIND));
+
+    simulink._setRunner(async () => AGREE);
+    await simulink.refresh();
+    check('agreement afterwards resolves the alert automatically',
+      !(await (await fetch(`${BASE}/api/v1/admin/system-health`)).json())
+        .alerts.some((a) => a.kind === simulink.ALERT_KIND));
+    simulink._setRunner(restore);
+
+    const served = await (await fetch(`${BASE}/api/v1/admin/simulink-validation`)).json();
+    check('the endpoint serves the recorded result', served.status === 'agree', served);
+    check('and carries the assumptions caveat with it',
+      typeof served.note === 'string' && /assumption/i.test(served.note), served.note);
   } finally {
+    simulink.stop();
+    fs.rmSync(process.env.SIMULINK_VALIDATION_PATH, { force: true });
     supervisor.stop();
     fs.rmSync(supervisor.HEARTBEAT, { force: true });   // our own temp file
     await pool.query('DELETE FROM system_alerts WHERE first_seen_at >= $1', [testStart]);
