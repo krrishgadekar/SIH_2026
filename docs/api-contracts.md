@@ -331,6 +331,9 @@ Response `200`:
   "priorAssessments": [ { "caseId": "prev-case-id", "gradedAt": "2026-06-01T10:00:00.000Z", "drGradeCnn": 1 } ]
 }
 ```
+> [!WARNING]
+> **`lesionCounts` does not yet return these keys.** Today it returns `{red, bright, redTotal, brightTotal, …}`. The shape above is the target and the one to build against; the backend change is held so it happens once, with the M5 wiring, rather than breaking the panel twice. When it lands: `microaneurysms` and `hemorrhages` become real numbers, `hardExudates` is today's bright-lesion count under its correct name, and **`softExudates` stays `null` permanently** — nothing in the pipeline detects soft exudates, and it is a disclosed exclusion, not a measurement of zero.
+
 Every ML-derived field (`lesionCounts`, `nvSuspicionScore`, `drGradeRuleEngine`, `branchAgreement`, `uncertaintyScore`, `lesionAttentionConsistencyScore`) is `null` until its backing module ships — the frontend renders "not yet available" for `null`, never crashes on it and never shows a zero/empty value as if it were a real result.
 
 **`evidenceSummaryText` is the exception, since Task 7.3 shipped: it is always a non-empty string.** Lesion segmentation (Tasks 4.2/4.3) does not exist yet, so today it reads:
@@ -349,7 +352,11 @@ That is deliberate and is not a placeholder. It never says "0 microaneurysms" �
 - `eyeLaterality`: `"left" | "right" | null`. The eye the image's own DICOM tag reports, if the file has one; otherwise the technician's selection.
 - `eyeLateralitySource`: `"dicom" | "technician" | null`.
 - `eyeLateralityMismatch`: `true` when the DICOM tag and the technician's selection disagree. Such a case is never auto-cleared (it is held at Tier B or higher).
-- `foveaUnreliable`: `true | false | null`. `true` means the localizer could not place the fovea, so lesion quadrants follow the image axes and the quadrant-based severe-NPDR criteria were not applied. `null` means the localizer did not report it.
+- `foveaUnreliable`: `true | false | null`. `true` means the localizer could not place the fovea confidently — M3's fovea heatmap peak was below 0.37, or the heatmap was missing or NaN. `null` means the localizer did not report the field at all, which is **not** the same as `false` and is never shown as "reliable".
+
+  When it is `true`: the case is held at **Tier B or worse** (never auto-cleared), and the quadrant-based severe-NPDR criteria — ETDRS 4-2-1 (a) and (b) — are **not applied**, because the four quadrant counts are built on the fovea axis whether or not the fovea was found, so they are not the anatomical quadrants those criteria are written for. Grading falls back to totals. The evidence text says which criteria were skipped.
+
+  **It is a safety net, not a proven detector.** Tanuj validated the gate against two known localization failures. Do not present it to a clinician as a measurement of image quality.
 
 ### `POST /api/v1/cases/:caseId/review`
 Request:

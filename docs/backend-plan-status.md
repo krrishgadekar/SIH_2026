@@ -112,7 +112,13 @@ The plan's own corrected guidance: self-hosted Postgres has no built-in transpar
 
 ## Notes
 
-- **§I.3:** the rule engine side is done. When `foveaUnreliable` is true it skips the quadrant-dependent criteria and grades on totals. The *upstream* quadrant assignment (`quadrant_counts` in `segInfer.py`) still uses the fovea-to-disc axis. It already falls back to the image axes when disc and fovea coincide, but it does not yet read `foveaUnreliable`, because that field does not exist yet. That change belongs next to Tanuj's fovea gate, which is where the plan says quadrant assignment is moving.
+- **§I.3: closed, and not the way this file previously expected.** It used to say the upstream quadrant assignment in `segInfer.py` should learn to read `foveaUnreliable` and fall back to the image axes. Tanuj's answer (2026-09-20) is that it should not: the quadrant counts are built on the fovea axis regardless of the flag, and the consumer's job is to **treat them as invalid for the 4-2-1 rule** — which is exactly what `ruleEngineGrade.m` already does. No upstream change is coming, and none is needed.
+
+  What the flag means: M3's fovea heatmap peak below 0.37, or a missing/NaN heatmap. The backend's two obligations are a **Tier B floor** (a floor, not an assignment — a Tier C case stays C) and skipping criteria (a) and (b).
+
+  **One integration defect was found and fixed before it could bite.** `segInfer.py`'s output dict does not splat the localization result; it copies `opticDisc` and `fovea` out of it by name. A `foveaUnreliable` added inside `localize()` would therefore never have reached the backend — it would have been stored as NULL, the Tier B floor would not have fired, and a case whose fovea could not be found would have been auto-cleared at Tier A on quadrants nobody could place. Nothing would have errored. The flag is now promoted to the top level explicitly, with absent still meaning absent rather than false.
+
+  **Still waiting on the code itself:** as of this fetch, `foveaUnreliable` is not on `main` or on `origin/tanuj`. The contract is agreed and this side is ready for it.
 - **§S.4 latency, resolved.** The original finding was that serving M2–M4 from the MATLAB session gave no speedup at all: 22.5 s per image on MATLAB vs 21.4 s on PyTorch, over 20 images. The reason is now measured rather than suspected — it moved forward passes costing under a second each and left 17 s of Python process start exactly where it was.
 
   With the segmentation worker that process start is gone, and the comparison finally means something. It goes the other way:
@@ -127,14 +133,20 @@ The plan's own corrected guidance: self-hosted Postgres has no built-in transpar
 - **Segmentation is now a persistent worker too, and a case takes about 21 s.** `ml-pipeline/inference/segSession/runSegWorker.py` holds M2–M5 in memory; the backend uses it when its heartbeat is fresh and spawns `segInfer.py` per case when it is not. Measured on this machine: the torch import plus four model loads cost **17.1 s** and the actual work costs **2.0 s**, so the per-case process was paying seventeen seconds to do two seconds of work. Same `segInfer.run_one` on both paths, so no preprocessing step, threshold or count can drift; a real case through both produced identical lesion counts, rule-engine grade and NV score.
 - **Grading latency, end to end, on the development machine:** about 47 s before this work → 33 s with the case pipeline in the MATLAB session → **21 s** with the segmentation worker as well.
 - **Uncertainty on the MATLAB path:** `uncertainty_score` is null under `INFERENCE_BACKEND=matlab`, because MC-dropout is deliberately not faked there. The review queue then ranks Tier C by 1 − confidence, as it always has when uncertainty is missing.
-- **`lesionCounts` in `GET /cases/:id`** returns `{red, bright, redTotal, brightTotal, …}`. api-contracts.md and the frontend's lesion panel expect `{microaneurysms, hemorrhages, hardExudates, softExudates}`. The plan is to fix this together with §R.
+- **`lesionCounts` in `GET /cases/:id` does not match its own contract.** It returns `{red, bright, redTotal, brightTotal, …}`; api-contracts.md and the frontend's lesion panel expect `{microaneurysms, hemorrhages, hardExudates, softExudates}`. This is live and it is the frontend's problem today, not a future one.
+
+  The final values are now specified (Tanuj, 2026-09-20): `microaneurysms` and `hemorrhages` become real numbers from M5's new `maPerQuadrant`/`hePerQuadrant`; `hardExudates` is the §R rename of the bright-lesion count; `softExudates` stays `null` as a **disclosed exclusion** — nothing in the pipeline detects them, and null is the only honest value.
+
+  Not fixed yet on purpose: the shape change is breaking for the frontend, and doing it once — with §R and the M5 wiring — costs the frontend one migration instead of two. If M5 slips, shipping the correct keys early with `microaneurysms`/`hemorrhages` null is the better trade; that is a call for the plan owner.
 
 ## Waiting on other people
 
-- **Tanuj:**
+- **Tanuj:** (contracts below agreed 2026-09-20; none of the code has landed on `main` or `origin/tanuj` yet)
   - The §R rename.
-  - The M5 3-class retrain, together with recalibrated rule-engine thresholds.
-  - The real `foveaUnreliable`, `venousBeadingQuadrants` and `irmaQuadrants` fields. The backend reads them as top-level keys of the segmentation JSON.
+  - **The M5 3-class retrain.** Agreed shape: two NEW fields, `maPerQuadrant` and `hePerQuadrant`; `redPerQuadrant` **stays** and remains their sum, so the rule engine's existing input does not change shape. `redFloor` and `grade3QuadMin` are recalibrated with it — the thresholds and the counts must land together, because each is only meaningful against the other. **Explicitly to stay unwired until Tanuj says otherwise.**
+  - `foveaUnreliable` — see the §I.3 note above; contract settled, code not delivered.
+  - `venousBeadingQuadrants` and `irmaQuadrants`. The backend reads all three as top-level keys of the segmentation JSON.
+  - **The 512 px classifier**, behind a config switch defaulting to v1. Tanuj will say before anything flips. What flips with it, on this side: `preprocessBranchATensor.py` emits a 384 tensor, `branchAInferMatlab.m` initialises at 384, and the MATLAB session's warm-up tensor is 384. Those three fail loudly against a 512 network, which is the good case. The one to watch is naming, not geometry: `lesion384`/`roi384` are written at Branch A's input size, and Task 7.1 rescales the CAM to the mask, so the attention score stays correct across a size change while the file names quietly stop being true.
 - **Frontend team:**
   - The login screen: `credentials: 'include'` plus the `X-CSRF-Token` header.
   - The claim flow and the disagreement rule (Confirm unavailable on disagreement cases).

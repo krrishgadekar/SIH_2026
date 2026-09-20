@@ -443,6 +443,22 @@ def run_one(image, outdir=None, min_area=DEFAULT_MIN_AREA):
         "imageSize": [int(h), int(w)],
         "opticDisc": pts["opticDisc"],
         "fovea": pts["fovea"],
+        # Backend plan §I. The flag is produced by localize() -- a peak-
+        # confidence gate on the fovea heatmap -- and is PROMOTED to the top
+        # level here because that is where the contract says the backend reads
+        # it (docs/api-contracts.md, agreed with Tanuj).
+        #
+        # This line exists because the two facts fit together badly: `out` does
+        # not splat `pts`, it copies two named keys out of it. A flag added to
+        # the localization result would therefore never reach the backend, the
+        # backend would store NULL, and NULL is deliberately not false -- so a
+        # case whose fovea could not be found would be graded on quadrants
+        # nobody could place, and auto-cleared at Tier A. Nothing would error.
+        #
+        # Absent from `pts` -> absent here, still not false. "Not reported" and
+        # "reported reliable" must stay different values all the way through.
+        **({"foveaUnreliable": bool(pts["foveaUnreliable"])}
+           if isinstance(pts.get("foveaUnreliable"), (bool, np.bool_)) else {}),
         "vessel": {"pixels": int(vessel.sum()),
                    "fraction": float(vessel.mean())},
         "redLesions": summarise(red512, min_area),
