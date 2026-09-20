@@ -61,16 +61,84 @@ class DRClassifier(nn.Module):
         return self.head(self.drop(self.backbone(x)))
 
 
+class DRClassifierV2Export(nn.Module):
+    """5-class-only export wrapper for branchA_v2a.pt.
+
+    The trained checkpoint (see train_classifier_kaggle_v2.ipynb's
+    DRClassifierV2) is dual-head: backbone -> dropout -> {head5, headBin}.
+    This wrapper's forward() returns ONLY head5's output -- the binary head
+    is dropped from the graph entirely, per this export's brief (v2a
+    integration ships the 5-class grade only; the binary head's conformal/
+    deployment story is undecided and out of scope here).
+
+    Module names are deliberately `backbone`/`drop`/`head` -- IDENTICAL to
+    DRClassifier above, not `backbone`/`dropout`/`head5` (the checkpoint's
+    own names) -- so the exported ONNX graph's node names, and therefore
+    every downstream MATLAB layer name importModels.m disconnects/reconnects
+    ('x_backbone_global__2', 'x_head_Gemm'), are IDENTICAL to v1's. This is
+    what lets the v2a entries in importModels.m/branchAInferMatlab.m follow
+    v1's pattern verbatim instead of re-deriving new node names per version.
+    """
+
+    def __init__(self, model_name, num_classes, drop_rate):
+        super().__init__()
+        self.backbone = timm.create_model(
+            model_name, pretrained=False, num_classes=0, drop_rate=0.0
+        )
+        self.drop = nn.Dropout(p=drop_rate)
+        self.head = nn.Linear(self.backbone.num_features, num_classes)
+
+    def forward(self, x):
+        return self.head(self.drop(self.backbone(x)))
+
+
+def remap_v2a_state_dict(state_dict: dict) -> dict:
+    """head5.* -> head.*, backbone.* unchanged, headBin.* DROPPED.
+
+    Returns a state dict loadable strict=True into DRClassifierV2Export.
+    Dropping headBin.* here (not just ignoring it) is deliberate: strict=True
+    below must see zero unexpected keys, so headBin's weights are excluded
+    before the load, not tolerated by loosening the check.
+    """
+    out = {}
+    for k, v in state_dict.items():
+        if k.startswith("headBin."):
+            continue
+        if k.startswith("head5."):
+            out["head" + k[len("head5"):]] = v
+        else:
+            out[k] = v
+    return out
+
+
+def build_v2a_5class_model(ckpt: dict) -> nn.Module:
+    """Load branchA_v2a.pt's checkpoint dict into DRClassifierV2Export,
+    strict=True, 5-class head only. Shared by this file's export_v2a() and
+    prepare_parity_inputs.py so the wrapper is defined and loaded in exactly
+    one place."""
+    m = DRClassifierV2Export(ckpt["model_name"], ckpt["num_classes"], ckpt["drop_rate"])
+    remapped = remap_v2a_state_dict(ckpt["model_state_dict"])
+    strict_load(m, remapped, "M1 branchA_v2a (5-class head only)")
+    return m
+
+
 def strict_load(model: nn.Module, state_dict: dict, label: str) -> None:
+    # stderr, not stdout: this function is also called from branchAInfer.py's
+    # live inference path (BRANCH_A_MODEL_VERSION=branchA_v2a ->
+    # build_v2a_5class_model() -> here), which documents "prints ONE line of
+    # JSON to stdout and nothing else on success" -- a stray stdout print
+    # here would violate that contract on every v2a request. Node's caller
+    # happens to defensively re-find the first '{' (gradingOrchestrator.js),
+    # but this file should not rely on every caller doing that.
     try:
         result = model.load_state_dict(state_dict, strict=True)
     except RuntimeError as e:
-        print(f"\n[{label}] STRICT LOAD FAILED -- architecture mismatch:\n{e}\n")
+        print(f"\n[{label}] STRICT LOAD FAILED -- architecture mismatch:\n{e}\n", file=sys.stderr)
         raise
     missing, unexpected = result.missing_keys, result.unexpected_keys
     assert not missing and not unexpected, (missing, unexpected)
     print(f"[{label}] strict=True load OK "
-          f"({sum(p.numel() for p in model.parameters())/1e6:.2f} M params)")
+          f"({sum(p.numel() for p in model.parameters())/1e6:.2f} M params)", file=sys.stderr)
 
 
 def export(model: nn.Module, dummy: torch.Tensor, out_path: Path,
@@ -95,6 +163,22 @@ def export_m1():
     strict_load(m, ckpt["model_state_dict"], "M1 branchA_v1")
     dummy = torch.randn(1, 3, 384, 384)
     export(m, dummy, OUT_DIR / "branchA_v1.onnx", ["input"], ["logits"])
+
+
+def export_m1_v2a():
+    """branchA_v2a.pt -> models/Model1/branchA_v2a.onnx (NOT training/onnx_out/,
+    per this export's brief -- v1's other 4 models stay in onnx_out/, only
+    v2a's output path differs). 5-class logits only (DRClassifierV2Export
+    drops the binary head); same opset/conventions/input size convention as
+    v1 (1x3xHxH, H = ckpt["img_size"])."""
+    ckpt_path = find_ckpt("branchA_v2a.pt")
+    ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+    m = build_v2a_5class_model(ckpt)
+    size = ckpt["img_size"]
+    dummy = torch.randn(1, 3, size, size)
+    out_path = MODELS_DIR / "Model1" / "branchA_v2a.onnx"
+    export(m, dummy, out_path, ["input"], ["logits"])
+    return ckpt, m
 
 
 def export_m2():
@@ -142,7 +226,7 @@ def export_m5():
 
 ALL = {
     "m1": export_m1, "m2": export_m2, "m3": export_m3,
-    "m4": export_m4, "m5": export_m5,
+    "m4": export_m4, "m5": export_m5, "m1_v2a": export_m1_v2a,
 }
 
 

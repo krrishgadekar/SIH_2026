@@ -117,6 +117,26 @@ build/
 .next/
 out/
 
+# Named exceptions to the generic "out/" rule above, for specific ml-pipeline
+# diagnostics reports that are meant to be committed as evidence (v2a
+# integration parity + Messidor-2 external validation). A directory excluded
+# by a pattern like "out/" cannot have individual files re-included by a
+# plain "!path" negation (a documented gitignore limitation - git never
+# descends into an excluded directory to check further patterns), so the
+# directory itself must be re-admitted first, then re-blocked by default,
+# then the specific files re-admitted by name. Everything else already in
+# diagnostics/out/ stays ignored exactly as before.
+!central-system/backend/ml-pipeline/diagnostics/out/
+central-system/backend/ml-pipeline/diagnostics/out/*
+!central-system/backend/ml-pipeline/diagnostics/out/parity_v2a_report.txt
+!central-system/backend/ml-pipeline/diagnostics/out/v2a_posthoc_report.json
+!central-system/backend/ml-pipeline/diagnostics/out/v2a_posthoc_report.txt
+!central-system/backend/ml-pipeline/diagnostics/out/messidor2_v2a_external_validation.json
+!central-system/backend/ml-pipeline/diagnostics/out/messidor2_v2a_logits.npy
+!central-system/backend/ml-pipeline/diagnostics/out/messidor2_v2a_logits_fp32.npy
+!central-system/backend/ml-pipeline/diagnostics/out/messidor2_shift_stress_test.json
+!central-system/backend/ml-pipeline/diagnostics/out/messidor2_shift_stress_test.txt
+
 # Task verification scripts — developer tooling, run locally, not part of the
 # deliverable. Kept on disk (and in git history up to 95222e9) so each task can
 # still be re-verified; simply not carried in the repo.

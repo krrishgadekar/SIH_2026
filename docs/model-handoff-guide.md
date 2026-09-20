@@ -1,3 +1,14 @@
+> ⚠️ **SUPERSEDED.** This guide predates `branchA_v1.pt`'s actual trained
+> checkpoint (its own "net contract" section describes a 512×512×3 model with
+> a legacy `benGrahamCrop -> claheEnhance -> illuminationNormalize` chain that
+> was never trained — see `training/export_to_onnx.py`'s header for the full
+> explanation). For the current, empirically-verified architecture/
+> preprocessing/checkpoint contract for Model 1 (`branchA_v1`) **and** the
+> behind-a-switch Model 1 v2a (`branchA_v2a`, `BRANCH_A_MODEL_VERSION`), see
+> `docs/system-design-v4.md` and
+> `central-system/backend/ml-pipeline/diagnostics/MODEL_INTERFACE_REFERENCE.md`.
+> Left in place, not rewritten, for history.
+
 # Branch A Model — Training & Handoff Guide
 
 **Audience:** whoever owns Tasks 2.2 / 2.3 (Branch A CNN training).
