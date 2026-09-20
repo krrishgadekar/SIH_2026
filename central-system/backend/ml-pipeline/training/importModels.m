@@ -64,6 +64,44 @@ fprintf('        confirmed against the original PyTorch model in parityCheck.m\n
 save(fullfile(modelsDir, 'branchA_v1.mat'), 'net');
 fprintf('  SAVED %s\n', fullfile(modelsDir, 'branchA_v1.mat'));
 
+%% M1 v2a -- branchA_v2a (classifier, 512px, 5-class head only)
+% Exact v1 pattern (disconnect before the Gemm, insert dropout, append
+% softmax): export_to_onnx.py's DRClassifierV2Export uses the SAME module
+% names (backbone/drop/head) v1's DRClassifier does specifically so this
+% graph has the SAME node names ('x_backbone_global__2', 'x_head_Gemm') --
+% nothing below needed to change except the file paths and the input size
+% (512, from the checkpoint's own img_size, not v1's 384).
+%
+% NOT saved to branchA_v1.mat / onnx_out -- source is
+% models/Model1/branchA_v2a.onnx (this export's own output path, not
+% training/onnx_out/, per the v2a integration brief) and the saved net is
+% models/branchA_v2a.mat, alongside (not replacing) branchA_v1.mat.
+fprintf('\n-- M1 v2a branchA_v2a --\n');
+v2aOnnxPath = fullfile(thisDir, '..', 'models', 'Model1', 'branchA_v2a.onnx');
+V2A_SIZE = 512;
+net = importNetworkFromONNX(v2aOnnxPath, 'InputDataFormats', {'BCSS'});
+
+net = disconnectLayers(net, 'x_backbone_global__2', 'x_head_Gemm');
+net = addLayers(net, dropoutLayer(0.3, 'Name', 'dropout_dr'));
+net = connectLayers(net, 'x_backbone_global__2', 'dropout_dr');
+net = connectLayers(net, 'dropout_dr', 'x_head_Gemm');
+net = addLayers(net, softmaxLayer('Name', 'softmax_dr'));
+net = connectLayers(net, 'x_head_Gemm', 'softmax_dr');
+net.OutputNames = {'softmax_dr'};
+net = initialize(net, dlarray(single(zeros(V2A_SIZE, V2A_SIZE, 3, 1)), 'SSCB'));
+
+hasDropout = any(arrayfun(@(L) isa(L, 'nnet.cnn.layer.DropoutLayer'), net.Layers));
+assertCheck('v2a: dropout layer present', hasDropout);
+
+probs = gatherRow(predict(net, dlarray(single(zeros(V2A_SIZE, V2A_SIZE, 3, 1)), 'SSCB')));
+assertCheck('v2a: output has 5 columns', numel(probs) == 5);
+assertCheck('v2a: output sums to 1 (softmax present)', abs(sum(probs) - 1) < 1e-4);
+fprintf('  INFO  column order = grade index + 1 by construction, same as v1 -- see\n');
+fprintf('        training/parityCheckV2a.m for the empirical check on real images\n');
+
+save(fullfile(modelsDir, 'branchA_v2a.mat'), 'net');
+fprintf('  SAVED %s\n', fullfile(modelsDir, 'branchA_v2a.mat'));
+
 %% M2 -- vessel_unet_v1 (binary segmentation, 1-channel input)
 fprintf('\n-- M2 vessel_unet_v1 --\n');
 net = importNetworkFromONNX(fullfile(onnxDir, 'vessel_unet_v1.onnx'), ...
@@ -112,7 +150,7 @@ assertCheck('output is 512x512x1', isequal(size(y), [512 512 1 1]));
 save(fullfile(modelsDir, 'red_lesion_unet_v1.mat'), 'net');
 fprintf('  SAVED %s\n', fullfile(modelsDir, 'red_lesion_unet_v1.mat'));
 
-fprintf('\nAll 5 models imported and saved.\n');
+fprintf('\nAll 5 v1 models + branchA_v2a imported and saved.\n');
 end
 
 function assertCheck(label, ok)

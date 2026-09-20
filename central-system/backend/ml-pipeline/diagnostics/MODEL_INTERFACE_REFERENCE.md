@@ -74,6 +74,58 @@ Split per-source stratified 70/15/15 (seed 42). Loss = inverse-frequency-weighte
 
 ---
 
+## Model 1 v2a — DR severity classifier, 512px, 5-class head only  (`models/Model1/v2a/branchA_v2a.pt`)
+
+**Training code:** `training/train_classifier_kaggle_v2.ipynb` (Kaggle, run tag `v2a`, `USE_EYEPACS=False`). Local artifacts in `models/Model1/v2a/`. Verified 2026-09-20 directly against the notebook (the source of truth for this model) and against real-image parity checks — see below, not inferred from the plan doc.
+
+**Task:** same 5-class ICDR grade as v1. **A behind-a-switch upgrade candidate, NOT the default.** Selected via `BRANCH_A_MODEL_VERSION=branchA_v1|branchA_v2a` (env var, default `branchA_v1`), read independently by `inference/branchAInfer.py` and `inference/branchAInferMatlab.m`. `training/{export_to_onnx,importModels,parityCheckV2a,runParityCaptureV2a}` are the v2a-specific integration files; v1's own files are untouched by this integration.
+
+### Architecture — `DRClassifierV2` (as trained, DUAL-head) vs. what actually ships (5-class only)
+The trained checkpoint is dual-head:
+```python
+class DRClassifierV2(nn.Module):
+    def __init__(self, model_name, num_classes, drop_rate):
+        super().__init__()
+        self.backbone = timm.create_model(model_name, pretrained=False, num_classes=0, drop_rate=0.0)
+        self.dropout = nn.Dropout(drop_rate)
+        self.head5   = nn.Linear(self.backbone.num_features, num_classes)   # 5-class ordinal grade
+        self.headBin = nn.Linear(self.backbone.num_features, 1)            # binary referable (>=2)
+    def forward(self, x):
+        f = self.dropout(self.backbone(x))
+        return self.head5(f), self.headBin(f)
+```
+`model_name="efficientnet_b0"`, `num_classes=5`, `drop_rate=0.3`, `num_features=1280` — same backbone choice as v1.
+
+**This integration ships the 5-class head ONLY.** The binary head's conformal/deployment story is undecided (see `experiments/conformalPolicySweep.py`) and is out of scope here — every exported/imported/live-path artifact (`branchA_v2a.onnx`, `branchA_v2a.mat`, `branchAInfer.py`'s `BRANCH_A_MODEL_VERSION=branchA_v2a` path) drops `headBin` entirely and returns only `head5`'s output. The wrapper used for this (`DRClassifierV2Export` in `training/export_to_onnx.py`, reused by `prepare_parity_inputs.py` and by `branchAInfer.py`'s `load_model()` so there is one definition, not three) renames the checkpoint's `head5.*` to `head.*` and drops `headBin.*` before a `strict=True` load — deliberately using v1's own module names (`backbone`/`drop`/`head`) so the exported ONNX graph's node names are IDENTICAL to v1's (`x_backbone_global__2`, `x_head_Gemm`), which is what lets `importModels.m`'s v2a entry and `branchAInferMatlab.m` follow v1's pattern verbatim instead of re-deriving new node names.
+
+### Input preprocessing (notebook cells 3/4/10/12 — the source of truth)
+1. `cv2.imread(path)` → BGR uint8
+2. `ben_graham_preprocess(bgr, 512)` → BGR uint8 `(512,512,3)` — **byte-identical function** to `preprocessing/ben_graham.py` / v1's own recipe, only `target_size` differs (384 → 512; the notebook's own inlined copy says so explicitly, and this was verified, not assumed)
+3. `cv2.cvtColor(..., COLOR_BGR2RGB)`, cached as `.npy` (`_preprocess_and_cache`, cell 10)
+4. `PIL.Image.fromarray` → `eval_tf`: `Resize((512,512))` *(no-op, already 512)* → `ToTensor()` (→ `[0,1]`, CHW) → `Normalize(mean=(0.485,0.456,0.406), std=(0.229,0.224,0.225))` ← **ImageNet, same as v1**
+5. `x.unsqueeze(0)` → `(1, 3, 512, 512)` float32
+
+Identical in kind to v1's chain, only the resolution differs — confirmed via checkpoint metadata (`img_size=512`, `channel_order="RGB"`, `normalize_mean/std`=ImageNet, `preprocessing`=`"ben_graham: circular crop -> resize -> gaussian-subtraction contrast"`) which `branchAInfer.py`'s existing `preprocess()`/`load_calibration()` already read dynamically from the checkpoint — no code there needed to change for the different resolution.
+
+### Output
+5-class raw logits (binary head dropped, see above). `logits.argmax(1)` = predicted grade. Referable convention: grade ≥ 2 (checkpoint's own `referable_from=2`), same as v1.
+
+### Checkpoint keys
+Same shape as v1's: `model_state_dict` (362 tensors: 360 backbone + `head5.{weight,bias}` + `headBin.{weight,bias}`), `model_name`, `arch`, `num_classes(5)`, `num_features(1280)`, `drop_rate(0.3)`, `img_size(512)`, `normalize_mean/std`, `channel_order("RGB")`, `preprocessing(str)`, `class_weights[5]`, `grade4_weight_boost(2.0)`, `train_grade_counts`, `epoch(22)`, `val_qwk(0.8947)`, `val_metrics`, `seed(42)`.
+
+### Training facts / metrics (from `models/Model1/v2a/branchA_v2a_metrics.json`, post-hoc-verified in `experiments/evalV2aPostHoc.py` — reproduced exactly, zero mismatches)
+APTOS+IDRiD only (`USE_EYEPACS=False`). Best epoch 22. **Test QWK (pooled) 0.873, IDRiD-only 0.810, APTOS-only 0.879.** Argmax-referable sens/spec (pooled) 0.901/0.938. Grade-4 recall (pooled) 0.537 (29/54); IDRiD-only 0.500 (5/10). The checkpoint's own `binary_head_spec` at its (buggy, since-fixed-elsewhere) locked threshold is near-zero and should be ignored — see `training/train_classifier_kaggle_v2.ipynb`'s threshold-lock cell fix and `experiments/evalV2aPostHoc.py`'s correctly-locked numbers (AUC 0.981) for the real picture of that head, not used by this integration regardless.
+
+### Deviations / integration notes specific to v2a
+- **ONNX export path differs from v1's:** `models/Model1/branchA_v2a.onnx`, not `training/onnx_out/branchA_v2a.onnx` — v1's other 4 models still export to `onnx_out/`, only this integration's own output path differs, by this task's own brief.
+- **Calibration file is version-specific and does NOT exist yet:** `models/calibration_branchA_v2a.json` (never `calibration_v1.json` — two separate guards, filename AND an explicit `modelVersion` field check in both `branchAInfer.py` and `branchAInferMatlab.m`, refuse a cross-version file even if copy-pasted with the right name). Running `BRANCH_A_MODEL_VERSION=branchA_v2a` today reports `calibrated:false` / `UNCALIBRATED` — this is correct, expected behaviour, not a bug: the conformal policy for v2a is undecided (see `experiments/conformalPolicySweep.py`), and this integration deliberately does not generate one.
+- **Parity, empirically verified 2026-09-20** (10 real IDRiD images, `training/parity_data/branchA_v2a_*`): onnxruntime vs PyTorch softmax max|diff| = 8.3e-7 (threshold 1e-4, `training/prepare_parity_inputs.py`); imported MATLAB dlnetwork vs PyTorch softmax max|diff| = 1e-6, argmax agreement 10/10 (threshold 0.01, `training/parityCheckV2a.m`, report captured to `diagnostics/out/parity_v2a_report.txt`); MATLAB-path vs Python-path (both via `BRANCH_A_MODEL_VERSION=branchA_v2a`, real images end-to-end) max|diff| = 1.5e-6, grade agreement 10/10.
+- **Switching back to `branchA_v1` (including within the same persistent MATLAB session — `matlabSession/runMatlabInferenceSession.m`) was verified to reproduce v1's original calibrated behaviour** (`calibrated:true`, `temperature=1.531`, matching conformal tiers) on the same 10 images — the persistent-net caching in `branchAInferMatlab.m` is keyed by `BRANCH_A_MODEL_VERSION` specifically so a mid-session version switch reloads rather than silently keeps serving whichever model loaded first.
+- Grad-CAM confirmed working at 512 through both backends (`backbone.bn2.act` is the same submodule path in both models — same backbone architecture — so `inference/gradcam.py`'s `TARGET_LAYER` needed no change).
+- MC-Dropout: untested for v2a specifically in this integration (out of scope — no calibration/temperature exists yet to make an uncertainty score meaningful); the dropout module is found generically by type (`isinstance(mod, nn.Dropout)`), not by attribute name, so nothing architectural should block it, but this is not itself a verified claim.
+
+---
+
 ## Model 2 — retinal vessel segmentation  (`vessel_unet_v1.pt`)
 
 **Training code:** `training/train_vessel_unet.py` (local, CHASE_DB1). Artifacts in `models/vessel_predictions(Model2)/`.

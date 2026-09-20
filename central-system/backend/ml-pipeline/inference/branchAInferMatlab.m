@@ -1,7 +1,8 @@
 function out = branchAInferMatlab(tensorPath, gradcamPath)
 % BRANCHAINFERMATLAB  Branch A inference via the imported MATLAB dlnetwork
-% (models/branchA_v1.mat, ONNX-imported from the same branchA_v1.pt
-% checkpoint branchAInfer.py serves), given an ALREADY-PREPROCESSED tensor.
+% (models/branchA_v1.mat or models/branchA_v2a.mat, ONNX-imported from the
+% matching PyTorch checkpoint branchAInfer.py serves), given an
+% ALREADY-PREPROCESSED tensor.
 %
 %   out = branchAInferMatlab(tensorPath)
 %   out = branchAInferMatlab(tensorPath, gradcamPath)
@@ -9,6 +10,17 @@ function out = branchAInferMatlab(tensorPath, gradcamPath)
 % Mirrors branchAInfer.py's JSON contract field-for-field (see that file's
 % docstring) so gradingOrchestrator.js's calling/parsing code does not change
 % -- only which backend it shells out to (INFERENCE_BACKEND=matlab|python).
+%
+% ── BRANCH_A_MODEL_VERSION=branchA_v1|branchA_v2a (v2a integration, GATE 4) ─
+% Env var, default branchA_v1 (see versionCfg below). Selects the .mat, the
+% calibration file (NEVER calibration_v1.json for v2a -- a different
+% filename, plus an explicit modelVersion-field guard), the tensor size used
+% only for the initialize() fallback, and the modelVersion/imgSize/
+% preprocessing fields in the returned struct. tensorPath's own tensor size
+% must already match the selected version -- that is
+% preprocessBranchATensor.py's job (it reads ckpt["img_size"] from whichever
+% checkpoint BRANCH_A_MODEL_VERSION resolves to Python-side), not this
+% function's.
 %
 % ── CONTRACT CHANGE (2026-09-19): NO IMAGE PREPROCESSING HAPPENS HERE ──────
 % This function used to do its own preprocessing via preprocessForBranchA.m /
@@ -83,20 +95,61 @@ addpath(fullfile(mlRoot, 'calibration'));
 addpath(fullfile(mlRoot, 'explainability'));
 addpath(fullfile(mlRoot, 'models'));
 
-modelPath = fullfile(mlRoot, 'models', 'branchA_v1.mat');
-calibPath = fullfile(mlRoot, 'models', 'calibration_v1.json');
+% ── BRANCH_A_MODEL_VERSION switch (v2a integration, GATE 4) ─────────────────
+% Style matches INFERENCE_BACKEND: an env var read once per call, default
+% stays the currently-deployed model. Whatever spawns this MATLAB process
+% (or the shell, for a direct/manual run) sets it; nothing here needs
+% gradingOrchestrator.js to name it explicitly, the same way INFERENCE_
+% BACKEND already reaches this process without this file naming it either.
+BRANCH_A_MODEL_VERSION = getenv('BRANCH_A_MODEL_VERSION');
+if isempty(BRANCH_A_MODEL_VERSION), BRANCH_A_MODEL_VERSION = 'branchA_v1'; end
+
+versionCfg = struct( ...
+    'branchA_v1', struct( ...
+        'matFile',       'branchA_v1.mat', ...
+        'calibFile',     'calibration_v1.json', ...
+        'imgSize',       384, ...
+        'preprocessing', ['branchAInfer.preprocess() (Python) via preprocessBranchATensor.py -- ' ...
+                          'ben_graham 384, ImageNet norm, no CLAHE']), ...
+    'branchA_v2a', struct( ...
+        'matFile',       'branchA_v2a.mat', ...
+        'calibFile',     'calibration_branchA_v2a.json', ...
+        'imgSize',       512, ...
+        'preprocessing', ['branchAInfer.preprocess() (Python) via preprocessBranchATensor.py -- ' ...
+                          'ben_graham 512, ImageNet norm, 5-class head only (binary head dropped ' ...
+                          'at export)']) ...
+);
+if ~isfield(versionCfg, BRANCH_A_MODEL_VERSION)
+    error('branchAInferMatlab:badVersion', ...
+          'BRANCH_A_MODEL_VERSION must be one of {branchA_v1, branchA_v2a}, got ''%s''.', ...
+          BRANCH_A_MODEL_VERSION);
+end
+cfg = versionCfg.(BRANCH_A_MODEL_VERSION);
+
+% NEVER calibration_v1.json for a non-v1 version: this is a different FILE
+% (cfg.calibFile), not a shared file with a version field checked after the
+% fact, so a v2a run cannot find v1's calibration even by accident (see the
+% MODEL-VERSION GUARD below for the second, explicit line of defence).
+modelPath = fullfile(mlRoot, 'models', cfg.matFile);
+calibPath = fullfile(mlRoot, 'models', cfg.calibFile);
 
 % persistent, like classifyBranchA.m: safe whether this runs as a fresh
 % -batch process per call or inside the persistent session (matlabSession/
 % runMatlabInferenceSession.m), which calls this same function repeatedly
-% without exiting MATLAB between requests.
-persistent net
-if isempty(net)
+% without exiting MATLAB between requests. Keyed by VERSION too -- a
+% persistent-session process that switches BRANCH_A_MODEL_VERSION between
+% requests must reload, not keep serving whichever model happened to load
+% first (this is exactly the switch-back-to-v1-and-confirm-old-behaviour
+% case the v2a integration's own end-to-end check exercises).
+persistent net netVersion
+if isempty(net) || ~strcmp(netVersion, BRANCH_A_MODEL_VERSION)
     loaded = load(modelPath, 'net');
     net = loaded.net;
     if isa(net, 'dlnetwork') && ~net.Initialized
-        net = initialize(net, dlarray(zeros(384, 384, 3, 1, 'single'), 'SSCB'));
+        sz = cfg.imgSize;
+        net = initialize(net, dlarray(zeros(sz, sz, 3, 1, 'single'), 'SSCB'));
     end
+    netVersion = BRANCH_A_MODEL_VERSION;
 end
 
 td = load(tensorPath, 'x', 'display');
@@ -105,18 +158,34 @@ X = dlarray(single(td.x), 'SSCB');
 logitsD = predict(net, X, 'Outputs', 'x_head_Gemm');
 logits  = reshape(double(extractdata(logitsD)), 1, []);
 
+EXPECTED_METHOD = 'ordinal_mode_interval_stratified_v3';
+[~, calibFileName, calibFileExt] = fileparts(calibPath);
+calibFileName = [calibFileName calibFileExt];
+
 calibrated = false;
 calibrationWarning = '';
 temperature = 1.0;
-referableFrom = 2;
 calib = struct();
 if isfile(calibPath)
     calib = jsondecode(fileread(calibPath));
 
+    % METHOD GUARD (2026-09-20): refuse anything that is not THIS score/set
+    % construction, rather than silently falling back to whatever fields
+    % happen to be present. A legacy marginal-LAC file (or the archived
+    % calibration_v1_marginal_lac_ARCHIVE.json) has no qhatPerClass at all --
+    % applying it would either crash conformalTiering or, worse, be patched
+    % around into re-reading the old scalar qhat, which is exactly the
+    % silent-fallback this guard exists to prevent. Unlike the trainedImgSize
+    % check below, a MISSING method field is treated as a mismatch, not as
+    % "legacy and unverifiable" -- there is no prior schema this code knows
+    % how to run against.
+    gotMethod = '';
+    if isfield(calib, 'method'), gotMethod = calib.method; end
+
     % VERSION GUARD (2026-09-19): refuse a calibration fitted for a
     % differently-shaped model instead of silently applying it -- the exact
     % mistake of deploying a v2 model (different resolution) with v1's
-    % qhat=0.8432 still in calibration_v1.json. The network's OWN input-layer
+    % calibration still in calibration_v1.json. The network's OWN input-layer
     % size is the ground truth here (not a hardcoded 384), so this stays
     % correct automatically whatever .mat is actually loaded. Mirrors the
     % same guard in branchAInfer.py's load_calibration() -- both backends
@@ -125,22 +194,46 @@ if isfile(calibPath)
     trainedSize = [];
     if isfield(calib, 'trainedImgSize'), trainedSize = calib.trainedImgSize; end
 
-    if ~isempty(trainedSize) && trainedSize ~= netImgSize
+    % MODEL-VERSION GUARD (v2a integration, GATE 4): the file must also
+    % declare modelVersion == BRANCH_A_MODEL_VERSION. calibPath already
+    % points at a version-specific filename (never calibration_v1.json for
+    % a non-v1 version), so this is a second, explicit check -- belt and
+    % braces, not redundant: a copy-pasted file with the right name but a
+    % stale modelVersion field inside it must still be refused. Mirrors the
+    % same guard in branchAInfer.py's load_calibration().
+    gotVersion = '';
+    if isfield(calib, 'modelVersion'), gotVersion = calib.modelVersion; end
+
+    if ~strcmp(gotMethod, EXPECTED_METHOD)
         calibrationWarning = sprintf(...
-            ['calibration_v1.json was fitted for trainedImgSize=%d but the loaded ' ...
-             'network''s input is %dx%d -- REFUSING to apply this calibration ' ...
-             '(qhat/temperature from a different model mean nothing here). Re-run ' ...
+            ['%s has method=''%s'' but this code requires ''%s'' -- REFUSING to ' ...
+             'apply it (a different method''s thresholds mean nothing here). Re-run ' ...
+             'calibrateBranchA.m and overwrite %s before deploying it. Confidences ' ...
+             'are UNCALIBRATED.'], ...
+            calibFileName, gotMethod, EXPECTED_METHOD, calibFileName);
+    elseif ~strcmp(gotVersion, BRANCH_A_MODEL_VERSION)
+        calibrationWarning = sprintf(...
+            ['%s has modelVersion=''%s'' but BRANCH_A_MODEL_VERSION=''%s'' -- ' ...
+             'REFUSING to apply it. A calibration fitted for a different model ' ...
+             'version must NEVER be applied here, even if method and trainedImgSize ' ...
+             'happen to match. Confidences are UNCALIBRATED.'], ...
+            calibFileName, gotVersion, BRANCH_A_MODEL_VERSION);
+    elseif ~isempty(trainedSize) && trainedSize ~= netImgSize
+        calibrationWarning = sprintf(...
+            ['%s was fitted for trainedImgSize=%d but the loaded network''s input ' ...
+             'is %dx%d -- REFUSING to apply this calibration (qhatPerStratum/' ...
+             'temperature from a different model mean nothing here). Re-run ' ...
              'calibrateBranchA.m against THIS model''s predictions and overwrite ' ...
-             'calibration_v1.json before deploying it. Confidences are UNCALIBRATED.'], ...
-            trainedSize, netImgSize, netImgSize);
+             '%s before deploying it. Confidences are UNCALIBRATED.'], ...
+            calibFileName, trainedSize, netImgSize, netImgSize, calibFileName);
     else
         temperature = calib.temperature;
-        if isfield(calib, 'referableFrom'), referableFrom = calib.referableFrom; end
         calibrated = true;
     end
 else
-    calibrationWarning = ['calibration_v1.json missing; run calibrateBranchA.m. ' ...
-                          'Confidences are UNCALIBRATED.'];
+    calibrationWarning = sprintf(...
+        '%s missing; run calibrateBranchA.m for %s. Confidences are UNCALIBRATED.', ...
+        calibFileName, BRANCH_A_MODEL_VERSION);
 end
 
 rawProbs = softmaxRow(logits);
@@ -148,15 +241,32 @@ calProbs = softmaxRow(logits ./ temperature);
 
 [confidence, gradeIdx] = max(calProbs);
 grade = gradeIdx - 1;
-referable = grade >= referableFrom;
+
+% Live referable flag (conformal policy v3): P(g>=2) clearing the fitted
+% referableThreshold (targets ~95% referable sensitivity on its own,
+% independent of the conformal set/tier), OR the grade-3/grade-4 safety
+% check (P(g3)+P(g4) > 0.5). The safety-check term does not require
+% calibration; the referableThreshold term does -- absent calibration, only
+% the safety check can fire, which is intentional: referable must never
+% look MORE confident than the model's calibration state actually supports.
+pReferable = sum(calProbs(3:5));
+p34 = sum(calProbs(4:5));
+referable = (p34 > 0.5) || (calibrated && isfield(calib, 'referableThreshold') ...
+    && pReferable >= calib.referableThreshold);
 
 tier = '';
 predictionSet = [];
 tierReason = '';
+predictionSetLow = [];
+predictionSetHigh = [];
+predictionSetContiguous = [];
 if calibrated
     [tier, details] = conformalTiering(calProbs, calib);
     predictionSet = details.predictionSet;
     tierReason = details.reason;
+    predictionSetLow = details.low;
+    predictionSetHigh = details.high;
+    predictionSetContiguous = details.contiguous;
 end
 
 out = struct( ...
@@ -168,12 +278,15 @@ out = struct( ...
     'referable',               referable, ...
     'conformalTier',           tier, ...
     'predictionSet',           predictionSet, ...
+    'predictionSetLow',        predictionSetLow, ...
+    'predictionSetHigh',       predictionSetHigh, ...
+    'predictionSetContiguous', predictionSetContiguous, ...
     'tierReason',              tierReason, ...
     'temperature',             temperature, ...
     'calibrated',              calibrated, ...
-    'modelVersion',            'branchA_v1', ...
-    'imgSize',                 384, ...
-    'preprocessing',           'branchAInfer.preprocess() (Python) via preprocessBranchATensor.py -- ben_graham 384, ImageNet norm, no CLAHE', ...
+    'modelVersion',            BRANCH_A_MODEL_VERSION, ...
+    'imgSize',                 cfg.imgSize, ...
+    'preprocessing',           cfg.preprocessing, ...
     'backend',                 'matlab', ...
     'uncertaintyScore',        [], ...
     'uncertaintyError', ['MC-Dropout not implemented for the MATLAB backend: forward() ' ...

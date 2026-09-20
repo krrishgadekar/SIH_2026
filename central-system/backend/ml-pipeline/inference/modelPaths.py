@@ -47,11 +47,12 @@ MODELS_DIR = os.path.join(ML_ROOT, "models")
 
 # Filenames, as the source of truth. Folder names deliberately absent.
 CHECKPOINTS = {
-    "classifier":    "branchA_v1.pt",
-    "vessel":        "vessel_unet_v1.pt",
-    "localization":  "localization_v1.pt",
-    "bright_lesion": "bright_lesion_unet_v1.pt",
-    "red_lesion":    "red_lesion_unet_v1.pt",
+    "classifier":     "branchA_v1.pt",
+    "classifier_v2a": "branchA_v2a.pt",   # BRANCH_A_MODEL_VERSION=branchA_v2a -- see branchAInfer.py
+    "vessel":         "vessel_unet_v1.pt",
+    "localization":   "localization_v1.pt",
+    "bright_lesion":  "bright_lesion_unet_v1.pt",
+    "red_lesion":     "red_lesion_unet_v1.pt",
 }
 
 
@@ -126,4 +127,4 @@ if __name__ == "__main__":
     if missing:
         print(f"\nMISSING: {', '.join(missing)}")
         raise SystemExit(1)
-    print("\nall five checkpoints resolved")
+    print(f"\nall {len(status)} checkpoints resolved")

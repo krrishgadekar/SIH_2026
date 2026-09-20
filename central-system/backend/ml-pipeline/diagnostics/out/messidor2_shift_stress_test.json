@@ -1,0 +1,643 @@
+{
+  "part_a": {
+    "montage_path": "C:\\Users\\Tanuj\\Desktop\\Projects\\DR_SCREENING\\SIH_2026\\central-system\\backend\\ml-pipeline\\diagnostics\\out\\messidor2_sanity_montage.png",
+    "montage_meta": {
+      "random_idx_image_paths": [
+        "extracted/IMAGES/IM001559.JPG",
+        "extracted/IMAGES/20051130_59749_0400_PP.png",
+        "extracted/IMAGES/20051020_62802_0100_PP.png",
+        "extracted/IMAGES/IM003070.JPG",
+        "extracted/IMAGES/20060407_43856_0200_PP.png",
+        "extracted/IMAGES/20051216_45619_0200_PP.png",
+        "extracted/IMAGES/20051214_52707_0100_PP.png",
+        "extracted/IMAGES/20051202_48232_0400_PP.png"
+      ],
+      "worst_miss_image_paths": [
+        "extracted/IMAGES/20051021_40074_0100_PP.png",
+        "extracted/IMAGES/20051021_40180_0100_PP.png",
+        "extracted/IMAGES/20051021_40248_0100_PP.png",
+        "extracted/IMAGES/20051214_56534_0100_PP.png",
+        "extracted/IMAGES/IM002982.JPG",
+        "extracted/IMAGES/20051021_58178_0100_PP.png",
+        "extracted/IMAGES/20051214_51071_0100_PP.png",
+        "extracted/IMAGES/20060530_55468_0100_PP.png"
+      ],
+      "worst_miss_p_ge2": [
+        0.0005180747841101614,
+        0.001665555158249977,
+        0.0022685459789143917,
+        0.0024416386668663125,
+        0.002543263143035073,
+        0.0038556492403561517,
+        0.004261260119109312,
+        0.005112571180127567
+      ],
+      "worst_miss_true_grade": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "n_idrid_test_tiles_used": 8
+    },
+    "visual_description": "VISUAL INSPECTION of the montage (24 tiles, 512px Ben Graham preprocessed):\n  - Crop/framing: sane and consistent across ALL three rows - a clean circular\n    retinal field, no rectangular black bars bleeding in, no obviously botched\n    crops. The preprocessing pipeline does NOT look broken on Messidor-2.\n  - A small notch/flare artifact is visible near the top-right edge of the\n    circular crop in most Messidor-2 tiles (both random and worst-miss rows) -\n    consistent in position, likely a fixed camera/lens marking rather than\n    per-image noise. Not seen on the IDRiD row.\n  - Colour: Messidor-2 tiles (rows 1-2) have a cooler grey-green/olive cast;\n    the IDRiD row (row 3) has a visibly warmer orange/red-brown cast. This is a\n    real, visible systematic colour-domain difference between the two camera/\n    site populations that Ben Graham's local-contrast normalisation does not\n    remove - a plausible contributor to the ranking (AUC) drop, not a sign of a\n    broken pipeline.\n  - Sharpness: broadly comparable across all three rows - no obvious focus/\n    blur difference jumps out.\n  - The row-2 WORST MISSES do not look visually degraded, occluded, or low-\n    quality - they are clean, well-centered, well-focused fundus photos with\n    clearly visible vessels and optic discs. The model is confidently wrong on\n    these (P(g2+) approx 0.00 on true-referable images), not confused by an\n    obviously bad photo. Some IDRiD tiles show bright white speckled patches\n    (likely hard exudates or bright artifacts) not seen as prominently in the\n    Messidor sample shown here, but n=8 is too small to generalise this.\n  CONCLUSION: nothing here suggests a preprocessing/pipeline bug specific to\n  Messidor-2. The visible difference is a genuine camera/site colour-domain\n  shift, consistent with (not proof of) the AUC and format/resolution results\n  below.",
+    "format_breakdown": {
+      ".jpg": {
+        "n": 687,
+        "auc": 0.8382570806100217,
+        "sens": 0.4266666666666667,
+        "spec": 0.9264705882352942,
+        "grade0_share": 0.8413391557496361,
+        "ci95": {
+          "sens": [
+            0.27941176470588236,
+            0.5652283706631531
+          ],
+          "spec": [
+            0.9017594155996436,
+            0.9489340707118592
+          ],
+          "auc": [
+            0.7763265616707771,
+            0.8910015778587523
+          ],
+          "g0_share": [
+            0.8072992700729927,
+            0.8724433425940217
+          ]
+        }
+      },
+      ".png": {
+        "n": 1057,
+        "auc": 0.899515222028311,
+        "sens": 0.5445026178010471,
+        "spec": 0.9733333333333334,
+        "grade0_share": 0.7464522232734153,
+        "ci95": {
+          "sens": [
+            0.48275399833595267,
+            0.6029470121381886
+          ],
+          "spec": [
+            0.9572624322993599,
+            0.9861346352145013
+          ],
+          "auc": [
+            0.8740569285973335,
+            0.9230239160467509
+          ],
+          "g0_share": [
+            0.7109004739336493,
+            0.7793560606060606
+          ]
+        }
+      }
+    },
+    "resolution_breakdown": {
+      "1440x960": {
+        "n": 527,
+        "auc": 0.8815953742032984,
+        "sens": 0.5087719298245614,
+        "spec": 0.9578651685393258,
+        "grade0_share": 0.7647058823529411,
+        "ci95": {
+          "sens": [
+            0.4263113038277512,
+            0.587572077581688
+          ],
+          "spec": [
+            0.9323943661971831,
+            0.9808219178082191
+          ],
+          "auc": [
+            0.841604380040907,
+            0.9155060929544072
+          ],
+          "g0_share": [
+            0.7196969696969697,
+            0.8095328625746876
+          ]
+        }
+      },
+      "2240x1488": {
+        "n": 614,
+        "auc": 0.9227711594322205,
+        "sens": 0.5639810426540285,
+        "spec": 0.9900744416873449,
+        "grade0_share": 0.744299674267101,
+        "ci95": {
+          "sens": [
+            0.47801724137931034,
+            0.6419892743422154
+          ],
+          "spec": [
+            0.9795879019988458,
+            0.9976248438045277
+          ],
+          "auc": [
+            0.8921774183563346,
+            0.9493716308803941
+          ],
+          "g0_share": [
+            0.699832829283278,
+            0.7886242066184982
+          ]
+        }
+      },
+      "2304x1536": {
+        "n": 603,
+        "auc": 0.7998989898989899,
+        "sens": 0.4533333333333333,
+        "spec": 0.9166666666666666,
+        "grade0_share": 0.8407960199004975,
+        "ci95": {
+          "sens": [
+            0.30355790043290043,
+            0.5909090909090909
+          ],
+          "spec": [
+            0.8878326996197718,
+            0.9424914008621429
+          ],
+          "auc": [
+            0.7249454896349886,
+            0.8655325993963933
+          ],
+          "g0_share": [
+            0.8059701492537313,
+            0.8756218905472637
+          ]
+        }
+      }
+    }
+  },
+  "part_b": {
+    "calibration_n": 1161,
+    "qhat_per_class": [
+      0.0,
+      0.0,
+      0.8983137814733771,
+      0.8983137814733771,
+      0.8983137814733771
+    ],
+    "n_per_group": [
+      658,
+      658,
+      503,
+      503,
+      503
+    ],
+    "alpha": [
+      0.3,
+      0.3,
+      0.05,
+      0.05,
+      0.05
+    ],
+    "messidor2_c5v3": {
+      "mean_set_size": 1.977637614678899,
+      "frac_size1": 0.5785550458715596,
+      "frac_size2": 0.01261467889908257,
+      "frac_size_ge3": 0.4088302752293578,
+      "tierA_share": 0.5768348623853211,
+      "tierB_share": 0.17373853211009174,
+      "tierC_share": 0.24942660550458715,
+      "coverage_marginal": 0.8119266055045872,
+      "coverage_per_grade": {
+        "0": {
+          "coverage": 0.9419862340216323,
+          "n_k": 1017
+        },
+        "1": {
+          "coverage": 0.3037037037037037,
+          "n_k": 270
+        },
+        "2": {
+          "coverage": 0.7780979827089337,
+          "n_k": 347
+        },
+        "3": {
+          "coverage": 0.9733333333333334,
+          "n_k": 75
+        },
+        "4": {
+          "coverage": 0.9428571428571428,
+          "n_k": 35
+        }
+      },
+      "false_auto_clear_ref_k": 77,
+      "false_auto_clear_ref_n": 457,
+      "false_auto_clear_ref_rate": 0.16849015317286653,
+      "false_auto_clear_ge3_k": 0,
+      "false_auto_clear_ge3_n": 110,
+      "false_auto_clear_ge3_rate": 0.0,
+      "tierA_count": 1006,
+      "tierA_referable_k": 77,
+      "tierA_referable_rate": 0.07654075546719682,
+      "tierA_ge3_k": 0,
+      "tierA_ge3_n": 1006,
+      "tierA_ge3_rate": 0.0,
+      "stratum_coverage": {
+        "nonreferable(0-1)": {
+          "coverage": 0.8080808080808081,
+          "n": 1287
+        },
+        "referable(2-4)": {
+          "coverage": 0.8227571115973742,
+          "n": 457
+        }
+      }
+    },
+    "referable_threshold": {
+      "threshold": 0.29682354040014786,
+      "cal_sens": 0.952286282306163,
+      "cal_spec": 0.9012158054711246,
+      "messidor2_sens": 0.6717724288840262,
+      "messidor2_spec": 0.8974358974358975,
+      "messidor2_auc": 0.8678401588686053,
+      "indomain_test_auc": 0.9826297091870456
+    },
+    "patient_bootstrap_ci95": {
+      "tierA_share": [
+        0.5463865772367821,
+        0.6045848565688503
+      ],
+      "tierB_share": [
+        0.15194390620056944,
+        0.19736087205966724
+      ],
+      "tierC_share": [
+        0.22623002158122946,
+        0.27424375211194124
+      ],
+      "coverage_marginal": [
+        0.7908249452990019,
+        0.8327586700635937
+      ],
+      "false_auto_clear_ref_rate": [
+        0.13043478260869565,
+        0.20782930748466824
+      ],
+      "false_auto_clear_ge3_rate": [
+        0.0,
+        0.0
+      ],
+      "tierA_referable_rate": [
+        0.05828055243526599,
+        0.09707196251913316
+      ],
+      "referableThreshold_sens": [
+        0.6193818807679753,
+        0.7207259585166561
+      ],
+      "referableThreshold_spec": [
+        0.8778390433402139,
+        0.9160246533127889
+      ],
+      "referableThreshold_auc": [
+        0.8422005734228534,
+        0.8917684250638445
+      ]
+    },
+    "indomain_cross_fit_reference": {
+      "mean_set_size": {
+        "mean": 1.8870556459967442,
+        "ci95": [
+          1.8658297328669138,
+          1.9082815591265747
+        ],
+        "n_folds": 50
+      },
+      "frac_size1": {
+        "mean": 0.5170634157170342,
+        "ci95": [
+          0.5082111612779487,
+          0.5259156701561196
+        ],
+        "n_folds": 50
+      },
+      "frac_size2": {
+        "mean": 0.12963223323960338,
+        "ci95": [
+          0.12365529774189127,
+          0.1356091687373155
+        ],
+        "n_folds": 50
+      },
+      "frac_size_ge3": {
+        "mean": 0.35330435104336244,
+        "ci95": [
+          0.34288433476377256,
+          0.3637243673229523
+        ],
+        "n_folds": 50
+      },
+      "tierA_share": {
+        "mean": 0.45642000887968026,
+        "ci95": [
+          0.4523281217314907,
+          0.46051189602786985
+        ],
+        "n_folds": 50
+      },
+      "tierB_share": {
+        "mean": 0.4160248631049283,
+        "ci95": [
+          0.4114638194781016,
+          0.420585906731755
+        ],
+        "n_folds": 50
+      },
+      "tierC_share": {
+        "mean": 0.12755512801539143,
+        "ci95": [
+          0.12161705968023,
+          0.13349319635055287
+        ],
+        "n_folds": 50
+      },
+      "coverage_marginal": {
+        "mean": 0.9241926890631936,
+        "ci95": [
+          0.9194940397272221,
+          0.9288913383991652
+        ],
+        "n_folds": 50
+      },
+      "false_auto_clear_ref_rate": {
+        "mean": 0.006352475247524754,
+        "ci95": [
+          0.004092153343200481,
+          0.008612797151849027
+        ],
+        "n_folds": 50
+      },
+      "false_auto_clear_ge3_rate": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_folds": 50
+      },
+      "tierA_referable_rate": {
+        "mean": 0.005959656688520228,
+        "ci95": [
+          0.003845433316790329,
+          0.008073880060250126
+        ],
+        "n_folds": 50
+      },
+      "false_auto_clear_ref_counts": {
+        "k_total": 32,
+        "n_total": 5030
+      },
+      "false_auto_clear_ge3_counts": {
+        "k_total": 0,
+        "n_total": 1800
+      },
+      "tierA_referable_counts": {
+        "k_total": 32,
+        "n_total": 5299
+      },
+      "coverage_per_grade": {
+        "0": {
+          "coverage": {
+            "mean": 0.9488940783986655,
+            "ci95": [
+              0.9443120654521867,
+              0.9534760913451442
+            ],
+            "n_folds": 50
+          },
+          "mean_n_k": 109.6,
+          "total_n_k": 5480
+        },
+        "1": {
+          "coverage": {
+            "mean": 0.6772727272727272,
+            "ci95": [
+              0.6486536196468294,
+              0.7058918348986251
+            ],
+            "n_folds": 50
+          },
+          "mean_n_k": 22.0,
+          "total_n_k": 1100
+        },
+        "2": {
+          "coverage": {
+            "mean": 0.9684855769230771,
+            "ci95": [
+              0.9619292905024488,
+              0.9750418633437055
+            ],
+            "n_folds": 50
+          },
+          "mean_n_k": 64.6,
+          "total_n_k": 3230
+        },
+        "3": {
+          "coverage": {
+            "mean": 0.93375,
+            "ci95": [
+              0.9167621987306492,
+              0.9507378012693507
+            ],
+            "n_folds": 50
+          },
+          "mean_n_k": 16.0,
+          "total_n_k": 800
+        },
+        "4": {
+          "coverage": {
+            "mean": 0.91,
+            "ci95": [
+              0.8932603763760387,
+              0.9267396236239613
+            ],
+            "n_folds": 50
+          },
+          "mean_n_k": 20.0,
+          "total_n_k": 1000
+        }
+      },
+      "mean_qhatPerClass": [
+        0.0,
+        0.0,
+        0.8774684607133899,
+        0.8774684607133899,
+        0.8774684607133899
+      ],
+      "mean_nCalPerClass": [
+        526.4,
+        526.4,
+        402.4,
+        402.4,
+        402.4
+      ]
+    }
+  },
+  "part_c": {
+    "neg_max_softmax": {
+      "auroc": 0.5778660834933504,
+      "cutoff": 0.5471871707003166,
+      "frac_messidor_flagged": 0.12041284403669725,
+      "frac_indomain_test_flagged": 0.04617834394904458,
+      "false_autoclear_caught": 0,
+      "false_autoclear_total": 77,
+      "false_autoclear_caught_share": 0.0
+    },
+    "energy": {
+      "auroc": 0.6619491264253372,
+      "cutoff": -2.0169485833794094,
+      "frac_messidor_flagged": 0.1938073394495413,
+      "frac_indomain_test_flagged": 0.04777070063694268,
+      "false_autoclear_caught": 0,
+      "false_autoclear_total": 77,
+      "false_autoclear_caught_share": 0.0
+    },
+    "neg_max_logit": {
+      "auroc": 0.6420336687765213,
+      "cutoff": -1.3917968750000003,
+      "frac_messidor_flagged": 0.17603211009174313,
+      "frac_indomain_test_flagged": 0.04777070063694268,
+      "false_autoclear_caught": 0,
+      "false_autoclear_total": 77,
+      "false_autoclear_caught_share": 0.0
+    },
+    "entropy": {
+      "auroc": 0.6114978190266221,
+      "cutoff": 1.181855076960462,
+      "frac_messidor_flagged": 0.18405963302752293,
+      "frac_indomain_test_flagged": 0.04936305732484077,
+      "false_autoclear_caught": 0,
+      "false_autoclear_total": 77,
+      "false_autoclear_caught_share": 0.0
+    },
+    "fovea_neg_peak": {
+      "auroc": 0.8449054767862108,
+      "cutoff": -0.2938442617654807,
+      "frac_messidor_flagged": 0.10779816513761468,
+      "frac_indomain_test_flagged": 0.019230769230769232,
+      "false_autoclear_caught": 5,
+      "false_autoclear_total": 77,
+      "false_autoclear_caught_share": 0.06493506493506493
+    },
+    "camera_fingerprint": {
+      "auroc": 1.0,
+      "cutoff": 7.43187262924761,
+      "frac_messidor_flagged": 1.0,
+      "frac_indomain_test_flagged": 0.038461538461538464,
+      "false_autoclear_caught": 77,
+      "false_autoclear_total": 77,
+      "false_autoclear_caught_share": 1.0,
+      "caveat": "CAVEAT on (vi): the in-domain-VAL reference is IDRiD-only (APTOS unavailable locally), and every IDRiD image is exactly 4288x2848 (std=0 here) - so width/height alone perfectly separate 'is this an IDRiD photo' from anything else. The AUROC=1.0 this produces is a 'not-this-exact-camera' detector, not evidence of a generally powerful shift signal - it would likely score just as perfectly against any other external, non-IDRiD, non-shifted dataset too. Read its catch-rate as an upper bound achievable BY CONSTRUCTION here, not as a validated real-world shift detector."
+    },
+    "or_combo": {
+      "detectors": [
+        "camera_fingerprint",
+        "fovea_neg_peak"
+      ],
+      "frac_messidor_flagged": 1.0,
+      "false_autoclear_caught": 77,
+      "false_autoclear_total": 77,
+      "false_autoclear_caught_share": 1.0
+    },
+    "temperature": 1.0982478866833305
+  },
+  "part_d": {
+    "A_to_B": {
+      "threshold": 0.013999747186629392,
+      "cal_sens": 0.9539748953974896,
+      "cal_spec": 0.34439178515007896,
+      "eval_sens": 0.944954128440367,
+      "eval_spec": 0.3379204892966361,
+      "eval_sens_ci95": [
+        0.9035521863033218,
+        0.9771715442092154
+      ],
+      "eval_spec_ci95": [
+        0.2956639309149678,
+        0.3810994429388738
+      ],
+      "auc_cal_half": 0.8678670341800683,
+      "auc_eval_half": 0.8674774850601802
+    },
+    "B_to_A": {
+      "threshold": 0.011597754888497395,
+      "cal_sens": 0.9541284403669725,
+      "cal_spec": 0.31498470948012236,
+      "eval_sens": 0.9665271966527197,
+      "eval_spec": 0.30963665086887837,
+      "eval_sens_ci95": [
+        0.9395278200391219,
+        0.990248570428288
+      ],
+      "eval_spec_ci95": [
+        0.267741300482601,
+        0.35276053728578044
+      ],
+      "auc_cal_half": 0.8674774850601802,
+      "auc_eval_half": 0.8678670341800683
+    },
+    "subsampling": {
+      "50": {
+        "n_valid_repeats": 20,
+        "sens_mean": 0.9188073394495413,
+        "sens_std": 0.05664905466401955,
+        "sens_min": 0.7706422018348624,
+        "sens_max": 0.9862385321100917,
+        "spec_mean": 0.43692660550458723,
+        "spec_std": 0.1630322776702939,
+        "spec_min": 0.18807339449541285,
+        "spec_max": 0.7828746177370031
+      },
+      "100": {
+        "n_valid_repeats": 20,
+        "sens_mean": 0.9438073394495415,
+        "sens_std": 0.044777668083093414,
+        "sens_min": 0.8669724770642202,
+        "sens_max": 0.9954128440366973,
+        "spec_mean": 0.34334862385321097,
+        "spec_std": 0.1814846709546195,
+        "spec_min": 0.0963302752293578,
+        "spec_max": 0.6559633027522935
+      },
+      "200": {
+        "n_valid_repeats": 20,
+        "sens_mean": 0.9403669724770642,
+        "sens_std": 0.02422956448852157,
+        "sens_min": 0.8715596330275229,
+        "sens_max": 0.9862385321100917,
+        "spec_mean": 0.36995412844036696,
+        "spec_std": 0.10023221525352027,
+        "spec_min": 0.18807339449541285,
+        "spec_max": 0.6299694189602446
+      },
+      "400": {
+        "n_valid_repeats": 20,
+        "sens_mean": 0.943119266055046,
+        "sens_std": 0.002247238296131343,
+        "sens_min": 0.9403669724770642,
+        "sens_max": 0.944954128440367,
+        "spec_mean": 0.34342507645259934,
+        "spec_std": 0.011261133112857464,
+        "spec_min": 0.3318042813455658,
+        "spec_max": 0.3654434250764526
+      }
+    },
+    "n_patients_A": 437,
+    "n_patients_B": 437
+  },
+  "closing_statements": {
+    "i_preprocessing_or_data_artifact": "NOT a preprocessing/pipeline bug: the montage shows clean, correctly-cropped 512px circles on Messidor-2, matching IDRiD's framing. There IS a real, visible camera colour-domain difference (cooler grey-green vs IDRiD's warmer cast), and .jpg-format images perform measurably worse than .png (lower AUC/sens), but neither fully explains the drop - .png alone (the majority format) still shows a large sensitivity gap vs in-domain. Verdict: a minor contributor, not the main cause.",
+    "ii_threshold_calibration": "A LARGE part of the drop IS threshold-calibration failure, not model failure: the in-domain-locked P(g>=2) threshold (~0.30) is simply wrong for Messidor-2's shifted score distribution. Site-calibration (Part D) using Messidor-2's OWN labels finds the right threshold is ~0.01-0.014, and doing so restores sensitivity to ~94-97% (matching the 95% target) even from as few as 50-100 labelled patients. Verdict: a major, and genuinely fixable-by-recalibration, contributor.",
+    "iii_ranking_quality": "There is ALSO real ranking (AUC) degradation, not just a wrong threshold: AUC of P(g>=2) drops from 0.983 (in-domain held-out test) to 0.868 (Messidor-2), a 0.115 absolute drop. This is why even the BEST site-calibrated threshold in Part D still leaves specificity at only ~31-44%, far below in-domain's ~90% at the same sensitivity - a lower AUC means sensitivity and specificity trade off much more sharply on Messidor-2, and no threshold choice escapes that. Verdict: a major contributor that site-calibration alone cannot fully fix."
+  },
+  "wall_time_seconds": 607.0546839237213
+}

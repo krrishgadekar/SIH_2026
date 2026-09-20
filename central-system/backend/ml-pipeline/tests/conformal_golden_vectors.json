@@ -1,0 +1,1981 @@
+{
+  "method": "ordinal_mode_interval_stratified_v3",
+  "calibrationFile": "models/calibration_branchA_v2a.json",
+  "generatedBy": "generateConformalGoldenVectors.m",
+  "note": "Uses branchA_v2a's calibration (the model behind the switch this policy round is for), not v1's. See this file's own header for why a true referable-threshold-straddle case is not reachable with the real fitted numbers, and where that logic is separately unit-tested.",
+  "cases": [
+    {
+      "id": "v2a_pool_row_24",
+      "probs": [
+        0.0076128687335343722,
+        0.703361115499077,
+        0.25365054284007033,
+        0.00091880750813492823,
+        0.034456665419183491
+      ],
+      "expected": {
+        "tier": "C",
+        "predictionSet": [
+          1,
+          2
+        ],
+        "low": 1,
+        "high": 2,
+        "setSize": 2,
+        "contiguous": true,
+        "mode": 1,
+        "pReferable": 0.28902601576738873
+      }
+    },
+    {
+      "id": "v2a_pool_row_39",
+      "probs": [
+        0.0051663919609862873,
+        0.0087926526201090767,
+        0.05619279881080487,
+        0.23269555239217343,
+        0.6971526042159264
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          3,
+          4
+        ],
+        "low": 3,
+        "high": 4,
+        "setSize": 2,
+        "contiguous": true,
+        "mode": 4,
+        "pReferable": 0.98604095541890469
+      }
+    },
+    {
+      "id": "v2a_pool_row_50",
+      "probs": [
+        0.00069318934290652824,
+        0.0090713006066539138,
+        0.11939808936097977,
+        0.60420904989820523,
+        0.26662837079125451
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 3,
+        "pReferable": 0.99023551005043942
+      }
+    },
+    {
+      "id": "v2a_pool_row_53",
+      "probs": [
+        0.99866814171740437,
+        0.00098341353156175927,
+        9.828130096087981E-5,
+        1.5242226109311356E-5,
+        0.00023492122396365561
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.00034844475103384677
+      }
+    },
+    {
+      "id": "v2a_pool_row_68",
+      "probs": [
+        0.0003295182227680688,
+        0.000954431058910373,
+        0.11856890365360016,
+        0.55658164193451742,
+        0.323565505130204
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 3,
+        "pReferable": 0.99871605071832159
+      }
+    },
+    {
+      "id": "v2a_pool_row_74",
+      "probs": [
+        0.89887349478492473,
+        0.085028175080878232,
+        0.0097333344870014667,
+        0.00040974505973484206,
+        0.0059552505874607767
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.016098330134197085
+      }
+    },
+    {
+      "id": "v2a_pool_row_98",
+      "probs": [
+        0.98321002858493889,
+        0.015012947121119292,
+        0.000849417437225101,
+        3.5615206199859091E-5,
+        0.000891991650516737
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.001777024293941697
+      }
+    },
+    {
+      "id": "v2a_pool_row_110",
+      "probs": [
+        0.017909140728487104,
+        0.6734137567810714,
+        0.29716736760100709,
+        0.0016392702720635477,
+        0.0098704646173707455
+      ],
+      "expected": {
+        "tier": "C",
+        "predictionSet": [
+          1,
+          2
+        ],
+        "low": 1,
+        "high": 2,
+        "setSize": 2,
+        "contiguous": true,
+        "mode": 1,
+        "pReferable": 0.30867710249044139
+      }
+    },
+    {
+      "id": "v2a_pool_row_137",
+      "probs": [
+        0.99496098370588093,
+        0.0041201602300691706,
+        0.00023446577601739723,
+        1.307843803540747E-5,
+        0.00067131184999712364
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.00091885606404992835
+      }
+    },
+    {
+      "id": "v2a_pool_row_160",
+      "probs": [
+        0.011547350046169533,
+        0.46704196441325285,
+        0.41164142681259008,
+        0.0022247770666312693,
+        0.10754448166135626
+      ],
+      "expected": {
+        "tier": "C",
+        "predictionSet": [
+          1,
+          2
+        ],
+        "low": 1,
+        "high": 2,
+        "setSize": 2,
+        "contiguous": true,
+        "mode": 1,
+        "pReferable": 0.52141068554057757
+      }
+    },
+    {
+      "id": "v2a_pool_row_181",
+      "probs": [
+        0.0041572017961748692,
+        0.039817263913738965,
+        0.61971668941583768,
+        0.30535005834193613,
+        0.030958786532312432
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3
+        ],
+        "low": 2,
+        "high": 3,
+        "setSize": 2,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 0.9560255342900863
+      }
+    },
+    {
+      "id": "v2a_pool_row_193",
+      "probs": [
+        0.99008667908445447,
+        0.00636845918214509,
+        0.00072819960850434577,
+        0.00011598803473816402,
+        0.0027006740901579463
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.0035448617334004561
+      }
+    },
+    {
+      "id": "v2a_pool_row_206",
+      "probs": [
+        0.0032558690383858685,
+        0.2632514144129498,
+        0.68288906456148979,
+        0.012172064312037045,
+        0.038431587675137519
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 0.73349271654866444
+      }
+    },
+    {
+      "id": "v2a_pool_row_209",
+      "probs": [
+        0.0022357053323091157,
+        0.2320777377650981,
+        0.69098724368469977,
+        0.011338871889361796,
+        0.063360441328531136
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 0.76568655690259269
+      }
+    },
+    {
+      "id": "v2a_pool_row_211",
+      "probs": [
+        0.99949953643933331,
+        0.00016844886357618918,
+        1.9394429633111071E-5,
+        2.6043190556711398E-6,
+        0.00031001594840181668
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.00033201469709059889
+      }
+    },
+    {
+      "id": "v2a_pool_row_217",
+      "probs": [
+        2.3717603353340441E-5,
+        0.0013874167707845547,
+        0.61853808802568122,
+        0.024283756374569729,
+        0.35576702122561116
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 0.99858886562586213
+      }
+    },
+    {
+      "id": "v2a_pool_row_227",
+      "probs": [
+        1.9759747118230351E-5,
+        0.00051371950127869633,
+        0.0047378785987016239,
+        0.0032080878635298645,
+        0.99152055428937158
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          4
+        ],
+        "low": 4,
+        "high": 4,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 4,
+        "pReferable": 0.999466520751603
+      }
+    },
+    {
+      "id": "v2a_pool_row_244",
+      "probs": [
+        0.96468543829329789,
+        0.016202213835744262,
+        0.0053977649209460236,
+        0.0013651728424566697,
+        0.012349410107555166
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.01911234787095786
+      }
+    },
+    {
+      "id": "v2a_pool_row_290",
+      "probs": [
+        0.90704997089107653,
+        0.059562198444593359,
+        0.010913297836856213,
+        0.0015416477419719025,
+        0.020932885085502069
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.033387830664330181
+      }
+    },
+    {
+      "id": "v2a_pool_row_299",
+      "probs": [
+        0.99154142769647124,
+        0.0073545573173457984,
+        0.00046586057760032511,
+        3.1488077749526788E-5,
+        0.00060666633083306793
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.0011040149861829198
+      }
+    },
+    {
+      "id": "v2a_pool_row_309",
+      "probs": [
+        0.0012260795015043727,
+        0.067125068670144769,
+        0.90578569407928156,
+        0.0065242014088823909,
+        0.01933895634018688
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2
+        ],
+        "low": 2,
+        "high": 2,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 0.93164885182835089
+      }
+    },
+    {
+      "id": "v2a_pool_row_333",
+      "probs": [
+        0.99138689083226139,
+        0.0077151129193966644,
+        0.00035991302225934878,
+        2.3518688728366687E-5,
+        0.000514564537354225
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.00089799624834194052
+      }
+    },
+    {
+      "id": "v2a_pool_row_343",
+      "probs": [
+        0.96743750193158351,
+        0.023372695391983504,
+        0.0034548791462720861,
+        0.0012796038752660608,
+        0.0044553196548948858
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.0091898026764330332
+      }
+    },
+    {
+      "id": "v2a_pool_row_348",
+      "probs": [
+        0.014407628678340756,
+        0.41416646930107637,
+        0.5303121111051865,
+        0.0016037135151971199,
+        0.039510077400199219
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 0.57142590202058285
+      }
+    },
+    {
+      "id": "v2a_pool_row_349",
+      "probs": [
+        0.0085551342911607386,
+        0.95630143530527634,
+        0.027958585449905579,
+        1.2392697197273207E-5,
+        0.0071724522564600591
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          1
+        ],
+        "low": 1,
+        "high": 1,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 1,
+        "pReferable": 0.035143430403562909
+      }
+    },
+    {
+      "id": "v2a_pool_row_359",
+      "probs": [
+        0.00056501876236559256,
+        0.25279418322276265,
+        0.72443279970170738,
+        0.01152343095519307,
+        0.010684567357971454
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 0.74664079801487182
+      }
+    },
+    {
+      "id": "v2a_pool_row_392",
+      "probs": [
+        0.058969246501151755,
+        0.053545824060550848,
+        0.0465482187888031,
+        0.24835351988275189,
+        0.59258319076674237
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 4,
+        "pReferable": 0.88748492943829738
+      }
+    },
+    {
+      "id": "v2a_pool_row_417",
+      "probs": [
+        0.00876673336400017,
+        0.10068953136597249,
+        0.58340384894392094,
+        0.23606759452314066,
+        0.071072291802965745
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 0.89054373527002728
+      }
+    },
+    {
+      "id": "v2a_pool_row_428",
+      "probs": [
+        0.96387787764429267,
+        0.0068415110086249235,
+        0.0020028640320569925,
+        0.00039490822720742336,
+        0.026882839087817977
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.029280611347082392
+      }
+    },
+    {
+      "id": "v2a_pool_row_435",
+      "probs": [
+        0.97729541421299826,
+        0.012993403293077058,
+        0.0031063250327813346,
+        0.0013111648161029906,
+        0.0052936926450403866
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.0097111824939247124
+      }
+    },
+    {
+      "id": "v2a_pool_row_494",
+      "probs": [
+        0.0010438796004514275,
+        0.0032464560369257806,
+        0.15568098975751327,
+        0.24730881483853531,
+        0.59271985976657426
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 4,
+        "pReferable": 0.99570966436262287
+      }
+    },
+    {
+      "id": "v2a_pool_row_519",
+      "probs": [
+        0.062138524901810308,
+        0.59277988748261468,
+        0.30050788402300815,
+        0.012521805033526307,
+        0.032051898559040483
+      ],
+      "expected": {
+        "tier": "C",
+        "predictionSet": [
+          1,
+          2
+        ],
+        "low": 1,
+        "high": 2,
+        "setSize": 2,
+        "contiguous": true,
+        "mode": 1,
+        "pReferable": 0.34508158761557495
+      }
+    },
+    {
+      "id": "v2a_pool_row_555",
+      "probs": [
+        0.00021535121651702294,
+        0.1524466067154463,
+        0.66706479632137328,
+        0.0023174295632825605,
+        0.17795581618338097
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 0.84733804206803676
+      }
+    },
+    {
+      "id": "v2a_pool_row_580",
+      "probs": [
+        0.99575796037224462,
+        0.0025394650494163827,
+        0.0002915102705461472,
+        4.4491824586236692E-5,
+        0.0013665724832066515
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.0017025745783390354
+      }
+    },
+    {
+      "id": "v2a_pool_row_584",
+      "probs": [
+        0.99936844086602572,
+        0.00040876690025141668,
+        2.8473941158286122E-5,
+        5.7557933529105829E-6,
+        0.00018856249921169927
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.00022279223372289597
+      }
+    },
+    {
+      "id": "v2a_pool_row_601",
+      "probs": [
+        0.94412728270554791,
+        0.050642515960177471,
+        0.0030089163062522709,
+        0.00026816412421075783,
+        0.0019531209038117514
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.00523020133427478
+      }
+    },
+    {
+      "id": "v2a_pool_row_609",
+      "probs": [
+        0.00015692253925575625,
+        0.0035449847393461274,
+        0.48091898428347862,
+        0.30503550689604841,
+        0.21034360154187104
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 0.99629809272139813
+      }
+    },
+    {
+      "id": "v2a_pool_row_662",
+      "probs": [
+        0.99752227875743926,
+        0.0015989587975918777,
+        0.000157830044033363,
+        6.576589650031703E-6,
+        0.00071435581128531948
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.00087876244496871416
+      }
+    },
+    {
+      "id": "v2a_pool_row_672",
+      "probs": [
+        1.8241378626983685E-5,
+        0.0002041308128798538,
+        0.020816321543029131,
+        0.050514995479511014,
+        0.92844631078595308
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          4
+        ],
+        "low": 4,
+        "high": 4,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 4,
+        "pReferable": 0.99977762780849322
+      }
+    },
+    {
+      "id": "v2a_pool_row_688",
+      "probs": [
+        0.0022313975080204321,
+        0.077159108046554792,
+        0.86595071272250379,
+        0.011186956683745267,
+        0.043471825039175752
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3
+        ],
+        "low": 2,
+        "high": 3,
+        "setSize": 2,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 0.92060949444542484
+      }
+    },
+    {
+      "id": "v2a_pool_row_694",
+      "probs": [
+        0.00027212569247953716,
+        0.0020373677143176285,
+        0.14506084428910621,
+        0.29466704001063404,
+        0.55796262229346261
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 4,
+        "pReferable": 0.99769050659320291
+      }
+    },
+    {
+      "id": "v2a_pool_row_699",
+      "probs": [
+        0.0063602169215240447,
+        0.02912172560302282,
+        0.28621110718228854,
+        0.41174847518907509,
+        0.26655847510408942
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 3,
+        "pReferable": 0.964518057475453
+      }
+    },
+    {
+      "id": "v2a_pool_row_740",
+      "probs": [
+        0.936287653789418,
+        0.0428129975521191,
+        0.0074633727528575613,
+        0.0014900000905212442,
+        0.011945975815084079
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.020899348658462887
+      }
+    },
+    {
+      "id": "v2a_pool_row_769",
+      "probs": [
+        0.91912159405604377,
+        0.071877975142936659,
+        0.0052350967263948261,
+        0.00030312410509935033,
+        0.0034622099695252968
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.0090004308010194732
+      }
+    },
+    {
+      "id": "v2a_pool_row_816",
+      "probs": [
+        5.55446835522723E-5,
+        0.0077665830958271878,
+        0.80549479445616257,
+        0.17733445898141245,
+        0.0093486187830456487
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3
+        ],
+        "low": 2,
+        "high": 3,
+        "setSize": 2,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 0.99217787222062059
+      }
+    },
+    {
+      "id": "v2a_pool_row_849",
+      "probs": [
+        0.98446492560329546,
+        0.013061837482618435,
+        0.001096784057072836,
+        0.00028161758835093184,
+        0.0010948352686624293
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.0024732369140861971
+      }
+    },
+    {
+      "id": "v2a_pool_row_861",
+      "probs": [
+        0.033864782563046494,
+        0.31274143878884458,
+        0.38201003567811054,
+        0.13397259732548977,
+        0.13741114564450857
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 0.653393778648109
+      }
+    },
+    {
+      "id": "v2a_pool_row_892",
+      "probs": [
+        0.0011087102385287588,
+        0.09324167806191308,
+        0.60108519880143274,
+        0.28354257637553587,
+        0.0210218365225895
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3
+        ],
+        "low": 2,
+        "high": 3,
+        "setSize": 2,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 0.90564961169955815
+      }
+    },
+    {
+      "id": "v2a_pool_row_911",
+      "probs": [
+        0.0904330902407499,
+        0.017384656035931523,
+        0.010491045837001714,
+        0.018223566239516105,
+        0.86346764164680079
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          3,
+          4
+        ],
+        "low": 3,
+        "high": 4,
+        "setSize": 2,
+        "contiguous": true,
+        "mode": 4,
+        "pReferable": 0.89218225372331861
+      }
+    },
+    {
+      "id": "v2a_pool_row_957",
+      "probs": [
+        0.015331298633454804,
+        0.22391810986769242,
+        0.60001767898780278,
+        0.014152175520850567,
+        0.14658073699019936
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 0.76075059149885271
+      }
+    },
+    {
+      "id": "v2a_pool_row_992",
+      "probs": [
+        0.98945319455397562,
+        0.0074873797752818281,
+        0.000846490725384619,
+        0.00027756131443568046,
+        0.0019353736309222608
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.00305942567074256
+      }
+    },
+    {
+      "id": "v2a_pool_row_1000",
+      "probs": [
+        0.96038070328599645,
+        0.024213953217275763,
+        0.0036531859749329731,
+        0.00040844815446524648,
+        0.011343709367329329
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.015405343496727548
+      }
+    },
+    {
+      "id": "v2a_pool_row_1017",
+      "probs": [
+        0.38581973751136639,
+        0.38719446523949269,
+        0.16299752364387102,
+        0.0024800244488501536,
+        0.061508249156419718
+      ],
+      "expected": {
+        "tier": "C",
+        "predictionSet": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "low": 1,
+        "high": 4,
+        "setSize": 4,
+        "contiguous": true,
+        "mode": 1,
+        "pReferable": 0.22698579724914089
+      }
+    },
+    {
+      "id": "v2a_pool_row_1020",
+      "probs": [
+        0.0004248313464371843,
+        0.0021546257202245149,
+        0.057148580043095178,
+        0.77874286689438554,
+        0.16152909599585769
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 3,
+        "pReferable": 0.99742054293333848
+      }
+    },
+    {
+      "id": "v2a_pool_row_1042",
+      "probs": [
+        0.00049133041222081944,
+        0.13342606335198359,
+        0.72368931435257211,
+        0.05928606978036708,
+        0.08310722210285644
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 0.86608260623579569
+      }
+    },
+    {
+      "id": "v2a_pool_row_1071",
+      "probs": [
+        0.92628176523452166,
+        0.051415678637801422,
+        0.00997231645700813,
+        0.0048141414342200662,
+        0.0075160982364487622
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.022302556127676957
+      }
+    },
+    {
+      "id": "v2a_pool_row_1078",
+      "probs": [
+        0.99158053271973068,
+        0.0049557801159273379,
+        0.0012895651792379852,
+        0.00041061636965680797,
+        0.0017635056154472926
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.003463687164342086
+      }
+    },
+    {
+      "id": "v2a_pool_row_1089",
+      "probs": [
+        0.0011952728316552757,
+        0.0019771609135080478,
+        0.040494429174936182,
+        0.38008445763286158,
+        0.576248679447039
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          3,
+          4
+        ],
+        "low": 3,
+        "high": 4,
+        "setSize": 2,
+        "contiguous": true,
+        "mode": 4,
+        "pReferable": 0.99682756625483671
+      }
+    },
+    {
+      "id": "v2a_pool_row_1103",
+      "probs": [
+        0.000743866159441502,
+        0.018547665445565617,
+        0.53317733839960113,
+        0.38437871942801505,
+        0.063152410567376721
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3
+        ],
+        "low": 2,
+        "high": 3,
+        "setSize": 2,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 0.98070846839499293
+      }
+    },
+    {
+      "id": "v2a_pool_row_1116",
+      "probs": [
+        0.68503748589218671,
+        0.28254275869257,
+        0.023546076350988068,
+        0.0013328057342854222,
+        0.0075408733299699186
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.032419755415243411
+      }
+    },
+    {
+      "id": "v2a_pool_row_1126",
+      "probs": [
+        0.00052460462855647588,
+        0.0015633450410729214,
+        0.068255782688144473,
+        0.870478526093311,
+        0.05917774154891519
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 3,
+        "pReferable": 0.99791205033037067
+      }
+    },
+    {
+      "id": "v2a_pool_row_1142",
+      "probs": [
+        0.0007220815728411961,
+        0.002570655949569762,
+        0.10462145430421975,
+        0.88083731846042423,
+        0.011248489712945066
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          3
+        ],
+        "low": 3,
+        "high": 3,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 3,
+        "pReferable": 0.99670726247758912
+      }
+    },
+    {
+      "id": "v2a_pool_row_1143",
+      "probs": [
+        0.000575781266656862,
+        0.0033309391209885952,
+        0.090858341992883965,
+        0.84657159860924291,
+        0.05866333901022764
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 3,
+        "pReferable": 0.99609327961235461
+      }
+    },
+    {
+      "id": "v2a_pool_row_1157",
+      "probs": [
+        0.046521903642754624,
+        0.21587148434627568,
+        0.56222805058433123,
+        0.0029194568809535,
+        0.17245910454568497
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 0.73760661201096966
+      }
+    },
+    {
+      "id": "v2a_pool_row_1158",
+      "probs": [
+        0.81906918964483977,
+        0.15599277518989479,
+        0.017880618484767116,
+        0.0025711959616084171,
+        0.0044862207188900282
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.024938035165265562
+      }
+    },
+    {
+      "id": "uniform",
+      "probs": [
+        0.2,
+        0.2,
+        0.2,
+        0.2,
+        0.2
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 4,
+        "pReferable": 0.60000000000000009
+      }
+    },
+    {
+      "id": "onehot_grade0",
+      "probs": [
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0
+      }
+    },
+    {
+      "id": "onehot_grade1",
+      "probs": [
+        0,
+        1,
+        0,
+        0,
+        0
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          1
+        ],
+        "low": 1,
+        "high": 1,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 1,
+        "pReferable": 0
+      }
+    },
+    {
+      "id": "onehot_grade2",
+      "probs": [
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2
+        ],
+        "low": 2,
+        "high": 2,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 1
+      }
+    },
+    {
+      "id": "onehot_grade3",
+      "probs": [
+        0,
+        0,
+        0,
+        1,
+        0
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          3
+        ],
+        "low": 3,
+        "high": 3,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 3,
+        "pReferable": 1
+      }
+    },
+    {
+      "id": "onehot_grade4",
+      "probs": [
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          4
+        ],
+        "low": 4,
+        "high": 4,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 4,
+        "pReferable": 1
+      }
+    },
+    {
+      "id": "bimodal_mode_grade4",
+      "probs": [
+        0.45,
+        0,
+        0,
+        0.05,
+        0.5
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 4,
+        "pReferable": 0.55
+      }
+    },
+    {
+      "id": "mode_at_both_ends_tie",
+      "probs": [
+        0.5,
+        0,
+        0,
+        0,
+        0.5
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 4,
+        "pReferable": 0.5
+      }
+    },
+    {
+      "id": "tie_grade0_grade1",
+      "probs": [
+        0.5,
+        0.5,
+        0,
+        0,
+        0
+      ],
+      "expected": {
+        "tier": "C",
+        "predictionSet": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "low": 1,
+        "high": 4,
+        "setSize": 4,
+        "contiguous": true,
+        "mode": 1,
+        "pReferable": 0
+      }
+    },
+    {
+      "id": "tie_grade3_grade4",
+      "probs": [
+        0,
+        0,
+        0,
+        0.5,
+        0.5
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          3,
+          4
+        ],
+        "low": 3,
+        "high": 4,
+        "setSize": 2,
+        "contiguous": true,
+        "mode": 4,
+        "pReferable": 1
+      }
+    },
+    {
+      "id": "tie_grade1_grade2",
+      "probs": [
+        0,
+        0.5,
+        0.5,
+        0,
+        0
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 0.5
+      }
+    },
+    {
+      "id": "three_way_tie_024",
+      "probs": [
+        0.33333333333333331,
+        0,
+        0.33333333333333331,
+        0,
+        0.33333333333333331
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 4,
+        "pReferable": 0.66666666666666663
+      }
+    },
+    {
+      "id": "peaked_grade4",
+      "probs": [
+        0.02,
+        0.02,
+        0.02,
+        0.02,
+        0.92
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          4
+        ],
+        "low": 4,
+        "high": 4,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 4,
+        "pReferable": 0.96000000000000008
+      }
+    },
+    {
+      "id": "peaked_grade0",
+      "probs": [
+        0.92,
+        0.02,
+        0.02,
+        0.02,
+        0.02
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.06
+      }
+    },
+    {
+      "id": "near_boundary_low",
+      "probs": [
+        0.55,
+        0.45,
+        0,
+        0,
+        0
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0
+      }
+    },
+    {
+      "id": "near_boundary_high",
+      "probs": [
+        0,
+        0,
+        0.45,
+        0.55,
+        0
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 3,
+        "pReferable": 1
+      }
+    },
+    {
+      "id": "flat_referable_side",
+      "probs": [
+        0,
+        0,
+        0.25,
+        0.25,
+        0.5
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 4,
+        "pReferable": 1
+      }
+    },
+    {
+      "id": "flat_nonreferable_side",
+      "probs": [
+        0.5,
+        0.25,
+        0.25,
+        0,
+        0
+      ],
+      "expected": {
+        "tier": "C",
+        "predictionSet": [
+          0,
+          1,
+          2
+        ],
+        "low": 0,
+        "high": 2,
+        "setSize": 3,
+        "contiguous": false,
+        "mode": 0,
+        "pReferable": 0.25
+      }
+    },
+    {
+      "id": "spike_grade2",
+      "probs": [
+        0.05,
+        0.05,
+        0.8,
+        0.05,
+        0.05
+      ],
+      "expected": {
+        "tier": "B",
+        "predictionSet": [
+          2,
+          3,
+          4
+        ],
+        "low": 2,
+        "high": 4,
+        "setSize": 3,
+        "contiguous": true,
+        "mode": 2,
+        "pReferable": 0.90000000000000013
+      }
+    },
+    {
+      "id": "near_referable_threshold_from_tierA",
+      "probs": [
+        0.85,
+        0.03,
+        0.06,
+        0.04,
+        0.02
+      ],
+      "expected": {
+        "tier": "A",
+        "predictionSet": [
+          0
+        ],
+        "low": 0,
+        "high": 0,
+        "setSize": 1,
+        "contiguous": true,
+        "mode": 0,
+        "pReferable": 0.12000000000000001
+      }
+    },
+    {
+      "id": "v2a_pool_row_8_gap_filled",
+      "probs": [
+        0.69308761583425382,
+        0.13421863328932912,
+        0.06423480363574316,
+        0.016969406074527574,
+        0.091489541166146271
+      ],
+      "expected": {
+        "tier": "C",
+        "predictionSet": [
+          0,
+          1,
+          2
+        ],
+        "low": 0,
+        "high": 2,
+        "setSize": 3,
+        "contiguous": false,
+        "mode": 0,
+        "pReferable": 0.172693750876417
+      }
+    }
+  ]
+}
