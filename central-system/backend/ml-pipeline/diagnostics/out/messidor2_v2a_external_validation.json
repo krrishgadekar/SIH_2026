@@ -1,0 +1,457 @@
+{
+  "checkpoint": "C:\\Users\\Tanuj\\Desktop\\Projects\\DR_SCREENING\\SIH_2026\\central-system\\backend\\ml-pipeline\\models\\Model1\\v2a\\branchA_v2a.pt",
+  "fidelity_check": {
+    "passed": true,
+    "n": 10,
+    "closer_precision": "fp16",
+    "gate": {
+      "metric": "argmax_10_of_10_and_max_prob_diff",
+      "tolerance": 0.01,
+      "precision_used": "fp16"
+    },
+    "max_logit_diff_fp32": 0.02343273162841797,
+    "max_logit_diff_fp16": 0.0078125,
+    "max_prob_diff_fp32": 0.0026662678430433573,
+    "max_prob_diff_fp16": 0.0007389530801096278,
+    "argmax_agreement_fp32": 10,
+    "argmax_agreement_fp16": 10,
+    "aptos_available_locally": false,
+    "per_image": [
+      {
+        "id": "idrid_idrid__idrid_train_IDRiD_189_512",
+        "source": "idrid",
+        "path": "C:\\Users\\Tanuj\\Desktop\\Projects\\DR_SCREENING\\SIH_2026\\central-system\\backend\\ml-pipeline\\datasets\\idrid\\grading\\B. Disease Grading\\1. Original Images\\a. Training Set\\IDRiD_189.jpg",
+        "logit_diff_fp32": 0.005099058151245117,
+        "logit_diff_fp16": 0.001953125,
+        "prob_diff_fp32": 0.0006034732963855483,
+        "prob_diff_fp16": 0.0004532291353210871,
+        "argmax_saved": 4,
+        "argmax_fp32": 4,
+        "argmax_fp16": 4
+      },
+      {
+        "id": "idrid_idrid__idrid_train_IDRiD_197_512",
+        "source": "idrid",
+        "path": "C:\\Users\\Tanuj\\Desktop\\Projects\\DR_SCREENING\\SIH_2026\\central-system\\backend\\ml-pipeline\\datasets\\idrid\\grading\\B. Disease Grading\\1. Original Images\\a. Training Set\\IDRiD_197.jpg",
+        "logit_diff_fp32": 0.016002178192138672,
+        "logit_diff_fp16": 0.0029296875,
+        "prob_diff_fp32": 0.0009977274224430427,
+        "prob_diff_fp16": 1.6023153166178083e-05,
+        "argmax_saved": 0,
+        "argmax_fp32": 0,
+        "argmax_fp16": 0
+      },
+      {
+        "id": "idrid_idrid__idrid_train_IDRiD_203_512",
+        "source": "idrid",
+        "path": "C:\\Users\\Tanuj\\Desktop\\Projects\\DR_SCREENING\\SIH_2026\\central-system\\backend\\ml-pipeline\\datasets\\idrid\\grading\\B. Disease Grading\\1. Original Images\\a. Training Set\\IDRiD_203.jpg",
+        "logit_diff_fp32": 0.004674077033996582,
+        "logit_diff_fp16": 0.0029296875,
+        "prob_diff_fp32": 6.841746925626002e-05,
+        "prob_diff_fp16": 0.0005203151860910527,
+        "argmax_saved": 2,
+        "argmax_fp32": 2,
+        "argmax_fp16": 2
+      },
+      {
+        "id": "idrid_idrid__idrid_train_IDRiD_213_512",
+        "source": "idrid",
+        "path": "C:\\Users\\Tanuj\\Desktop\\Projects\\DR_SCREENING\\SIH_2026\\central-system\\backend\\ml-pipeline\\datasets\\idrid\\grading\\B. Disease Grading\\1. Original Images\\a. Training Set\\IDRiD_213.jpg",
+        "logit_diff_fp32": 0.02343273162841797,
+        "logit_diff_fp16": 0.00390625,
+        "prob_diff_fp32": 0.00018740106211945218,
+        "prob_diff_fp16": 4.176852256621011e-05,
+        "argmax_saved": 0,
+        "argmax_fp32": 0,
+        "argmax_fp16": 0
+      },
+      {
+        "id": "idrid_idrid__idrid_train_IDRiD_216_512",
+        "source": "idrid",
+        "path": "C:\\Users\\Tanuj\\Desktop\\Projects\\DR_SCREENING\\SIH_2026\\central-system\\backend\\ml-pipeline\\datasets\\idrid\\grading\\B. Disease Grading\\1. Original Images\\a. Training Set\\IDRiD_216.jpg",
+        "logit_diff_fp32": 0.016415119171142578,
+        "logit_diff_fp16": 0.00390625,
+        "prob_diff_fp32": 0.0019425849505009252,
+        "prob_diff_fp16": 0.0007389530801096278,
+        "argmax_saved": 2,
+        "argmax_fp32": 2,
+        "argmax_fp16": 2
+      },
+      {
+        "id": "idrid_idrid__idrid_train_IDRiD_219_512",
+        "source": "idrid",
+        "path": "C:\\Users\\Tanuj\\Desktop\\Projects\\DR_SCREENING\\SIH_2026\\central-system\\backend\\ml-pipeline\\datasets\\idrid\\grading\\B. Disease Grading\\1. Original Images\\a. Training Set\\IDRiD_219.jpg",
+        "logit_diff_fp32": 0.01067352294921875,
+        "logit_diff_fp16": 0.001953125,
+        "prob_diff_fp32": 0.00026764369295528834,
+        "prob_diff_fp16": 2.9195566859929745e-05,
+        "argmax_saved": 0,
+        "argmax_fp32": 0,
+        "argmax_fp16": 0
+      },
+      {
+        "id": "idrid_idrid__idrid_train_IDRiD_228_512",
+        "source": "idrid",
+        "path": "C:\\Users\\Tanuj\\Desktop\\Projects\\DR_SCREENING\\SIH_2026\\central-system\\backend\\ml-pipeline\\datasets\\idrid\\grading\\B. Disease Grading\\1. Original Images\\a. Training Set\\IDRiD_228.jpg",
+        "logit_diff_fp32": 0.010386943817138672,
+        "logit_diff_fp16": 0.001953125,
+        "prob_diff_fp32": 0.001946661148048201,
+        "prob_diff_fp16": 4.222364392562905e-06,
+        "argmax_saved": 0,
+        "argmax_fp32": 0,
+        "argmax_fp16": 0
+      },
+      {
+        "id": "idrid_idrid__idrid_train_IDRiD_231_512",
+        "source": "idrid",
+        "path": "C:\\Users\\Tanuj\\Desktop\\Projects\\DR_SCREENING\\SIH_2026\\central-system\\backend\\ml-pipeline\\datasets\\idrid\\grading\\B. Disease Grading\\1. Original Images\\a. Training Set\\IDRiD_231.jpg",
+        "logit_diff_fp32": 0.007788419723510742,
+        "logit_diff_fp16": 0.00048828125,
+        "prob_diff_fp32": 0.0026662678430433573,
+        "prob_diff_fp16": 1.302501980682269e-05,
+        "argmax_saved": 3,
+        "argmax_fp32": 3,
+        "argmax_fp16": 3
+      },
+      {
+        "id": "idrid_idrid__idrid_train_IDRiD_233_512",
+        "source": "idrid",
+        "path": "C:\\Users\\Tanuj\\Desktop\\Projects\\DR_SCREENING\\SIH_2026\\central-system\\backend\\ml-pipeline\\datasets\\idrid\\grading\\B. Disease Grading\\1. Original Images\\a. Training Set\\IDRiD_233.jpg",
+        "logit_diff_fp32": 0.01507568359375,
+        "logit_diff_fp16": 0.0078125,
+        "prob_diff_fp32": 0.0004231946704136291,
+        "prob_diff_fp16": 6.503744094787933e-05,
+        "argmax_saved": 0,
+        "argmax_fp32": 0,
+        "argmax_fp16": 0
+      },
+      {
+        "id": "idrid_idrid__idrid_train_IDRiD_240_512",
+        "source": "idrid",
+        "path": "C:\\Users\\Tanuj\\Desktop\\Projects\\DR_SCREENING\\SIH_2026\\central-system\\backend\\ml-pipeline\\datasets\\idrid\\grading\\B. Disease Grading\\1. Original Images\\a. Training Set\\IDRiD_240.jpg",
+        "logit_diff_fp32": 0.01571178436279297,
+        "logit_diff_fp16": 0.0078125,
+        "prob_diff_fp32": 0.0005050089895839438,
+        "prob_diff_fp16": 0.0001731354053373657,
+        "argmax_saved": 4,
+        "argmax_fp32": 4,
+        "argmax_fp16": 4
+      }
+    ]
+  },
+  "precision_comparison_messidor2": {
+    "argmax_agreement": 1739,
+    "n": 1744,
+    "grade_counts_fp16": {
+      "0": 1367,
+      "1": 74,
+      "2": 190,
+      "3": 58,
+      "4": 55
+    },
+    "grade_counts_fp32": {
+      "0": 1369,
+      "1": 73,
+      "2": 189,
+      "3": 57,
+      "4": 56
+    },
+    "ref_sens_spec_fp16": [
+      0.5251641137855579,
+      0.951048951048951
+    ],
+    "ref_sens_spec_fp32": [
+      0.5251641137855579,
+      0.9518259518259519
+    ]
+  },
+  "n_messidor2_images": 1744,
+  "n_unique_patients": 874,
+  "locked_operating_points": {
+    "0.9": {
+      "threshold": 0.42391993633175673,
+      "val_sensitivity": 0.9090909090909091,
+      "val_specificity": 0.9271523178807947,
+      "val_tpr_max": 1.0
+    },
+    "0.93": {
+      "threshold": 0.3131650521238058,
+      "val_sensitivity": 0.948051948051948,
+      "val_specificity": 0.9105960264900662,
+      "val_tpr_max": 1.0
+    },
+    "0.95": {
+      "threshold": 0.29682354040014786,
+      "val_sensitivity": 0.9523809523809523,
+      "val_specificity": 0.9072847682119205,
+      "val_tpr_max": 1.0
+    }
+  },
+  "messidor2_metrics": {
+    "qwk": 0.6134576158512819,
+    "auc_p_ge2": 0.8678401588686053,
+    "mean_signed_error": -0.275802752293578,
+    "ref_sens_argmax": 0.5251641137855579,
+    "ref_spec_argmax": 0.951048951048951,
+    "threshold_results": {
+      "0.9": {
+        "threshold": 0.42391993633175673,
+        "sens": 0.5776805251641138,
+        "spec": 0.9393939393939394
+      },
+      "0.93": {
+        "threshold": 0.3131650521238058,
+        "sens": 0.6608315098468271,
+        "spec": 0.905982905982906
+      },
+      "0.95": {
+        "threshold": 0.29682354040014786,
+        "sens": 0.6717724288840262,
+        "spec": 0.8974358974358975
+      }
+    },
+    "per_grade_recall": {
+      "0": {
+        "recall": 0.9419862340216323,
+        "n": 1017
+      },
+      "1": {
+        "recall": 0.040740740740740744,
+        "n": 270
+      },
+      "2": {
+        "recall": 0.3025936599423631,
+        "n": 347
+      },
+      "3": {
+        "recall": 0.3466666666666667,
+        "n": 75
+      },
+      "4": {
+        "recall": 0.5142857142857142,
+        "n": 35
+      }
+    },
+    "confusion_matrix": [
+      [
+        958,
+        14,
+        35,
+        2,
+        8
+      ],
+      [
+        241,
+        11,
+        15,
+        2,
+        1
+      ],
+      [
+        162,
+        49,
+        105,
+        19,
+        12
+      ],
+      [
+        4,
+        0,
+        29,
+        26,
+        16
+      ],
+      [
+        2,
+        0,
+        6,
+        9,
+        18
+      ]
+    ]
+  },
+  "patient_bootstrap_ci_95": {
+    "ref_sens_argmax": [
+      0.47044776897414514,
+      0.5811989606533037
+    ],
+    "ref_spec_argmax": [
+      0.9373086864715305,
+      0.9634255454878023
+    ],
+    "qwk": [
+      0.5589062468827548,
+      0.6646169703030288
+    ],
+    "mean_signed_error": [
+      -0.326453624567858,
+      -0.2272245667152697
+    ],
+    "auc_p_ge2": [
+      0.8422005734228534,
+      0.8917684250638445
+    ],
+    "sens_t0.9": [
+      0.522273910083316,
+      0.6311115849324804
+    ],
+    "sens_t0.93": [
+      0.6084211294517277,
+      0.7109255293837735
+    ],
+    "sens_t0.95": [
+      0.6193818807679753,
+      0.7207259585166561
+    ],
+    "spec_t0.9": [
+      0.924313198218599,
+      0.9537399575340247
+    ],
+    "spec_t0.93": [
+      0.8869759010236983,
+      0.923963817769848
+    ],
+    "spec_t0.95": [
+      0.8778390433402139,
+      0.9160246533127889
+    ],
+    "grade0_recall": [
+      0.9253580791718771,
+      0.9570025500476644
+    ],
+    "grade1_recall": [
+      0.01858736059479554,
+      0.06513409961685823
+    ],
+    "grade2_recall": [
+      0.25283136177347243,
+      0.3593845274390243
+    ],
+    "grade3_recall": [
+      0.23333333333333334,
+      0.47299075391180645
+    ],
+    "grade4_recall": [
+      0.31815410199556543,
+      0.70594362745098
+    ]
+  },
+  "resolution_breakdown": {
+    "1440x960": {
+      "n": 527,
+      "qwk": 0.5181065019467783,
+      "ref_sens_argmax": 0.5087719298245614,
+      "ref_spec_argmax": 0.9578651685393258,
+      "mean_signed_error": -0.4307400379506641
+    },
+    "2240x1488": {
+      "n": 614,
+      "qwk": 0.7272236854631422,
+      "ref_sens_argmax": 0.5639810426540285,
+      "ref_spec_argmax": 0.9900744416873449,
+      "mean_signed_error": -0.3550488599348534
+    },
+    "2304x1536": {
+      "n": 603,
+      "qwk": 0.4735034833426882,
+      "ref_sens_argmax": 0.4533333333333333,
+      "ref_spec_argmax": 0.9166666666666666,
+      "mean_signed_error": -0.05970149253731343
+    }
+  },
+  "missed_severe_referable_misses": [
+    {
+      "image_path": "extracted/IMAGES/20051020_61998_0100_PP.png",
+      "true_grade": 4,
+      "pred_grade": 0,
+      "p_ge2": 0.1333041787147522,
+      "patient_id": 166
+    },
+    {
+      "image_path": "extracted/IMAGES/20051021_51804_0100_PP.png",
+      "true_grade": 3,
+      "pred_grade": 0,
+      "p_ge2": 0.42404043674468994,
+      "patient_id": 192
+    },
+    {
+      "image_path": "extracted/IMAGES/20060412_52668_0200_PP.png",
+      "true_grade": 3,
+      "pred_grade": 0,
+      "p_ge2": 0.21130284667015076,
+      "patient_id": 420
+    },
+    {
+      "image_path": "extracted/IMAGES/20060523_49875_0100_PP.png",
+      "true_grade": 3,
+      "pred_grade": 0,
+      "p_ge2": 0.5107196569442749,
+      "patient_id": 283
+    },
+    {
+      "image_path": "extracted/IMAGES/IM003481.JPG",
+      "true_grade": 3,
+      "pred_grade": 0,
+      "p_ge2": 0.3411315083503723,
+      "patient_id": 787
+    },
+    {
+      "image_path": "extracted/IMAGES/IM004346.JPG",
+      "true_grade": 4,
+      "pred_grade": 0,
+      "p_ge2": 0.37818625569343567,
+      "patient_id": 845
+    }
+  ],
+  "domain_shift": {
+    "in_domain_test_mean_confidence": 0.809425209887009,
+    "messidor2_mean_confidence": 0.7632748484611511,
+    "in_domain_test_grade_distribution": {
+      "0": 0.4538216560509554,
+      "1": 0.12101910828025478,
+      "2": 0.2372611464968153,
+      "3": 0.09872611464968153,
+      "4": 0.08917197452229299
+    },
+    "messidor2_grade_distribution": {
+      "0": 0.7838302752293578,
+      "1": 0.04243119266055046,
+      "2": 0.10894495412844037,
+      "3": 0.033256880733944956,
+      "4": 0.03153669724770642
+    }
+  },
+  "fovea_gate": {
+    "n_flagged": 255,
+    "n_ok": 1489,
+    "n_failed": 0,
+    "fraction_flagged": 0.14621559633027523,
+    "threshold_used": 0.37
+  },
+  "in_domain_vs_messidor2": {
+    "qwk": {
+      "in_domain": 0.8734404566269456,
+      "messidor2": 0.6134576158512819
+    },
+    "ref_sens_argmax": {
+      "in_domain": 0.9007352941176471,
+      "messidor2": 0.5251641137855579
+    },
+    "ref_spec_argmax": {
+      "in_domain": 0.9382022471910112,
+      "messidor2": 0.951048951048951
+    },
+    "grade3_recall": {
+      "in_domain": 0.46511627906976744,
+      "messidor2": 0.3466666666666667,
+      "in_domain_n": 43,
+      "messidor2_n": 75
+    },
+    "grade4_recall": {
+      "in_domain": 0.5370370370370371,
+      "messidor2": 0.5142857142857142,
+      "in_domain_n": 54,
+      "messidor2_n": 35
+    }
+  }
+}
