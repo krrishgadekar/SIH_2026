@@ -1,0 +1,17 @@
+# Large third-party datasets under ml-pipeline/datasets/ are not committed.
+#
+# NOTE: the repo ROOT .gitignore also has entries named after datasets
+# (datasets/aptos2019/, datasets/messidor2/, datasets/idrid/, ...), but those
+# patterns are anchored to the repo root's OWN datasets/ folder (a separate,
+# unrelated folder of demo images) and do NOT reach this nested
+# central-system/backend/ml-pipeline/datasets/ folder. Hence this file.
+Messidor-2/
+aptos2019/
+
+# Other folders present here, and why they are NOT listed above:
+#   chasedb1/  -- already tracked in git (84 files); do not ignore a folder
+#                 that is already committed without removing it first.
+#   idrid/     -- already tracked in git (1324 files); same reason.
+# No OTHER untracked dataset folders exist under this directory as of
+# 2026-09-20 -- if one shows up later, add it above rather than relying on
+# this comment.
