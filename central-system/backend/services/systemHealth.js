@@ -18,6 +18,7 @@
 
 const pool = require('../db/pgClient');
 const supervisor = require('./matlabSessionSupervisor');
+const segSupervisor = require('./segWorkerSupervisor');
 const { openAlerts } = require('./systemAlerts');
 const watchdog = require('./gradingWatchdog');
 
@@ -106,6 +107,7 @@ async function getSystemHealth() {
     silentPhcs(), stuckJobs(), unreviewedCases(), openAlerts(),
   ]);
   const matlab = supervisor.getStatus();
+  const segWorker = segSupervisor.getStatus();
   return {
     silentPhcs: phcs,
     stuckJobs: stuck,
@@ -115,6 +117,11 @@ async function getSystemHealth() {
     // every open alert, and the thresholds in force -- so the admin UI can say
     // "silent for more than 48 h" without hard-coding a number of its own.
     matlabSession: matlab,
+    // The segmentation worker. Deliberately NOT folded into an overall
+    // "healthy" flag: the MATLAB session being down fails cases, this being
+    // down only makes them slower, and an admin who cannot tell those apart
+    // will treat both as the same emergency or neither as one.
+    segWorker,
     alerts,
     thresholds: {
       silentPhcHours: SILENT_PHC_HOURS,

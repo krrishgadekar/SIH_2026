@@ -36,9 +36,13 @@ process.env.MATLAB_HEARTBEAT_PATH = path.join(scratch, 'session.heartbeat');
 // And at a scratch request directory, or the live session would answer these
 // requests for real rather than letting the test drive both ends.
 process.env.MATLAB_SESSION_DIR = scratch;
+const segScratch = fs.mkdtempSync(path.join(os.tmpdir(), 'ns-seg-'));
+process.env.SEG_SESSION_DIR = segScratch;
+process.env.SEG_HEARTBEAT_PATH = path.join(segScratch, 'worker.heartbeat');
 
 const orchestrator  = require(path.join(CENTRAL, 'services', 'gradingOrchestrator'));
 const matlabSession = require(path.join(CENTRAL, 'services', 'matlabSessionClient'));
+const segSession    = require(path.join(CENTRAL, 'services', 'segSessionClient'));
 const { buildCasePipelineInput, caseRuleOpts } = orchestrator;
 
 let failures = 0;
@@ -161,10 +165,44 @@ async function main() {
     fs.readdirSync(matlabSession.REQUEST_DIR).filter((f) => f.startsWith('t_')).length === 0,
     fs.readdirSync(matlabSession.REQUEST_DIR).join(', '));
 
+  console.log('\n--- Branch B: the worker, and what happens without it ---');
+  // Losing the segmentation worker must never lose a case. Branch B is the
+  // SECOND opinion: a case graded by the classifier alone, with
+  // branch_agreement NULL, is a degraded result the tier logic already
+  // handles. A thrown error would turn that into a lost case.
+  check('no worker means no worker', segSession.alive() === false);
+
+  const { segment } = orchestrator;
+  fs.writeFileSync(process.env.SEG_HEARTBEAT_PATH, 'now');
+  check('a fresh heartbeat means the worker is preferred', segSession.alive() === true);
+
+  const counts = { redPerQuadrant: [3, 7, 2, 5], brightPerQuadrant: [1, 0, 4, 2] };
+  const viaWorker = segment('C:/no/such/image.jpg', '');
+  const segServed = await serveOnce(counts, segSession.REQUEST_DIR, segSession.RESPONSE_DIR, 'seg_');
+  check('the worker is asked for the image the case names',
+    segServed.request.image === 'C:/no/such/image.jpg', JSON.stringify(segServed.request));
+  const segBody = await viaWorker;
+  check('the worker result is what Branch B grades',
+    JSON.stringify(segBody && segBody.redPerQuadrant) === '[3,7,2,5]',
+    JSON.stringify(segBody));
+
+  // The worker fails on this image. The orchestrator must fall back to a fresh
+  // segInfer.py, which on a path that does not exist fails too -- and the whole
+  // thing must still resolve NULL rather than throw.
+  const bothFail = segment('C:/no/such/image.jpg', '');
+  await serveOnce({ error: 'FileNotFoundError: no file at C:/no/such/image.jpg' },
+    segSession.REQUEST_DIR, segSession.RESPONSE_DIR, 'seg_');
+  let threw = null;
+  let result = 'not-resolved';
+  try { result = await bothFail; } catch (err) { threw = err; }
+  check('a failure on both paths resolves NULL, it does not throw',
+    threw === null && result === null, threw ? threw.message : String(result));
+
   console.log(failures === 0
     ? '\n===== The per-case MATLAB round trip is verified ====='
     : `\n===== ${failures} FAILURE(S) =====`);
   fs.rmSync(scratch, { recursive: true, force: true });
+  fs.rmSync(segScratch, { recursive: true, force: true });
   process.exit(failures === 0 ? 0 : 1);
 }
 
@@ -172,17 +210,19 @@ async function main() {
  * Stand in for the MATLAB session for exactly one request: wait for a request
  * file to appear, read it, and write the given body back under the matching id.
  */
-function serveOnce(body) {
+function serveOnce(body, requestDir = matlabSession.REQUEST_DIR,
+                  responseDir = matlabSession.RESPONSE_DIR, prefix = 't_') {
   return new Promise((resolve, reject) => {
     const startedAt = Date.now();
     const poll = setInterval(() => {
-      const pending = fs.readdirSync(matlabSession.REQUEST_DIR)
-        .filter((f) => f.startsWith('t_') && f.endsWith('.json'));
+      const pending = fs.existsSync(requestDir)
+        ? fs.readdirSync(requestDir).filter((f) => f.startsWith(prefix) && f.endsWith('.json'))
+        : [];
       if (pending.length) {
         clearInterval(poll);
-        const reqPath = path.join(matlabSession.REQUEST_DIR, pending[0]);
+        const reqPath = path.join(requestDir, pending[0]);
         const request = JSON.parse(fs.readFileSync(reqPath, 'utf8'));
-        const responsePath = path.join(matlabSession.RESPONSE_DIR, pending[0]);
+        const responsePath = path.join(responseDir, pending[0]);
         fs.writeFileSync(`${responsePath}.tmp`, JSON.stringify(body));
         fs.renameSync(`${responsePath}.tmp`, responsePath);
         fs.unlinkSync(reqPath);

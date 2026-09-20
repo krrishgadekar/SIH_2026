@@ -15,8 +15,8 @@ Status as of 2026-09-20. Every item below was verified by running it, not by rea
 | B.3 | `GET /cases/:id/reviews` | Done | auth suite |
 | C | Idempotent ingestion on `capture_id_ref` (46 old duplicates relabelled, none deleted), plus `POST /cases/summary` and an `awaiting_image` status | Done | `verify_backend_ingestion.js` (20 checks, including 6 concurrent retries) |
 | D | Periodic stranded-job watchdog, recoveries recorded, capped at 3 per case | Done | `verify_backend_health.js` |
-| E | MATLAB session supervisor: heartbeat, auto-start at boot, restart, alert when a restart fails, no restart loop | Done | `verify_backend_health.js` |
-| F | `GET /admin/system-health` covering silent PHCs, stuck jobs, MATLAB status and unreviewed cases, plus the new `last_contact_at` | Done | `verify_backend_health.js` |
+| E | MATLAB session supervisor: heartbeat, auto-start at boot, restart, alert when a restart fails, no restart loop. The same supervisor now also watches the segmentation worker (`workerSupervisor.js`, two instances). | Done | `verify_backend_health.js` |
+| F | `GET /admin/system-health` covering silent PHCs, stuck jobs, MATLAB status and unreviewed cases, plus the new `last_contact_at`. Also reports `segWorker`, kept separate from the MATLAB status on purpose: the MATLAB session being down fails cases, the worker being down only slows them. | Done | `verify_backend_health.js` |
 | G | Simulink README fixed. `referenceQueueingModel('recommend')` runs daily into `resource_recommendations`, served by `GET /admin/resource-recommendations` | Done | ran live (about 10 s) |
 | H | Venous beading and IRMA wired into the rule engine as 4-element boolean arrays; they are passed only when present | Done | `testRuleEngineSignals.m` (17) + `testBranchB.m` (54) |
 | I | `fovea_unreliable` stored; rule engine skips the quadrant criteria; tier held at B or higher | Done on the backend side. See the §I.3 note below. | `testRuleEngineSignals.m`, live MATLAB run |
@@ -90,9 +90,10 @@ Twelve defects, all fixed and covered by tests.
 - A boot warning when auth is enabled over plain HTTP, where the Secure
   session cookie is silently dropped by the browser.
 
-**Test suites after the audit:** 13 suites, 400+ checks, all passing --
+**Test suites:** 16 Node suites, 516 checks, all passing --
 `verify_backend_auth` (66), `verify_backend_ingestion` (20),
-`verify_backend_health` (28), `verify_task31`–`verify_task82_83`, plus
+`verify_backend_health` (28), `verify_backend_pipeline` (35),
+`verify_task27`–`verify_task82_83`, plus
 `testCors`, `testBranchB` (54), `testRuleEngineSignals` (17),
 `testPhase7Explainability` (58) and `testReadFundusDicom` (8) in MATLAB.
 
@@ -112,9 +113,19 @@ The plan's own corrected guidance: self-hosted Postgres has no built-in transpar
 ## Notes
 
 - **§I.3:** the rule engine side is done. When `foveaUnreliable` is true it skips the quadrant-dependent criteria and grades on totals. The *upstream* quadrant assignment (`quadrant_counts` in `segInfer.py`) still uses the fovea-to-disc axis. It already falls back to the image axes when disc and fovea coincide, but it does not yet read `foveaUnreliable`, because that field does not exist yet. That change belongs next to Tanuj's fovea gate, which is where the plan says quadrant assignment is moving.
-- **§S.4 latency:** serving M2–M4 from the MATLAB session gives **no speedup** for segmentation: 22.5 s per image on MATLAB vs 21.4 s on PyTorch, over 20 images. Each forward pass takes under 1 s in the session, but every `segInfer.py` call is still a fresh Python process that also loads M5 in PyTorch, and that dominates.
+- **§S.4 latency, resolved.** The original finding was that serving M2–M4 from the MATLAB session gave no speedup at all: 22.5 s per image on MATLAB vs 21.4 s on PyTorch, over 20 images. The reason is now measured rather than suspected — it moved forward passes costing under a second each and left 17 s of Python process start exactly where it was.
+
+  With the segmentation worker that process start is gone, and the comparison finally means something. It goes the other way:
+
+  | `SEG_INFERENCE_BACKEND` (in the **worker's** environment) | segmentation | whole case |
+  |---|---|---|
+  | `matlab` (the default, per §S) | 5.3 s | 22.6 s |
+  | `python` | 2.6 s | 20.6 s |
+
+  Identical outputs either way (tensor parity 2e-6..4e-5, `diagnostics/out/parity_v1_report.txt`). Serving the three nets from MATLAB now **costs** about 2.7 s per case, because each forward pass is a separate round trip to another process. **The default is left on `matlab` because §S asks for it — this is a decision for the plan owner, not one to change quietly.**
 - **Grading time per case is about 33 s end to end, with the session up** (was about 47 s). The per-case MATLAB work — camera check, NV score, rule engine, lesion attention, evidence sentence — is now `ml-pipeline/grading/runCasePipeline.m`, a real function served by the persistent session, instead of ~60 statements joined onto one line for `matlab -batch`. That call went from 23.3 s to 9.2 s: the difference is almost entirely MATLAB start-up, which the session pays once at boot instead of once per case. Verified byte-identical on all 12 output fields against the old expression, on the same image, in the same MATLAB (`scratchpad/parity.js` pattern; `verify_backend_pipeline.js` covers the input and transport contracts). When no session is running it still falls back to `matlab -batch` and logs that it did.
-- **The bottleneck is now `segInfer.py`: about 22 s of those 33, with the remaining 9 the MATLAB pipeline call.** Every segmentation call is a fresh Python process that loads four models — see the §S.4 note above, where that process start, not the forward passes, is what made the MATLAB segmentation backend no faster. A persistent segmentation worker is the next real speed-up.
+- **Segmentation is now a persistent worker too, and a case takes about 21 s.** `ml-pipeline/inference/segSession/runSegWorker.py` holds M2–M5 in memory; the backend uses it when its heartbeat is fresh and spawns `segInfer.py` per case when it is not. Measured on this machine: the torch import plus four model loads cost **17.1 s** and the actual work costs **2.0 s**, so the per-case process was paying seventeen seconds to do two seconds of work. Same `segInfer.run_one` on both paths, so no preprocessing step, threshold or count can drift; a real case through both produced identical lesion counts, rule-engine grade and NV score.
+- **Grading latency, end to end, on the development machine:** about 47 s before this work → 33 s with the case pipeline in the MATLAB session → **21 s** with the segmentation worker as well.
 - **Uncertainty on the MATLAB path:** `uncertainty_score` is null under `INFERENCE_BACKEND=matlab`, because MC-dropout is deliberately not faked there. The review queue then ranks Tier C by 1 − confidence, as it always has when uncertainty is missing.
 - **`lesionCounts` in `GET /cases/:id`** returns `{red, bright, redTotal, brightTotal, …}`. api-contracts.md and the frontend's lesion panel expect `{microaneurysms, hemorrhages, hardExudates, softExudates}`. The plan is to fix this together with §R.
 

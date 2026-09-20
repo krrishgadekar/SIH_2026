@@ -62,6 +62,7 @@ const mediaPaths = require('./mediaPaths');
 const { fromMatlab, fromMatlabDeep } = require('./matlabInterop');
 const matlabFallback = require('./matlabFallback');
 const matlabSession  = require('./matlabSessionClient');
+const segSession     = require('./segSessionClient');
 
 // Task: MATLAB workaround for a dev machine with no MATLAB install (no
 // license, no disk space). When true, MATLAB genuinely failing to SPAWN
@@ -373,6 +374,51 @@ function runSegInference(imagePath, outdir) {
   });
 }
 
+// ── The persistent segmentation worker ──────────────────────────────────────
+// Segmentation was the largest remaining cost in grading a case, and almost
+// none of it was segmentation. Measured on this machine: the torch import plus
+// the four model loads take 17.1 s, and the actual work takes 2.0 s. Spawning
+// segInfer.py per case paid the 17 s every time.
+//
+// This is also the answer to backend plan §S.4's puzzle -- that serving M2-M4
+// from the MATLAB session gave no speed-up at all (22.5 s vs 21.4 s over 20
+// images). It moved forward passes that cost under a second each, and left the
+// seventeen seconds of process start exactly where they were.
+//
+// The worker is preferred when it is up and the per-case spawn is the
+// fallback, for the same reason the case pipeline works that way: the fallback
+// is the behaviour that shipped before, it is logged, and the alternative is
+// losing Branch B over a worker that happens to be restarting.
+const SEG_SESSION_TIMEOUT_MS = parseInt(
+  process.env.SEG_SESSION_TIMEOUT_MS || '120000', 10);
+
+async function runSegInferenceSession(imagePath, outdir) {
+  try {
+    return await segSession.call({ image: imagePath, outdir: outdir || '' },
+      { timeoutMs: SEG_SESSION_TIMEOUT_MS, prefix: 'seg' });
+  } catch (err) {
+    console.warn(`[gradingOrchestrator] the segmentation worker could not handle `
+      + `this image (${err.message}); falling back to a fresh segInfer.py process, `
+      + 'which costs this case about 17 s of model loading');
+    return null;
+  }
+}
+
+/**
+ * segment(imagePath, outdir) -- Branch B's input, from whichever path is up.
+ *
+ * Resolves NULL on any failure of BOTH paths, never throws: see
+ * runSegInference's header for why losing Branch B must degrade a case rather
+ * than fail it.
+ */
+async function segment(imagePath, outdir) {
+  if (segSession.alive()) {
+    const viaWorker = await runSegInferenceSession(imagePath, outdir);
+    if (viaWorker) return viaWorker;
+  }
+  return runSegInference(imagePath, outdir);
+}
+
 // The six quality sub-scores isCaptureUngradable() knows about. Named here
 // rather than inline so the list stays in one place; it mirrors the PHC quality
 // gate's own fields (qualityGateMain.m).
@@ -574,7 +620,7 @@ async function processCase(caseId) {
   // reason.
   const [branchA, segResult, cameraSiteProbationCleared] = await Promise.all([
     runBranchA(imagePath, gradcamPath),
-    runSegInference(imagePath, mediaPaths.caseDir(caseId)),
+    segment(imagePath, mediaPaths.caseDir(caseId)),
     hasClearedCameraSiteProbation(caseRow.phc_id, cameraDeviceId, caseId),
   ]);
 
@@ -1128,4 +1174,5 @@ module.exports = {
   processCase, assignTier, buildCasePipelineInput, caseRuleOpts, readFoveaUnreliable,
   runBranchAInference, runBranchAInferenceMatlab, INFERENCE_BACKEND,
   isCaptureUngradable, hasClearedCameraSiteProbation, CAMERA_PROBATION_MIN_CASES,
+  segment,
 };

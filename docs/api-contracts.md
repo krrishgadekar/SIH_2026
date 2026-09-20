@@ -257,7 +257,7 @@ Response `200`: `{ "caseId": "string", "status": "processing" | "graded" | "erro
 
 `"processing"` covers both *waiting for a worker* and *being graded*. That is deliberate: from outside they are the same fact — the answer is not ready, keep polling — and a fourth enum value would expose an internal distinction no client can act on. Both `"graded"` and `"error"` are terminal; nothing leaves either state without a new submission.
 
-**How long to expect:** about 33 s from upload to `"graded"` on the development machine, plus however long the case waited for a free worker. Design a UI that polls, not one that blocks — and do not treat 60 s as abnormal.
+**How long to expect:** about 21 s from upload to `"graded"` on the development machine, plus however long the case waited for a free worker — and roughly 40 s if the persistent MATLAB session or the segmentation worker is down, since the backend then falls back to starting them per case. Design a UI that polls, not one that blocks, and do not treat 60 s as abnormal.
 
 ### Chunked / resumable upload — `POST|GET /api/v1/cases/:captureRef/chunks…`  *(Task 8.2)*
 

@@ -149,6 +149,9 @@ if (require.main === module) {
   // MATLAB.
   require('./services/gradingWatchdog').start();
   require('./services/matlabSessionSupervisor').start();
+  // Same, for the Python segmentation worker. Its failure is the quiet one:
+  // grading keeps working and every case just takes 17 s longer.
+  require('./services/segWorkerSupervisor').start();
   // §G: daily district resource-model run (RESOURCE_MODEL_CRON).
   require('./services/resourceRecommendations').start();
 

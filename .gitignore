@@ -148,8 +148,21 @@ central-system/backend/ml-pipeline/models/Model1/probe_*.csv
 # testImportedNetwork.m, and not used by anything that runs.
 central-system/backend/ml-pipeline/+branchA_v1_traced*/
 
-# matlabSessionSupervisor liveness file (runtime state)
+# Persistent-worker runtime state. A heartbeat, a PID and a queue of in-flight
+# requests describe THIS machine at THIS moment: committed, they are noise in
+# every diff, and a checked-out session.pid from someone else's machine names a
+# process that is either gone or, worse, something unrelated that has been
+# given the same number since.
 central-system/backend/ml-pipeline/inference/matlabSession/session.heartbeat
+central-system/backend/ml-pipeline/inference/matlabSession/session.pid
+central-system/backend/ml-pipeline/inference/matlabSession/stop.flag
+central-system/backend/ml-pipeline/inference/matlabSession/requests/
+central-system/backend/ml-pipeline/inference/matlabSession/responses/
+central-system/backend/ml-pipeline/inference/segSession/worker.heartbeat
+central-system/backend/ml-pipeline/inference/segSession/worker.pid
+central-system/backend/ml-pipeline/inference/segSession/stop.flag
+central-system/backend/ml-pipeline/inference/segSession/requests/
+central-system/backend/ml-pipeline/inference/segSession/responses/
 
 # Self-signed dev TLS pair (scripts/generateDevCert.js) -- never commit keys
 certs/

@@ -388,118 +388,140 @@ def save_mask(mask, path):
     return path
 
 
+# 10 px at 512, matching diagnostics/check_agreement.py's MIN_BLOB_AREA. This
+# is NOT a free parameter: redFloor and grade3QuadMin were calibrated against
+# counts produced with this exact filter, so changing it silently rescales what
+# those thresholds mean. Verified to reproduce that script's red counts 14/14
+# on its own images.
+DEFAULT_MIN_AREA = 10
+
+
+def run_one(image, outdir=None, min_area=DEFAULT_MIN_AREA):
+    """Segment one image; returns the result dict, raises on failure.
+
+    Split out of main() so the persistent worker (segSession/runSegWorker.py)
+    can call it in a process that has already paid for the torch import and the
+    model load -- about 17 s of the ~19 s a one-shot run costs, against 2 s of
+    actual work.
+
+    It RAISES rather than exiting, so one unreadable image cannot take a
+    long-lived worker down with it. main() still turns a failure into the same
+    stderr line and exit code the Node side has always read.
+    """
+    # Cleared per CALL, not per process: BACKEND_USED records which backend
+    # served each network, and in a long-lived worker a stale entry would
+    # report the PREVIOUS image's MATLAB fallback as this one's.
+    BACKEND_USED.clear()
+
+    if not os.path.exists(image):
+        raise FileNotFoundError(f"no file at {image}")
+    bgr = cv2.imread(image, cv2.IMREAD_COLOR)
+    if bgr is None:
+        raise ValueError(f"could not read image: {image}")
+    h, w = bgr.shape[:2]
+
+    pts = localize(bgr)
+    disc = (pts["opticDisc"]["x"], pts["opticDisc"]["y"])
+
+    vessel = vessels(bgr)
+    red, bright, od_masked, red512, bright512, box = lesions(bgr, disc)
+    rgb512_for_roi, _ = _crop512(bgr)
+
+    # Counting and quadrant assignment both happen in CROP-512, the space
+    # the ICDR thresholds were calibrated in, so the landmarks are mapped
+    # into it too rather than the masks being mapped out of it.
+    fovea = (pts["fovea"]["x"], pts["fovea"]["y"])
+    disc512 = _to_crop512(disc[0], disc[1], box)
+    fovea512 = _to_crop512(fovea[0], fovea[1], box)
+    red_comps = describe(red512, min_area)
+    bright_comps = describe(bright512, min_area)
+    red_q = quadrant_counts(red_comps, fovea512, disc512)
+    bright_q = quadrant_counts(bright_comps, fovea512, disc512)
+
+    out = {
+        "image": os.path.abspath(image),
+        "imageSize": [int(h), int(w)],
+        "opticDisc": pts["opticDisc"],
+        "fovea": pts["fovea"],
+        "vessel": {"pixels": int(vessel.sum()),
+                   "fraction": float(vessel.mean())},
+        "redLesions": summarise(red512, min_area),
+        "brightLesions": summarise(bright512, min_area),
+        "odMaskApplied": od_masked,
+        "odMaskRadiusCrop512": OD_MASK_RADIUS,
+        # Stated in the payload, not only in a doc: anything that renders
+        # or reports these masks should be able to see that three of the
+        # four recipes have not been reproduced against known-good output.
+        "verified": {"localization": True, "vessel": True,
+                     "redLesion": True, "brightLesion": "normalization only"},
+        "verificationNote": ("M2 100.000% exact vs published CHASE masks; "
+                             "M3 77/78 exact vs published predictions; "
+                             "M5 per-image val Dice reproduced to 4dp. "
+                             "M4's normalization is confirmed (1.42x over "
+                             "ImageNet) but its val split is not recorded, "
+                             "so its exact Dice cannot be reproduced. "
+                             "See verifySegModels.py / verifyModel3.py."),
+        # Which backend actually ran each network (backend plan §S). A
+        # fallback to PyTorch after a MATLAB failure is visible here.
+        "segBackend": {"requested": SEG_BACKEND, "used": dict(BACKEND_USED)},
+        # Quadrant counts, in the frame the ICDR thresholds were fitted in.
+        "redPerQuadrant": red_q,
+        "brightPerQuadrant": bright_q,
+        "countingProcedure": (
+            "prob > 0.5, 8-connectivity, components >= %d px at 512, "
+            "quadrants centred on the fovea with the x-axis along "
+            "fovea->disc. Reproduces diagnostics/check_agreement.py "
+            "exactly: 14/14 red counts on its own images." % min_area),
+    }
+
+    if outdir:
+        base = os.path.splitext(os.path.basename(image))[0]
+        # Lesion union and retina, at Branch A's 384 geometry.
+        #
+        # Task 7.1 compares Grad-CAM against a lesion mask, and the two live
+        # in different spaces: the CAM is 12x12 over ben_graham's crop at
+        # 384, the masks above are in ORIGINAL image pixels. Both of these
+        # are written in the CAM's own frame so the comparison needs no
+        # re-derivation of the crop geometry on the MATLAB side, where
+        # getting it wrong would silently score attention against a
+        # misaligned mask and still return a plausible number.
+        #
+        # NEAREST on the way down: a binary mask must stay binary.
+        union384 = cv2.resize((red512 | bright512).astype(np.uint8),
+                              (384, 384), interpolation=cv2.INTER_NEAREST)
+        from gradcam import retinal_mask
+        roi512 = retinal_mask(cv2.cvtColor(rgb512_for_roi, cv2.COLOR_RGB2BGR))
+        roi384 = cv2.resize(roi512.astype(np.uint8), (384, 384),
+                            interpolation=cv2.INTER_NEAREST)
+        out["masks"] = {
+            "lesion384": save_mask(union384.astype(bool),
+                                   os.path.join(outdir, base + "_lesion384.png")),
+            "roi384": save_mask(roi384.astype(bool),
+                                os.path.join(outdir, base + "_roi384.png")),
+            "vessel": save_mask(vessel, os.path.join(outdir, base + "_vessel.png")),
+            "red":    save_mask(red,    os.path.join(outdir, base + "_red.png")),
+            "bright": save_mask(bright, os.path.join(outdir, base + "_bright.png")),
+        }
+
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("image", nargs="?")
     ap.add_argument("--outdir", default=None,
                     help="write vessel/red/bright mask PNGs here")
-    # 10 px at 512, matching diagnostics/check_agreement.py's MIN_BLOB_AREA.
-    # This is NOT a free parameter: redFloor and grade3QuadMin were calibrated
-    # against counts produced with this exact filter, so changing it silently
-    # rescales what those thresholds mean. Verified to reproduce that script's
-    # red counts 14/14 on its own images.
-    ap.add_argument("--min-area", type=int, default=10,
+    ap.add_argument("--min-area", type=int, default=DEFAULT_MIN_AREA,
                     help="drop components smaller than this many pixels (512-space)")
     args = ap.parse_args()
 
     if not args.image:
         print("usage: segInfer.py <imagePath> [--outdir DIR]", file=sys.stderr)
         sys.exit(2)
-    if not os.path.exists(args.image):
-        _fail(f"no file at {args.image}")
 
     try:
-        bgr = cv2.imread(args.image, cv2.IMREAD_COLOR)
-        if bgr is None:
-            _fail(f"could not read image: {args.image}")
-        h, w = bgr.shape[:2]
-
-        pts = localize(bgr)
-        disc = (pts["opticDisc"]["x"], pts["opticDisc"]["y"])
-
-        vessel = vessels(bgr)
-        red, bright, od_masked, red512, bright512, box = lesions(bgr, disc)
-        rgb512_for_roi, _ = _crop512(bgr)
-
-        # Counting and quadrant assignment both happen in CROP-512, the space
-        # the ICDR thresholds were calibrated in, so the landmarks are mapped
-        # into it too rather than the masks being mapped out of it.
-        fovea = (pts["fovea"]["x"], pts["fovea"]["y"])
-        disc512 = _to_crop512(disc[0], disc[1], box)
-        fovea512 = _to_crop512(fovea[0], fovea[1], box)
-        red_comps = describe(red512, args.min_area)
-        bright_comps = describe(bright512, args.min_area)
-        red_q = quadrant_counts(red_comps, fovea512, disc512)
-        bright_q = quadrant_counts(bright_comps, fovea512, disc512)
-
-        out = {
-            "image": os.path.abspath(args.image),
-            "imageSize": [int(h), int(w)],
-            "opticDisc": pts["opticDisc"],
-            "fovea": pts["fovea"],
-            "vessel": {"pixels": int(vessel.sum()),
-                       "fraction": float(vessel.mean())},
-            "redLesions": summarise(red512, args.min_area),
-            "brightLesions": summarise(bright512, args.min_area),
-            "odMaskApplied": od_masked,
-            "odMaskRadiusCrop512": OD_MASK_RADIUS,
-            # Stated in the payload, not only in a doc: anything that renders
-            # or reports these masks should be able to see that three of the
-            # four recipes have not been reproduced against known-good output.
-            "verified": {"localization": True, "vessel": True,
-                         "redLesion": True, "brightLesion": "normalization only"},
-            "verificationNote": ("M2 100.000% exact vs published CHASE masks; "
-                                 "M3 77/78 exact vs published predictions; "
-                                 "M5 per-image val Dice reproduced to 4dp. "
-                                 "M4's normalization is confirmed (1.42x over "
-                                 "ImageNet) but its val split is not recorded, "
-                                 "so its exact Dice cannot be reproduced. "
-                                 "See verifySegModels.py / verifyModel3.py."),
-            # Which backend actually ran each network (backend plan §S). A
-            # fallback to PyTorch after a MATLAB failure is visible here.
-            "segBackend": {"requested": SEG_BACKEND, "used": dict(BACKEND_USED)},
-            # Quadrant counts, in the frame the ICDR thresholds were fitted in.
-            "redPerQuadrant": red_q,
-            "brightPerQuadrant": bright_q,
-            "countingProcedure": (
-                "prob > 0.5, 8-connectivity, components >= %d px at 512, "
-                "quadrants centred on the fovea with the x-axis along "
-                "fovea->disc. Reproduces diagnostics/check_agreement.py "
-                "exactly: 14/14 red counts on its own images." % args.min_area),
-        }
-
-        if args.outdir:
-            base = os.path.splitext(os.path.basename(args.image))[0]
-            # Lesion union and retina, at Branch A's 384 geometry.
-            #
-            # Task 7.1 compares Grad-CAM against a lesion mask, and the two live
-            # in different spaces: the CAM is 12x12 over ben_graham's crop at
-            # 384, the masks above are in ORIGINAL image pixels. Both of these
-            # are written in the CAM's own frame so the comparison needs no
-            # re-derivation of the crop geometry on the MATLAB side, where
-            # getting it wrong would silently score attention against a
-            # misaligned mask and still return a plausible number.
-            #
-            # NEAREST on the way down: a binary mask must stay binary.
-            union384 = cv2.resize((red512 | bright512).astype(np.uint8),
-                                  (384, 384), interpolation=cv2.INTER_NEAREST)
-            from gradcam import retinal_mask
-            roi512 = retinal_mask(cv2.cvtColor(rgb512_for_roi, cv2.COLOR_RGB2BGR))
-            roi384 = cv2.resize(roi512.astype(np.uint8), (384, 384),
-                                interpolation=cv2.INTER_NEAREST)
-            out["masks"] = {
-                "lesion384": save_mask(union384.astype(bool),
-                                       os.path.join(args.outdir, base + "_lesion384.png")),
-                "roi384": save_mask(roi384.astype(bool),
-                                    os.path.join(args.outdir, base + "_roi384.png")),
-                "vessel": save_mask(vessel, os.path.join(args.outdir, base + "_vessel.png")),
-                "red":    save_mask(red,    os.path.join(args.outdir, base + "_red.png")),
-                "bright": save_mask(bright, os.path.join(args.outdir, base + "_bright.png")),
-            }
-
-        print(json.dumps(out))
+        print(json.dumps(run_one(args.image, args.outdir, args.min_area)))
         return 0
-
     except SystemExit:
         raise
     except Exception as exc:  # noqa: BLE001 - must not leak a traceback to stdout
