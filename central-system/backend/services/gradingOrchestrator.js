@@ -61,6 +61,7 @@ const pool       = require('../db/pgClient');
 const mediaPaths = require('./mediaPaths');
 const { fromMatlab, fromMatlabDeep } = require('./matlabInterop');
 const matlabFallback = require('./matlabFallback');
+const matlabSession  = require('./matlabSessionClient');
 
 // Task: MATLAB workaround for a dev machine with no MATLAB install (no
 // license, no disk space). When true, MATLAB genuinely failing to SPAWN
@@ -272,65 +273,28 @@ function preprocessBranchATensor(imagePath) {
 // callMatlabSession's timeout below). That is deliberate: silently falling
 // back would reintroduce the exact 24s-per-case cost this exists to remove,
 // and do it quietly.
-const MATLAB_SESSION_DIR          = path.join(ML_ROOT, 'inference', 'matlabSession');
-const MATLAB_SESSION_REQUEST_DIR  = path.join(MATLAB_SESSION_DIR, 'requests');
-const MATLAB_SESSION_RESPONSE_DIR = path.join(MATLAB_SESSION_DIR, 'responses');
-const MATLAB_SESSION_POLL_MS      = 50;
 const MATLAB_SESSION_TIMEOUT_MS   = parseInt(process.env.MATLAB_SESSION_TIMEOUT_MS || '30000', 10);
 
 /**
  * callMatlabSession(tensorPath, gradcamPath)
  *
- * Writes a request file the persistent session (see above) is polling for,
- * then polls for its matching response file. Both sides write temp-then-
- * rename, so neither ever observes a partially-written file.
+ * The request/response file protocol itself lives in matlabSessionClient.js --
+ * this adds only Branch A's payload shape and its error classification.
  */
-function callMatlabSession(tensorPath, gradcamPath) {
-  return new Promise((resolve, reject) => {
-    fs.mkdirSync(MATLAB_SESSION_REQUEST_DIR, { recursive: true });
-    fs.mkdirSync(MATLAB_SESSION_RESPONSE_DIR, { recursive: true });
-
-    const reqId = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const reqPath = path.join(MATLAB_SESSION_REQUEST_DIR, `${reqId}.json`);
-    const reqTmpPath = `${reqPath}.tmp`;
-    const respPath = path.join(MATLAB_SESSION_RESPONSE_DIR, `${reqId}.json`);
-
-    fs.writeFileSync(reqTmpPath, JSON.stringify({
-      tensorPath, gradcamPath: gradcamPath || '',
-    }));
-    fs.renameSync(reqTmpPath, reqPath);
-
-    const startedAt = Date.now();
-    const poll = setInterval(() => {
-      if (fs.existsSync(respPath)) {
-        clearInterval(poll);
-        let body;
-        try {
-          // §Q: normalised at the boundary -- see matlabInterop.js.
-          body = fromMatlabDeep(JSON.parse(fs.readFileSync(respPath, 'utf8')));
-        } catch (err) {
-          fs.unlink(respPath, () => {});
-          return reject(new Error(`Branch A (MATLAB session) response JSON parse failed: ${err.message}`));
-        }
-        fs.unlink(respPath, () => {});
-        if (body && body.error) {
-          return reject(new Error(`Branch A (MATLAB session) failed: ${body.error}`));
-        }
-        return resolve(body);
-      }
-      if (Date.now() - startedAt > MATLAB_SESSION_TIMEOUT_MS) {
-        clearInterval(poll);
-        // Take the request back. Left behind, a session that is merely slow (or
-        // one that starts later) picks it up, runs a full inference nobody is
-        // waiting for, and leaves an orphan response file behind it.
-        fs.unlink(reqPath, () => {});
-        return reject(unavailable('matlab_session_unavailable',
-          `No response from the persistent MATLAB session within ${MATLAB_SESSION_TIMEOUT_MS}ms. `
-          + 'Is it running? See ml-pipeline/inference/matlabSession/README.md '
-          + '(start it with manageMatlabSession.ps1 start).'));
-      }
-    }, MATLAB_SESSION_POLL_MS);
-  });
+async function callMatlabSession(tensorPath, gradcamPath) {
+  let body;
+  try {
+    body = await matlabSession.call(
+      { tensorPath, gradcamPath: gradcamPath || '' },
+      { timeoutMs: MATLAB_SESSION_TIMEOUT_MS, prefix: 'branchA' });
+  } catch (err) {
+    if (err.code === 'matlab_session_timeout') {
+      throw unavailable('matlab_session_unavailable', err.message);
+    }
+    throw new Error(`Branch A (MATLAB session) failed: ${err.message}`);
+  }
+  // §Q: normalised at the boundary -- see matlabInterop.js.
+  return fromMatlabDeep(body);
 }
 
 /**
@@ -409,31 +373,12 @@ function runSegInference(imagePath, outdir) {
   });
 }
 
-/**
- * matlabStructLiteral(scores)
- *
- * Renders the quality-score object as a MATLAB struct literal, or `[]` when
- * there are none.
- *
- * Only the six known numeric sub-scores are emitted, and each is coerced with
- * Number() and checked finite. This expression is interpolated into a command
- * line that MATLAB evaluates, so anything unvalidated reaching it would be
- * executed — a whitelist of numeric fields is the boundary that keeps a value
- * originating at a PHC from becoming code here.
- */
+// The six quality sub-scores isCaptureUngradable() knows about. Named here
+// rather than inline so the list stays in one place; it mirrors the PHC quality
+// gate's own fields (qualityGateMain.m).
 const SCORE_FIELDS = ['focusScore', 'illuminationScore', 'fovScore',
                       'coveragePercent', 'glareScore', 'motionScore',
                       'occlusionScore'];
-
-function matlabStructLiteral(scores) {
-  if (!scores || typeof scores !== 'object') return '[]';
-  const parts = [];
-  for (const key of SCORE_FIELDS) {
-    const v = Number(scores[key]);
-    if (Number.isFinite(v)) parts.push(`'${key}', ${v}`);
-  }
-  return parts.length ? `struct(${parts.join(', ')})` : '[]';
-}
 
 // ── Path escaping for MATLAB string literals ───────────────────────────────────
 function toMatlabStr(p) {
@@ -495,8 +440,8 @@ function assignTier(confidence, branchAgreement) {
  *
  * Returns false (not ungradable) when quality_scores is null/absent --
  * captures from before this column existed, or synced without scores, fall
- * back to "no signal", not "forced C". See ml-pipeline/grading's
- * matlabStructLiteral for the same six field names.
+ * back to "no signal", not "forced C". SCORE_FIELDS above names the same six
+ * sub-scores.
  */
 const QUALITY_RETAKE_THRESHOLDS = {
   minCoveragePercent:    0.5,   // qualityGateMain.m: fov.coveragePercent < 0.5
@@ -582,14 +527,16 @@ async function processCase(caseId) {
   if (!imagePath)
     throw new Error(`processCase: case '${caseId}' has no image_path`);
 
-  // ── Step 2: single MATLAB round-trip for the full pipeline ────────────────
-  // All five MATLAB functions are chained in ONE matlab -batch call to avoid
-  // per-call startup overhead (each startup costs ~3–8 s).
+  // ── Step 2: ONE MATLAB round-trip for the whole per-case pipeline ─────────
+  // Camera check, NV score, rule engine, lesion attention and the evidence
+  // sentence all run in a single call (runCasePipeline.m) rather than five, and
+  // that call goes to the persistent session when one is up -- see
+  // runCasePipelineMatlab below for why it still falls back to a fresh MATLAB.
   const gradcamPath = mediaPaths.gradcamPath(caseId);   // creates the dir too
 
-  // The PHC quality gate's sub-scores steer Task 2.8's adaptive enhancement.
-  // Null for a case captured before they were transmitted, which the MATLAB
-  // side treats as "no scores" and falls back to the default chain.
+  // The PHC quality gate's sub-scores. Used HERE, by isCaptureUngradable below
+  // -- they are no longer sent to MATLAB, which stopped reading them when
+  // Branch A's preprocessing moved to Python.
   const qualityScores = caseRow.quality_scores || null;
 
   const cameraDeviceId = caseRow.camera_device_id || '';
@@ -636,24 +583,12 @@ async function processCase(caseId) {
       + 'grading on the classifier alone');
   }
 
-  const expr = buildMatlabExpr(imagePath, gradcamPath, qualityScores,
-                               cameraDeviceId, caseId, segResult,
-                               branchA.drGradeCnn, branchA.gradcamMap);
   let mlResult;
   try {
-    const raw = await spawnMatlabBatch(expr);
-
-    // Parse JSON from stdout (may have MATLAB startup text before '{')
-    const jsonStart = raw.indexOf('{');
-    if (jsonStart === -1)
-      throw new Error(`No JSON in MATLAB output.\nRaw:\n${raw}`);
-    try {
-      // §Q: every [] MATLAB emits for "no value" becomes null right here, so
-      // no field below can reach Postgres as the array literal '{}'.
-      mlResult = fromMatlabDeep(JSON.parse(raw.slice(jsonStart)));
-    } catch (err) {
-      throw new Error(`MATLAB JSON parse failed: ${err.message}\nRaw: ${raw.slice(jsonStart, jsonStart+300)}`);
-    }
+    mlResult = await runCasePipelineMatlab(
+      buildCasePipelineInput(imagePath, cameraDeviceId, caseId, segResult,
+                             branchA.drGradeCnn, branchA.gradcamMap),
+      caseId);
   } catch (err) {
     if (ALLOW_MATLAB_FALLBACK && err.code === 'matlab_unavailable') {
       console.warn(`[gradingOrchestrator] case ${caseId}: MATLAB is not installed on `
@@ -1010,39 +945,32 @@ async function processCase(caseId) {
 }
 
 // ── MATLAB expression builder ──────────────────────────────────────────────────
-/**
- * matlabVector(arr) — a 1x4 MATLAB literal, or [] when absent.
- *
- * [] and not zeros(1,4). An empty vector makes ruleEngineGrade refuse to run;
- * a vector of zeros is a positive claim that four quadrants were examined and
- * nothing was found. Not-measured and measured-zero are different clinical
- * statements and this project does not let them collapse.
- */
-function matlabVector(arr) {
-  if (!Array.isArray(arr) || arr.length !== 4) return '[]';
-  if (!arr.every((v) => Number.isInteger(v) && v >= 0)) return '[]';
-  return `[${arr.join(' ')}]`;
+/** A 4-element quadrant count array, or null when absent or malformed. */
+function quadCounts(arr) {
+  if (!Array.isArray(arr) || arr.length !== 4) return null;
+  if (!arr.every((v) => Number.isInteger(v) && v >= 0)) return null;
+  return arr;
 }
 
 /**
- * matlabMatrix(rows) — an MxN MATLAB literal, or [] when absent/ragged.
+ * camMatrix(rows) -- an MxN numeric matrix, or null when absent or ragged.
  *
- * [] rather than zeros(): an all-zero Grad-CAM is a real and meaningful state
+ * null rather than zeros(): an all-zero Grad-CAM is a real and meaningful state
  * (no positive evidence survived the ReLU), so it must not be the value that
  * also means "no heatmap was produced".
  */
-function matlabMatrix(rows) {
-  if (!Array.isArray(rows) || rows.length === 0) return '[]';
+function camMatrix(rows) {
+  if (!Array.isArray(rows) || rows.length === 0) return null;
   const width = rows[0].length;
   if (!rows.every((r) => Array.isArray(r) && r.length === width
-                         && r.every((v) => Number.isFinite(v)))) return '[]';
-  return `[${rows.map((r) => r.join(' ')).join('; ')}]`;
+                         && r.every((v) => Number.isFinite(v)))) return null;
+  return rows;
 }
 
-/** [x y] MATLAB literal from {x, y}, or [] when either is missing. */
-function matlabPoint(pt) {
-  if (!pt || !Number.isFinite(pt.x) || !Number.isFinite(pt.y)) return '[]';
-  return `[${pt.x} ${pt.y}]`;
+/** [x, y] from {x, y}, or null when either is missing. */
+function opticDiscXY(pt) {
+  if (!pt || !Number.isFinite(pt.x) || !Number.isFinite(pt.y)) return null;
+  return [pt.x, pt.y];
 }
 
 /**
@@ -1056,262 +984,148 @@ function readFoveaUnreliable(segResult) {
   return typeof v === 'boolean' ? v : null;
 }
 
-/** 1x4 logical MATLAB literal, or null when not a 4-element boolean/0-1 array. */
-function matlabFlags4(arr) {
+/** 4 booleans, or null when not a 4-element boolean/0-1 array. */
+function flags4(arr) {
   if (!Array.isArray(arr) || arr.length !== 4) return null;
   if (!arr.every((v) => v === true || v === false || v === 0 || v === 1)) return null;
-  return `logical([${arr.map((v) => (v ? 1 : 0)).join(' ')}])`;
+  return arr.map((v) => !!v);
 }
 
 /**
- * matlabRuleOpts(segResult) -- the ruleEngineGrade opts struct literal (§H, §I).
+ * caseRuleOpts(segResult) -- the ruleEngineGrade opts (backend plan §H, §I).
+ *
  * Contract fields (agreed with Tanuj): venousBeadingQuadrants, irmaQuadrants
  * (4 booleans, fundusQuadrants('names') order), foveaUnreliable (boolean).
- * Only fields that are actually present and well-formed are included.
+ * ONLY fields that are actually present and well-formed are included: to the
+ * rule engine a supplied array -- even an all-false one -- means that criterion
+ * WAS assessed, and drops the "not assessed" caveat from the evidence text.
  */
-function matlabRuleOpts(segResult) {
-  const parts = [];
-  const vb = matlabFlags4(segResult && segResult.venousBeadingQuadrants);
-  const irma = matlabFlags4(segResult && segResult.irmaQuadrants);
-  if (vb) parts.push(`'venousBeadingQuadrants', ${vb}`);
-  if (irma) parts.push(`'irmaQuadrants', ${irma}`);
-  if (readFoveaUnreliable(segResult) === true) parts.push(`'foveaUnreliable', true`);
-  return parts.length ? `struct(${parts.join(', ')})` : 'struct()';
+function caseRuleOpts(segResult) {
+  const opts = {};
+  const vb = flags4(segResult && segResult.venousBeadingQuadrants);
+  const irma = flags4(segResult && segResult.irmaQuadrants);
+  if (vb) opts.venousBeadingQuadrants = vb;
+  if (irma) opts.irmaQuadrants = irma;
+  if (readFoveaUnreliable(segResult) === true) opts.foveaUnreliable = true;
+  return opts;
 }
 
-function buildMatlabExpr(imagePath, gradcamPath, qualityScores, cameraDeviceId,
-                         caseIdForReport, segResult, branchAGrade, gradcamMap) {
-  const p  = toMatlabStr;
-  const preDir   = p(PREPROCESSING_DIR);
-  const gradDir  = p(GRADING_DIR);
-  const calDir   = p(CALIBRATION_DIR);
-  const expDir   = p(EXPLAINABILITY_DIR);
-  const camDir   = p(CAMERA_CAL_DIR);
-  const modDir   = p(MODELS_DIR);
-  const imgPath  = p(imagePath);
-  const gcPath   = p(gradcamPath);
+/**
+ * buildCasePipelineInput(...) -- everything runCasePipeline.m needs for a case.
+ *
+ * This used to be buildMatlabExpr, which assembled ~60 MATLAB statements into
+ * ONE line of source for `matlab -batch`. The logic now lives in
+ * ml-pipeline/grading/runCasePipeline.m and this builds only its input, which
+ * is why the MATLAB-quoting helpers -- and their two comments about needing a
+ * semicolon after every `if` and `end` so the joined line still parsed -- are
+ * gone with it.
+ *
+ * Paths go out with forward slashes: MATLAB accepts them on Windows, and it
+ * keeps a backslash from ever having to survive a round trip through JSON.
+ *
+ * NOT passed any more: qualityScores. It was assigned into the old expression
+ * and never read -- the preprocessing chain that once consumed it was removed
+ * when Branch A moved to Python. It is still loaded and still used, by
+ * isCaptureUngradable() on this side.
+ */
+function buildCasePipelineInput(imagePath, cameraDeviceId, caseIdForReport,
+                                segResult, branchAGrade, gradcamMap) {
+  const fwd = (v) => (v ? String(v).replace(/\\/g, '/') : '');
+  const masks = (segResult && segResult.masks) || {};
+  return {
+    imagePath: fwd(imagePath),
+    caseId: String(caseIdForReport),
+    cameraDeviceId: cameraDeviceId || '',
+    // Both null when segmentation did not run; the rule engine then refuses to
+    // grade rather than grading an eye nothing looked at.
+    redQ: quadCounts(segResult && segResult.redPerQuadrant),
+    brightQ: quadCounts(segResult && segResult.brightPerQuadrant),
+    // Backend plan §J: the vessel mask and the optic disc, both in ORIGINAL
+    // image pixels (the same frame).
+    vesselPath: fwd(masks.vessel),
+    odXY: opticDiscXY(segResult && segResult.opticDisc),
+    ruleOpts: caseRuleOpts(segResult),
+    branchAGrade: Number.isInteger(branchAGrade) ? branchAGrade : null,
+    // Task 7.1: the raw CAM plus the lesion and ROI masks at Branch A's 384
+    // geometry, all pre-aligned. No crop geometry is re-derived on either side.
+    camMap: camMatrix(gradcamMap),
+    lesion384Path: fwd(masks.lesion384),
+    roi384Path: fwd(masks.roi384),
+  };
+}
 
-  // Single chained script — addpath all dirs, then run the full pipeline.
-  // Returns one JSON struct via disp(jsonencode(...)).
-  //
-  // NOTE: classifyBranchA loads branchA_v1.mat internally via persistent var.
-  // gradCam also needs the net — we load it explicitly here rather than
-  // exposing classifyBranchA's persistent variable (which MATLAB doesn't
-  // allow from outside the function).
-  return [
-    `addpath('${preDir}');`,
-    `addpath('${gradDir}');`,
-    `addpath('${calDir}');`,
-    `addpath('${expDir}');`,
-    `addpath('${camDir}');`,
-    // MODELS_DIR was computed as modDir above but never actually added to the
-    // path -- harmless while classifyBranchA.m resolves branchA_v1.mat by an
-    // absolute fullfile() path, but the ONNX-imported net also needs its
-    // companion `+branchA_v1/` custom-layer package folder (models/) to be
-    // resolvable, which only happens if this directory is on the path or is
-    // the current folder. Without it the .mat loads "successfully" and
-    // silently deserializes into a broken network that then errors on
-    // predict() -- reproduced and documented in the model-handoff work.
-    `addpath('${modDir}');`,
+// -- Running it: the session first, a fresh MATLAB only if there is no session -
+// The single largest cost in grading a case used to be the MATLAB start this
+// call paid: about 20 s of the ~50 s per case, for work that takes seconds.
+// The persistent session pays it once, at boot.
+//
+// Unlike Branch A (above), this DOES fall back to `matlab -batch` when the
+// session is down. The reasoning differs because the stakes do: for Branch A a
+// silent fallback would reintroduce the very per-case cost the session exists
+// to remove, and hide that it had. Here the fallback is exactly the behaviour
+// that shipped before this change, it is logged every time it happens, and the
+// alternative is failing a case outright over a session that is restarting.
+const CASE_PIPELINE_TIMEOUT_MS = parseInt(
+  process.env.MATLAB_CASE_PIPELINE_TIMEOUT_MS || '120000', 10);
 
-    // ── Preprocessing
-    // preprocessForBranchA is THE chain — benGrahamCrop -> denoiseRetinal ->
-    // adaptiveEnhance. It is called rather than the individual steps being
-    // re-listed here on purpose: training must run the identical chain, and a
-    // hand-written copy in two places is how train/serve skew starts. That skew
-    // is silent — nothing errors, no test fails, the model is just worse for
-    // reasons nobody can see (docs/model-handoff-guide.md §2).
-    //
-    // This replaced `illuminationNormalize(claheEnhance(benGrahamCrop(...)))`,
-    // which is now wrong in two ways: it skips denoising, and CLAHE plus
-    // illumination are folded into adaptiveEnhance.
-    // Task 4.6: readFundusImage instead of imread, so a DICOM from a
-    // clinical-grade camera is readable at all. Desktop fundus cameras export
-    // the Ophthalmic Photography IOD, not JPEG; until now such a file could
-    // not have been graded. Ordinary images take the identical imread path.
-    `[img, imgMeta] = readFundusImage('${imgPath}');`,
-    `qualityScores = ${matlabStructLiteral(qualityScores)};`,
-    // The worker-reported device is passed in only for the CROSS-CHECK, never
-    // to steer classification: the pixels are what the model actually sees, so
-    // image evidence wins and a disagreement is reported rather than resolved
-    // in favour of the paperwork (Task 6.3, design doc §9.4).
-    // Task 4.6 note: a DICOM file names the device that took the photograph,
-    // which is better evidence than the worker's dropdown. It is deliberately
-    // NOT substituted for reportedDeviceId here. classifyCameraFamily matches
-    // that value against a table of known device keys, and a free-text DICOM
-    // string ("Topcon TRC-NW400") matches nothing — so substituting it would
-    // silently SUPPRESS the Task 6.3 mismatch check rather than improve it,
-    // turning a working cross-check into a no-op with no error anywhere.
-    // Mapping manufacturer strings onto camera families needs real DICOM
-    // samples from the cameras in question; until then the device is recorded
-    // as evidence rather than acted on.
-    `ppOpts = struct('reportedDeviceId', '${toMatlabStr(cameraDeviceId || '')}');`,
-    // ── Task 6.3: camera family, called DIRECTLY ──────────────────────────
-    // This used to run the whole preprocessForBranchA chain (crop, denoise,
-    // adaptive enhance, camera profile) and then classifyBranchA on the result.
-    // Every one of those outputs was DISCARDED: Branch A grades in Python, and
-    // the orchestrator never read mlResult.grade, .calibratedProbs or
-    // .confidenceScore. The only survivor was ppSteps.cameraFamily.
-    //
-    // So it ran the untrained MATLAB stub on every case, for seconds, to
-    // produce a grade nothing consumed — and left a stub one careless edit away
-    // from becoming load-bearing again.
-    //
-    // classifyCameraFamily is what actually produced the camera family inside
-    // that chain, so it is called directly. Note this changes nothing about
-    // Task 6.3's real status: the per-family calibration PROFILE was only ever
-    // applied to those discarded pixels, so the family is detected and surfaced
-    // as a mismatch signal, and no correction reaches the model. Reconnecting it
-    // would feed the network an input distribution it was not trained on.
-    `[cameraFamily, cameraDetail] = classifyCameraFamily(img, ppOpts.reportedDeviceId);`,
-
-    // ── CNN classification (loads net via persistent var in classifyBranchA)
-
-    // ── Temperature calibration
-
-    // ── Grad-CAM (load net separately — can't access classifyBranchA's persistent)
-    // NO GRAD-CAM HERE ANY MORE.
-    //
-    // gradCam() needs a network, and the only one MATLAB can load is the
-    // untrained stub. The grade now comes from the real PyTorch model, so a
-    // heatmap produced here would be explaining a DIFFERENT network than the
-    // one that made the decision — a picture of what an untrained model looked
-    // at, displayed beside a real grade. That is worse than no heatmap: it is
-    // an explanation that is confidently unrelated to the prediction.
-    //
-    // gradcam_path is written as NULL until Grad-CAM runs against the real
-    // model in Python, which is the next task. api-contracts.md already
-    // requires the frontend to render a null overlay as "not yet available".
-
-    // ── Task 7.3: the evidence report
-    // Runs inside THIS MATLAB call rather than a second spawn. A separate
-    // invocation would double the cost of the slowest step in the pipeline to
-    // format a sentence, and the interpreter is already up with the paths added.
-    //
-    // No lesion counts exist yet (Tasks 4.2/4.3 are not built), so
-    // generateEvidenceReport is given none and returns text that SAYS
-    // segmentation has not been run. That is the intended behaviour, not a
-    // placeholder: it never invents "0 microaneurysms", because zero-measured
-    // and not-measured are different clinical claims. The moment the segmenter
-    // lands, populate evidenceInputs here and the sentence becomes the real
-    // lesion-level report with nothing else changing.
-    `addpath('${p(SEGMENTATION_DIR)}');`,
-
-    // ── Branch B (Tasks 5.1/5.2), live ────────────────────────────────────
-    // Counts come from segInfer.py, computed in CROP-512 with a 10 px minimum
-    // component area — the exact procedure the ICDR thresholds were calibrated
-    // against (verifyRuleEngineCounts.py: 14/14 on sum(red), and the same
-    // rule-engine grade on 14/14).
-    //
-    // Both vectors are [] when segmentation did not run, and ruleEngineGrade
-    // then refuses rather than grading an eye nothing looked at.
-    `redQ = ${matlabVector(segResult && segResult.redPerQuadrant)};`,
-    `brightQ = ${matlabVector(segResult && segResult.brightPerQuadrant)};`,
-    // ── §J: neovascularization suspicion, computed HERE ──────────────────
-    // Inside the MATLAB call every case already makes, so it adds no process
-    // start. Input: segInfer's vessel mask and optic disc, both in ORIGINAL
-    // image pixels (same frame). nvScore stays [] when it could not run --
-    // reported as NULL, never as a measured 0. The rule engine still gets 0 in
-    // that case (nvForRule), exactly as before, so a missing score keeps the
-    // grade-4 path shut rather than erroring.
-    `vesselPath = '${toMatlabStr((segResult && segResult.masks && segResult.masks.vessel) || '')}';`,
-    `odXY = ${matlabPoint(segResult && segResult.opticDisc)};`,
-    `nvScore = []; nvForRule = 0;`,
-    `if isfile(vesselPath) && numel(odXY) == 2,`,
-    `  [nvS, nvDetail] = neovascularizationSuspicion(imread(vesselPath) > 127, odXY);`,
-    `  if nvDetail.valid, nvScore = nvS; nvForRule = nvS; end;`,
-    `end;`,
-    // ── §H / §I: the detector signals, passed only when actually present ─
-    // An absent field stays absent: the rule engine then says (b)/(c) were NOT
-    // assessed. Passing all-false defaults instead would make the evidence
-    // claim an assessment that never happened.
-    `ruleOpts = ${matlabRuleOpts(segResult)};`,
-    `branchAGrade = ${Number.isInteger(branchAGrade) ? branchAGrade : '[]'};`,
-
-    `ruleGrade = []; branchAgree = []; evidenceInputs = struct(); ruleIsLowerBound = false; ruleMaxGrade = [];`,
-    `if numel(redQ) == 4 && numel(brightQ) == 4,`,   // trailing comma: the whole
-    // expression is joined onto ONE line, and MATLAB needs a separator after an
-    // if-condition there or it parses the next statement as part of the test.
-    `  [ruleGrade, ruleEvidence] = ruleEngineGrade(redQ, brightQ, nvForRule, ruleOpts);`,
-    `  evidenceInputs = struct('redByQuadrant', redQ, 'brightByQuadrant', brightQ, 'nvSuspicionScore', nvForRule);`,
-    // branchesAgree returns [] — NOT false — when either branch is missing.
-    // false means "compared and disagreed" and forces mandatory review; []
-    // means "Branch B did not run". Collapsing them would send every
-    // segmentation failure to the review queue as though something was wrong
-    // with the eye.
-    `  branchAgree = branchesAgree(branchAGrade, ruleGrade, ruleEvidence.isLowerBound);`,
-    `  ruleIsLowerBound = ruleEvidence.isLowerBound;`,
-    `  ruleMaxGrade = ruleEvidence.maxGrade;`,
-    // `end;` with the semicolon for the same one-line-join reason as the
-    // if-condition above: `end [evidenceText, ...]` parses as indexing into
-    // `end` and fails with "Unexpected '['".
-    `end;`,
-
-    // ── Task 7.1: lesion-attention consistency ────────────────────────────
-    // The last always-NULL column. lesionAttentionConsistency has been built
-    // and unit-tested since 2026-09-09 but never ran on a real case, because it
-    // needs a lesion MASK and there was no segmenter. There is now.
-    //
-    // Everything arrives pre-aligned in Branch A's 384 frame: segInfer writes
-    // the lesion union and the retinal ROI at that geometry, and the raw 12x12
-    // CAM comes in as a literal. So the only thing done here is the upsample,
-    // and no crop geometry is re-derived on this side — re-deriving it is how a
-    // misaligned mask would score attention against the wrong pixels and still
-    // return a perfectly plausible number.
-    `camMap = ${matlabMatrix(gradcamMap)};`,
-    `lesion384Path = '${toMatlabStr((segResult && segResult.masks && segResult.masks.lesion384) || '')}';`,
-    `roi384Path = '${toMatlabStr((segResult && segResult.masks && segResult.masks.roi384) || '')}';`,
-    `lesionAttention = [];`,
-    `if ~isempty(camMap) && isfile(lesion384Path) && isfile(roi384Path),`,
-    `  lesionMask = imread(lesion384Path) > 127;`,
-    `  roiMask = imread(roi384Path) > 127;`,
-    `  camFull = imresize(camMap, size(lesionMask), 'bilinear');`,
-    `  lesionAttention = lesionAttentionConsistency(camFull, lesionMask, roiMask);`,
-    `end;`,
-
-    // ── Task 7.3: the evidence report, now with real lesion content ────────
-    // With counts present this produces the lesion-level sentence; with none it
-    // still says segmentation has not been run rather than inventing "0
-    // microaneurysms", because zero-measured and not-measured are different
-    // clinical claims.
-    // ruleOpts passed through so the report's own ruleEngineGrade call sees
-    // the same VB/IRMA/fovea inputs as the grade above -- otherwise the text
-    // could explain a different grade from the one recorded.
-    `[evidenceText, ~, ~] = generateEvidenceReport('${toMatlabStr(caseIdForReport)}', evidenceInputs, struct('ruleOpts', ruleOpts));`,
-
-    // ── Output JSON
-    `out.evidenceSummaryText = evidenceText;`,
-    // Task 4.6: recorded so a DICOM submission is traceable to the device and
-    // eye the camera itself reported, rather than only to what a worker typed.
-    `out.sourceFormat = imgMeta.format;`,
-    `out.dicomDeviceModel = imgMeta.deviceModel;`,
-    `out.imageLaterality = imgMeta.laterality;`,
-    `out.cameraFamily = cameraFamily;`,
-    `out.cameraMismatch = ~isempty(cameraDetail) && cameraDetail.mismatch;`,
-
-    // Branch B. jsonencode maps an empty MATLAB array to JSON null, which is
-    // exactly what the schema wants for "did not run" — so [] survives the
-    // round trip as null and never arrives as 0 or false.
-    `out.ruleEngineGrade = ruleGrade;`,
-    `out.branchAgreement = branchAgree;`,
-    `out.nvSuspicionScore = nvScore;`,
-    `out.ruleIsLowerBound = ruleIsLowerBound;`,
-    `out.ruleMaxGrade = ruleMaxGrade;`,
-    `out.lesionAttentionConsistency = lesionAttention;`,
+function casePipelineBatchExpr(inputPath) {
+  const p = toMatlabStr;
+  // MODELS_DIR is on the path deliberately: an ONNX-imported net also needs its
+  // companion `+branchA_v1/` custom-layer package folder to be resolvable, and
+  // without it a .mat loads "successfully" into a broken network that only
+  // errors later, at predict().
+  const dirs = [PREPROCESSING_DIR, GRADING_DIR, CALIBRATION_DIR, EXPLAINABILITY_DIR,
+                CAMERA_CAL_DIR, SEGMENTATION_DIR, MODELS_DIR,
+                path.join(ML_ROOT, 'inference')];
+  return dirs.map((d) => `addpath('${p(d)}');`).join(' ')
     // jsonencodeAscii, not jsonencode: stdout on Windows is the ANSI code page,
     // which silently drops the em dashes the evidence text is full of. See
     // ml-pipeline/inference/jsonencodeAscii.m.
-    `addpath('${p(path.join(ML_ROOT, 'inference'))}');`,
-    `disp(jsonencodeAscii(out));`,
-  ].join(' ');
+    + ` disp(jsonencodeAscii(runCasePipeline('${p(inputPath)}')));`;
 }
 
-// buildMatlabExpr is exported for testing: asserting on the EXPRESSION it
-// actually generates is a real check, whereas grepping this file's source is
-// not -- a comment quoting the old chain would fail such a grep while the
-// generated code was perfectly correct.
+/**
+ * runCasePipelineMatlab(input, caseId) -> the parsed, §Q-normalised result.
+ */
+async function runCasePipelineMatlab(input, caseId) {
+  const inputPath = path.join(os.tmpdir(),
+    `case_pipeline_${Date.now()}_${Math.random().toString(36).slice(2)}.json`);
+  fs.writeFileSync(inputPath, JSON.stringify(input));
+  try {
+    if (matlabSession.alive()) {
+      try {
+        return fromMatlabDeep(await matlabSession.call(
+          { casePipeline: inputPath.replace(/\\/g, '/') },
+          { timeoutMs: CASE_PIPELINE_TIMEOUT_MS, prefix: 'case' }));
+      } catch (err) {
+        console.warn(`[gradingOrchestrator] case ${caseId}: the MATLAB session could not `
+          + `run the grading pipeline (${err.message}); falling back to matlab -batch, `
+          + 'which costs this case about 20 s of MATLAB start-up');
+      }
+    }
+    const raw = await spawnMatlabBatch(casePipelineBatchExpr(inputPath));
+    // MATLAB start-up text can precede the JSON on stdout.
+    const jsonStart = raw.indexOf('{');
+    if (jsonStart === -1) throw new Error(`No JSON in MATLAB output.\nRaw:\n${raw}`);
+    try {
+      // §Q: every [] MATLAB emits for "no value" becomes null right here, so no
+      // field can reach Postgres as the array literal '{}'.
+      return fromMatlabDeep(JSON.parse(raw.slice(jsonStart)));
+    } catch (err) {
+      throw new Error(`MATLAB JSON parse failed: ${err.message}\n`
+        + `Raw: ${raw.slice(jsonStart, jsonStart + 300)}`);
+    }
+  } finally {
+    fs.unlink(inputPath, () => {});   // best-effort; a leaked temp file is not worth failing the case over
+  }
+}
+
+// buildCasePipelineInput is exported for testing: asserting on the INPUT it
+// actually produces is a real check, whereas grepping this file's source is
+// not -- a comment quoting an old field would fail such a grep while the
+// generated input was perfectly correct.
 module.exports = {
-  processCase, assignTier, buildMatlabExpr, matlabRuleOpts, readFoveaUnreliable,
+  processCase, assignTier, buildCasePipelineInput, caseRuleOpts, readFoveaUnreliable,
   runBranchAInference, runBranchAInferenceMatlab, INFERENCE_BACKEND,
   isCaptureUngradable, hasClearedCameraSiteProbation, CAMERA_PROBATION_MIN_CASES,
 };

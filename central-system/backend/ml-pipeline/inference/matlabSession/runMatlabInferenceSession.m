@@ -37,6 +37,11 @@ function runMatlabInferenceSession()
 % loaded into memory below per the spec this was built against, but nothing
 % in this session currently SERVES segmentation requests -- the
 % INFERENCE_BACKEND=matlab switch is Branch A/classifier only today.
+%
+% It DOES serve three other request types, none of which need a network:
+% segmentation forward passes (backend plan §S), the clinical-rationale PDF
+% (§O), and the per-case grading pipeline (runCasePipeline.m). All three exist
+% here for the same reason -- so they do not each pay a MATLAB start.
 
 thisDir     = fileparts(mfilename('fullpath'));
 requestDir  = fullfile(thisDir, 'requests');
@@ -61,6 +66,8 @@ addpath(fullfile(mlRoot, 'calibration'));
 addpath(fullfile(mlRoot, 'explainability'));
 addpath(fullfile(mlRoot, 'preprocessing'));    % readFundusImage, for report images
 addpath(fullfile(mlRoot, 'segmentation'));     % fundusQuadrants, for report labels
+addpath(fullfile(mlRoot, 'grading'));          % runCasePipeline and the rule engine
+addpath(fullfile(mlRoot, 'cameraCalibration'));% classifyCameraFamily, for Task 6.3
 addpath(fullfile(mlRoot, 'models'));
 
 % The ONNX converter must be on the path BEFORE any load(): without it the
@@ -173,6 +180,20 @@ try
         save(req.outPath, 'y', '-v7');
         writeAtomic(respPath, jsonencodeAscii(struct('ok', true, 'outPath', req.outPath)));
         logMsg(logFile, sprintf('  request %s OK %s (%.0f ms)', reqId, name, toc(t0) * 1000));
+        delete(reqPath);
+        return;
+    end
+
+    % ── Per-case grading pipeline ─────────────────────────────────────────
+    % {"casePipeline": "<input .json>"} -- the rule engine, camera check, NV
+    % score, lesion attention and evidence sentence for one case. This is the
+    % single largest win the session offers: run as `matlab -batch` it paid a
+    % ~20 s MATLAB start on EVERY case, which was most of the ~50 s a case
+    % took. The work itself is seconds. See runCasePipeline.m.
+    if isfield(req, 'casePipeline')
+        out = runCasePipeline(char(req.casePipeline));
+        writeAtomic(respPath, jsonencodeAscii(out));
+        logMsg(logFile, sprintf('  request %s OK casePipeline (%.0f ms)', reqId, toc(t0) * 1000));
         delete(reqPath);
         return;
     end

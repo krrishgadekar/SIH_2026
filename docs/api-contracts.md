@@ -257,6 +257,8 @@ Response `200`: `{ "caseId": "string", "status": "processing" | "graded" | "erro
 
 `"processing"` covers both *waiting for a worker* and *being graded*. That is deliberate: from outside they are the same fact — the answer is not ready, keep polling — and a fourth enum value would expose an internal distinction no client can act on. Both `"graded"` and `"error"` are terminal; nothing leaves either state without a new submission.
 
+**How long to expect:** about 33 s from upload to `"graded"` on the development machine, plus however long the case waited for a free worker. Design a UI that polls, not one that blocks — and do not treat 60 s as abnormal.
+
 ### Chunked / resumable upload — `POST|GET /api/v1/cases/:captureRef/chunks…`  *(Task 8.2)*
 
 For images too large to transfer in one request on a poor link. Small images should keep using `POST /api/v1/cases`; chunking a 400 KB file spends extra round trips to save nothing, and round trips are the costly part on these links. The PHC sync manager switches over above `SYNC_CHUNK_THRESHOLD_BYTES` (default 2 MB).
@@ -401,7 +403,7 @@ Call this when a reviewer opens a case in Case Detail. It takes no body. Require
 The per-case clinical-rationale PDF.
 - **Response `200`:** `{ "reportUrl": "/media/cases/<id>/report.pdf", "generatedAt", "cached": true|false }`.
 - **When it is generated:** on the first request, then cached. A case re-graded since the last PDF gets a fresh one automatically, and `?regenerate=1` forces one.
-- **Timing:** about 7 s when the MATLAB session is up, about 27 s when it is not (a MATLAB start).
+- **Timing:** 2–6 s when the MATLAB session is up, about 27 s when it is not (a MATLAB start).
 - **Contents:** patient reference (never the raw ID), age, eye, site, capture time, the photo and Grad-CAM overlay, the grade with a plain-language description and its tier, both branches' grades and whether they agree, lesion evidence (with the disclosed limits of each detector), the evidence summary, and the "requires ophthalmologist review" disclaimer on every page.
 - **Errors:** `409 case_not_graded`, `404 case_not_found`, `502 report_generation_failed`.
 - **Auth:** ophthalmologist or district_admin. The PDF itself needs a session, like everything under `/media`.

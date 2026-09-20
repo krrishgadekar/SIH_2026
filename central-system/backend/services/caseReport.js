@@ -28,10 +28,9 @@ const { execFile } = require('child_process');
 
 const pool       = require('../db/pgClient');
 const mediaPaths = require('./mediaPaths');
+const matlabSession = require('./matlabSessionClient');
 
 const ML_ROOT     = path.resolve(__dirname, '..', 'ml-pipeline');
-const SESSION_DIR = path.join(ML_ROOT, 'inference', 'matlabSession');
-const HEARTBEAT   = path.join(SESSION_DIR, 'session.heartbeat');
 const MATLAB_EXE  = process.env.MATLAB_EXECUTABLE || 'matlab';
 const SESSION_TIMEOUT_MS = 60_000;
 const BATCH_TIMEOUT_MS   = 180_000;
@@ -39,41 +38,11 @@ const BATCH_TIMEOUT_MS   = 180_000;
 const toMatlabStr = (s) => String(s).replace(/\\/g, '/').replace(/'/g, "''");
 const inflight = new Map();   // caseId -> promise: concurrent requests share one render
 
-function sessionAlive() {
-  try { return Date.now() - fs.statSync(HEARTBEAT).mtimeMs < 30_000; } catch { return false; }
-}
-
-/** One request through the persistent session's file protocol. */
+/** One request through the persistent session (matlabSessionClient.js). */
 function viaSession(inputPath, outPath) {
-  return new Promise((resolve, reject) => {
-    const reqDir = path.join(SESSION_DIR, 'requests');
-    const respDir = path.join(SESSION_DIR, 'responses');
-    fs.mkdirSync(reqDir, { recursive: true });
-    fs.mkdirSync(respDir, { recursive: true });
-    const id = `report_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    const reqPath = path.join(reqDir, `${id}.json`);
-    const respPath = path.join(respDir, `${id}.json`);
-    fs.writeFileSync(`${reqPath}.tmp`, JSON.stringify({
-      report: inputPath.replace(/\\/g, '/'), outPath: outPath.replace(/\\/g, '/'),
-    }));
-    fs.renameSync(`${reqPath}.tmp`, reqPath);
-
-    const started = Date.now();
-    const poll = setInterval(() => {
-      if (fs.existsSync(respPath)) {
-        clearInterval(poll);
-        let body;
-        try { body = JSON.parse(fs.readFileSync(respPath, 'utf8')); } catch (e) { body = { error: e.message }; }
-        fs.unlink(respPath, () => {});
-        return body.error ? reject(new Error(body.error)) : resolve();
-      }
-      if (Date.now() - started > SESSION_TIMEOUT_MS) {
-        clearInterval(poll);
-        fs.unlink(reqPath, () => {});
-        reject(new Error('MATLAB session did not answer the report request in time'));
-      }
-    }, 50);
-  });
+  return matlabSession.call({
+    report: inputPath.replace(/\\/g, '/'), outPath: outPath.replace(/\\/g, '/'),
+  }, { timeoutMs: SESSION_TIMEOUT_MS, prefix: 'report' });
 }
 
 /** Fallback: a one-off MATLAB process. */
@@ -135,7 +104,7 @@ async function render(caseId, row) {
   const inputPath = path.join(os.tmpdir(), `report_in_${caseId}_${Date.now()}.json`);
   fs.writeFileSync(inputPath, JSON.stringify(input));
   try {
-    if (sessionAlive()) {
+    if (matlabSession.alive()) {
       try {
         await viaSession(inputPath, outPath);
       } catch (err) {
