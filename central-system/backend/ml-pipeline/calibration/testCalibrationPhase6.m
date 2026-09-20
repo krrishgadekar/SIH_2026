@@ -3,15 +3,9 @@ function testCalibrationPhase6()
 %
 %   Run: matlab -batch "testCalibrationPhase6"
 %
-%   The conformal fixtures are built so every threshold is computable by hand:
-%
-%     n = 9 calibration points, alpha = 0.10
-%     rank = ceil((n+1)(1-alpha)) = ceil(10 * 0.9) = 9
-%     true-class probabilities  [0.95 0.90 0.85 0.80 0.75 0.70 0.60 0.50 0.30]
-%     nonconformity 1-p         [0.05 0.10 0.15 0.20 0.25 0.30 0.40 0.50 0.70]
-%     qhat = 9th smallest = 0.70   ->   probThreshold = 1 - 0.70 = 0.30
-%
-%   Every tiering case below is then read straight off that 0.30 threshold.
+%   The conformal fixtures are built so every threshold is computable by hand
+%   -- see the Task 6.2 section header below for the v3 (score v3,
+%   referable-stratified Mondrian) construction.
 
 thisDir = fileparts(mfilename('fullpath'));
 addpath(thisDir);
@@ -90,170 +84,192 @@ wobble = @(~, k) normaliseRow([0.5 + 0.1*mod(k,2), 0.3 - 0.1*mod(k,2), 0.1, 0.05
 [n,f] = tbool(n, f, 'and orders correctly against the two extremes', u0 < u2 && u2 < u1);
 fprintf('        %.4f (identical) < %.4f (wobbling) < %.4f (alternating)\n', u0, u2, u1);
 
-% ═══ Task 6.2: conformal calibration ═══════════════════════════════════════
-fprintf('\n--- conformalCalibrate: the hand-worked fixture ---\n');
+% ═══ Task 6.2: conformal calibration (ordinal_mode_interval_stratified_v3) ═
+% NOTE (2026-09-20, policy v3): this section replaces the v2 per-CLASS
+% Mondrian fixtures (alphaPerClass, qhatPerClass, score = interval mass
+% INCLUDING k's own mass) with the v3 REFERABLE-STRATIFIED scheme
+% (alphaPerStratum, qhatPerStratum, score = interval mass MINUS k's own
+% mass, s(mode)=0). The exhaustive cross-implementation checks live in
+% tests/testConformalV2.m + tests/test_conformal_v2.py, reproducing >=80
+% golden vectors generated from the real fitted branchA_v2a model plus a
+% 10,000-trial contiguity/mode-membership/never-Tier-A-above-threshold
+% property test AND a standalone synthetic referable-threshold-demotion
+% unit test in BOTH MATLAB and Python -- this section stays a compact,
+% hand-computable sanity check of the same arithmetic, kept alongside
+% Task 6.1 in this original test file.
+fprintf('\n--- conformalCalibrate: the hand-worked stratified fixture ---\n');
 
-trueP = [0.95 0.90 0.85 0.80 0.75 0.70 0.60 0.50 0.30];
-[calProbs, calLabels] = buildCalibrationSet(trueP);
-calib = conformalCalibrate(calProbs, calLabels, struct('alpha', 0.10));
+% Stratum 0 (non-referable, grades 0-1): 9 calibration points, ALL true
+% grade 0, mode FIXED at grade 1 for every point (mode != true grade, so
+% the v3 score is non-trivial -- unlike v2, s(mode)=0 means a "mode==true"
+% fixture would trivially score 0 for everything and lose the
+% order-statistic structure this fixture needs).
+%
+% Construction: probs = [t, m, r, r, r] with grade0=t (true, small and
+% FIXED), grade1=m (mode, the TARGET score value), grades 2-4 each get
+% r=(1-m-t)/3 (a "sink" split three ways so no single one exceeds m and
+% steals the mode). Because mode(1) and true(0) are ADJACENT, score(0) =
+% interval[0,1] - p(0) = (t+m) - t = m exactly -- the target value,
+% independent of t and the sink split. t=0.01 fixed throughout.
+%   rank = ceil((9+1)*(1-0.30)) = ceil(7.0) = 7  (7th of 9 smallest)
+targetScores0 = [0.95 0.90 0.85 0.80 0.75 0.70 0.60 0.50 0.30];
+t0 = 0.01;
+p0 = zeros(9, 5);
+for i = 1:9
+    m = targetScores0(i);
+    r = (1 - m - t0) / 3;
+    p0(i, :) = [t0, m, r, r, r];
+end
+l0 = zeros(9, 1);   % true grade 0 for all
 
-[n,f] = tnum(n, f, 'n = 9', calib.n, 9, TOL);
-[n,f] = tnum(n, f, 'rank = ceil(10 * 0.9) = 9', calib.rank, 9, TOL);
-[n,f] = tnum(n, f, 'qhat = 9th smallest nonconformity = 0.70', calib.qhat, 0.70, 1e-12);
-[n,f] = tnum(n, f, 'probThreshold = 1 - qhat = 0.30', calib.probThreshold, 0.30, 1e-12);
-[n,f] = tnum(n, f, 'coverage target is 0.90', calib.coverage, 0.90, TOL);
+% Stratum 1 (referable, grades 2-4): NO calibration points at all.
+% rank = ceil(1*(1-0.05)) = 1 > n_k = 0, so it SATURATES to qhat=1 --
+% saturating to 1 means "unconditionally admit", the conservative
+% direction, which matters most on exactly the rare/high-stakes stratum
+% most likely to hit it (see conformalCalibrate.m's docstring).
+calProbs2  = p0;
+calLabels2 = l0;
+calib2 = conformalCalibrate(calProbs2, calLabels2, ...
+    struct('alphaPerStratum', [0.30 0.05]));
 
-% ── The finite-sample floor ───────────────────────────────────────────────
-fprintf('\n--- the finite-sample floor is enforced, not clamped ---\n');
-[p8, l8] = buildCalibrationSet(trueP(1:8));
-[n,f] = terr(n, f, 'alpha=0.10 with n=8 is refused (needs 9)', ...
-    @() conformalCalibrate(p8, l8, struct('alpha', 0.10)), 'tooFewCalibrationPoints');
+[n,f] = tbool(n, f, 'method is ordinal_mode_interval_stratified_v3', ...
+    strcmp(calib2.method, 'ordinal_mode_interval_stratified_v3'));
+[n,f] = tnum(n, f, 'n = 9', calib2.n, 9, TOL);
+[n,f] = tbool(n, f, 'nCalPerStratum = [9 0]', ...
+    isequal(calib2.nCalPerStratum, [9 0]), mat2str(calib2.nCalPerStratum));
+[n,f] = tnum(n, f, 'stratum 0 rank = ceil(10*0.70) = 7', calib2.rankPerStratum(1), 7, TOL);
+[n,f] = tnum(n, f, 'stratum 1 rank = ceil(1*0.95) = 1 (> n_k=0)', calib2.rankPerStratum(2), 1, TOL);
 
-[p18, l18] = buildCalibrationSet(linspace(0.95, 0.30, 18));
-[n,f] = terr(n, f, 'alpha=0.05 with n=18 is refused (needs 19)', ...
-    @() conformalCalibrate(p18, l18, struct('alpha', 0.05)), 'tooFewCalibrationPoints');
-[p19, l19] = buildCalibrationSet(linspace(0.95, 0.30, 19));
-c19 = conformalCalibrate(p19, l19, struct('alpha', 0.05));
-[n,f] = tnum(n, f, 'alpha=0.05 with n=19 succeeds (rank 19 of 19)', c19.rank, 19, TOL);
-fprintf('        below the floor the required order statistic does not exist;\n');
-fprintf('        clamping to the max score would return a threshold that\n');
-fprintf('        guarantees nothing while looking calibrated\n');
+[n,f] = tbool(n, f, 'stratum 1 (referable) SATURATES (no calibration points, not an error)', ...
+    isequal(calib2.saturatedPerStratum, logical([0 1])), ...
+    mat2str(calib2.saturatedPerStratum));
+[n,f] = tnum(n, f, 'a saturated stratum gets qhat = 1 (unconditionally admitted)', ...
+    calib2.qhatPerStratum(2), 1, TOL);
+[n,f] = tnum(n, f, 'stratum 0 qhat = 7th-smallest-of-9 = 0.85', ...
+    calib2.qhatPerStratum(1), 0.85, 1e-9);
 
-[n,f] = terr(n, f, 'rejects alpha outside (0,1)', ...
-    @() conformalCalibrate(calProbs, calLabels, struct('alpha', 1.5)), 'badAlpha');
+fprintf('        saturation, not an error, is the floor behaviour -- see\n');
+fprintf('        conformalCalibrate.m''s docstring for why erroring here would\n');
+fprintf('        make calibration fail outright on the rarest, highest-stakes stratum\n');
+
+% ── Input validation, updated for alphaPerStratum ─────────────────────────
+[n,f] = terr(n, f, 'rejects alphaPerStratum with the wrong number of entries', ...
+    @() conformalCalibrate(calProbs2, calLabels2, struct('alphaPerStratum', [0.1 0.1 0.1])), 'badAlpha');
+[n,f] = terr(n, f, 'rejects an alphaPerStratum entry outside (0,1)', ...
+    @() conformalCalibrate(calProbs2, calLabels2, ...
+        struct('alphaPerStratum', [1.5 0.1])), 'badAlpha');
 [n,f] = terr(n, f, 'rejects a label/probability length mismatch', ...
-    @() conformalCalibrate(calProbs, calLabels(1:5)), 'sizeMismatch');
+    @() conformalCalibrate(calProbs2, calLabels2(1:5)), 'sizeMismatch');
 [n,f] = terr(n, f, 'rejects a grade of 7', ...
-    @() conformalCalibrate(calProbs, [7 0 0 0 0 0 0 0 0]'), 'badLabels');
-
-% ── Coverage actually holds on the calibration fold ───────────────────────
-% Coverage on the fitting fold is EXACTLY rank/n -- qhat is the rank-th
-% smallest score, so exactly that many points satisfy s_i <= qhat. Asserting
-% the identity catches the floating-point boundary bug that comparing
-% p >= 1-qhat introduced: 1 - 0.70 is 0.30000000000000004, which excluded the
-% very point that produced qhat and quietly under-covered by 1/n.
-[n,f] = tnum(n, f, 'coverage on the fitting fold is exactly rank/n = 9/9', ...
-    calib.empiricalCoverageOnCalibrationFold, 9/9, 1e-12);
-[n,f] = tbool(n, f, 'and it meets the 1-alpha guarantee', ...
-    calib.empiricalCoverageOnCalibrationFold >= 0.90 - 1e-12, ...
-    calib.empiricalCoverageOnCalibrationFold);
-
-% The same identity at a different alpha, where rank/n (7/9 = 0.778) is nowhere
-% near 1-alpha (0.70). That gap is the finite-sample correction working, not an
-% error -- at n=9 coverage can only move in steps of 1/9, so 0.70 is not an
-% attainable value and a tolerance-based check on 1-alpha would misfire here.
-calibA30 = conformalCalibrate(calProbs, calLabels, struct('alpha', 0.30));
-[n,f] = tnum(n, f, 'at alpha=0.30, rank = 7 and coverage is exactly 7/9', ...
-    calibA30.empiricalCoverageOnCalibrationFold, 7/9, 1e-12);
-[n,f] = tbool(n, f, 'still at or above the 1-alpha guarantee', ...
-    calibA30.empiricalCoverageOnCalibrationFold >= 0.70 - 1e-12);
-
-% The boundary case itself: the calibration point whose score IS qhat must be
-% inside its own prediction set.
-boundaryProbs = zeros(1, 5); boundaryProbs(1) = 0.30; boundaryProbs(2:5) = 0.175;
-[~, dBoundary] = conformalTiering(boundaryProbs, calib);
-[n,f] = tbool(n, f, 'a case sitting exactly on qhat is INSIDE the set', ...
-    ismember(0, dBoundary.predictionSet), mat2str(dBoundary.predictionSet));
-
-% Larger alpha must give a LOOSER threshold (smaller sets, fewer guarantees).
-calibLoose = conformalCalibrate(calProbs, calLabels, struct('alpha', 0.30));
-[n,f] = tbool(n, f, 'a larger alpha raises the probability threshold', ...
-    calibLoose.probThreshold > calib.probThreshold, ...
-    sprintf('%.3f vs %.3f', calibLoose.probThreshold, calib.probThreshold));
+    @() conformalCalibrate(calProbs2(1:9,:), [7; zeros(8,1)]), 'badLabels');
 
 % ═══ Task 6.2: tiering ═════════════════════════════════════════════════════
-fprintf('\n--- conformalTiering, read off the 0.30 threshold ---\n');
+fprintf('\n--- conformalTiering: the mode is always in, gaps get hulled ---\n');
 
-% {0,1} -- both non-referable -> Tier A (the NPV guarantee)
-[tA, dA] = conformalTiering([0.60 0.35 0.03 0.01 0.01], calib);
-[n,f] = tbool(n, f, 'set {0,1} -> Tier A (auto-clear)', strcmp(tA, 'A'), tA);
-[n,f] = tbool(n, f, 'and the set is exactly {0,1}', isequal(dA.predictionSet(:)', [0 1]), ...
-    mat2str(dA.predictionSet));
+% mode = grade 0 (p=0.90). Moving away from the mode toward grade 1:
+% score(1) = p0 = 0.90 (mode and grade1 adjacent -- see the construction
+% note above), which EXCEEDS stratum 0's threshold (qhat0 = 0.85) ->
+% EXCLUDED. Grades 2-4 are stratum 1, saturated to qhat=1 -> always
+% INCLUDED regardless of their own score. Raw membership is therefore
+% {0, 2, 3, 4} -- grade 1 is a HOLE strictly between two included grades,
+% possible because stratum 0's and stratum 1's thresholds are fit
+% independently and need not agree, even though the underlying score is
+% ordinal -- and the returned set must be the contiguous hull [0,4], not
+% the gapped raw set.
+gapProbs = [0.90 0.02 0.03 0.03 0.02];
+[gapScores, gapMode] = ordinalModeIntervalScore(gapProbs);
+[tGap, dGap] = conformalTiering(gapProbs, calib2);
+[n,f] = tnum(n, f, 'mode is grade 0', dGap.mode, 0, TOL);
+[n,f] = tnum(n, f, 'mode agrees with ordinalModeIntervalScore directly', gapMode, 0, TOL);
+[n,f] = tnum(n, f, 'score(mode)=0 by construction (v3)', gapScores(1), 0, TOL);
+[n,f] = tbool(n, f, 'grade 1''s raw score exceeds stratum 0''s threshold -- excluded', ...
+    gapScores(2) > calib2.qhatPerStratum(1), ...
+    sprintf('score=%.4f qhat0=%.4f', gapScores(2), calib2.qhatPerStratum(1)));
+[n,f] = tbool(n, f, 'grade 2''s raw score is under stratum 1''s SATURATED threshold -- included', ...
+    gapScores(3) <= calib2.qhatPerStratum(2) + 1e-9);
+[n,f] = tbool(n, f, 'the raw set had a hole at grade 1 (contiguous == false)', ...
+    dGap.contiguous == false);
+[n,f] = tbool(n, f, 'the returned set is the contiguous hull {0,1,2,3,4}', ...
+    isequal(dGap.predictionSet(:)', 0:4), mat2str(dGap.predictionSet));
+[n,f] = tbool(n, f, 'a hulled set spanning the referable boundary -> Tier C', ...
+    strcmp(tGap, 'C'), tGap);
+fprintf('        the hull only ever ADDS grades -- coverage cannot decrease\n');
+fprintf('        by widening a set, only the guarantee''s tightness does\n');
 
-% {2,3} -- both referable -> Tier B (the PPV side)
-[tB, dB] = conformalTiering([0.05 0.05 0.50 0.35 0.05], calib);
-[n,f] = tbool(n, f, 'set {2,3} -> Tier B (assisted review)', strcmp(tB, 'B'), tB);
-[n,f] = tbool(n, f, 'and the set is exactly {2,3}', isequal(dB.predictionSet(:)', [2 3]));
+% The mode is a member even when every other grade would otherwise exclude
+% it -- "the model must be allowed to believe itself" (conformalTiering.m).
+% With score v3, s(mode)=0 by construction, so this is trivially satisfied,
+% but is still checked as a regression guard on the membership-building code.
+modeAlwaysProbs = [0.02 0.02 0.02 0.02 0.92];   % mode = grade 4
+[~, dMode] = conformalTiering(modeAlwaysProbs, calib2);
+[n,f] = tbool(n, f, 'the mode (grade 4) is always a member of its own set', ...
+    ismember(4, dMode.predictionSet));
 
-% {0,2} -- spans the referable boundary -> Tier C
-[tC, dC] = conformalTiering([0.40 0.05 0.35 0.10 0.10], calib);
-[n,f] = tbool(n, f, 'a set spanning the referable boundary -> Tier C', strcmp(tC, 'C'), tC);
-[n,f] = tbool(n, f, 'and the reason says the data does not separate them', ...
-    contains(dC.reason, 'does not separate'));
+% ── Overrides, and the real fitted calibration for a clean Tier A/B split ──
+% calib2's stratum 1 is saturated to qhat=1, which (by the same "always
+% included" logic just tested) makes Tier A unreachable from it -- a
+% saturated referable stratum always drags the hull up to include referable
+% grades. The models/calibration_v1.json calibration ACTUALLY fitted for
+% branchA_v1 is not saturated this way, so it is used here for the override
+% tests, which need a genuine Tier A case to downgrade or force away from.
+fprintf('\n--- what overrides the guarantee (real calibration_v1.json) ---\n');
+mlRoot = fullfile(thisDir, '..');
+calibPath = fullfile(mlRoot, 'models', 'calibration_v1.json');
+if isfile(calibPath)
+    realCalib = jsondecode(fileread(calibPath));
+    autoClearProbs = [1 0 0 0 0];   % onehot grade 0 -> Tier A, see
+                                     % tests/conformal_golden_vectors.json
 
-% Empty set -- nothing cleared the threshold. Out-of-distribution, not merely
-% uncertain, and a plain threshold rule cannot express this state at all.
-[tE, dE] = conformalTiering([0.25 0.25 0.20 0.20 0.10], calib);
-[n,f] = tbool(n, f, 'an empty prediction set -> Tier C', strcmp(tE, 'C'), tE);
-[n,f] = tnum(n, f, 'and the set really is empty', dE.setSize, 0, TOL);
-[n,f] = tbool(n, f, 'reported as out-of-distribution, not as low confidence', ...
-    contains(dE.reason, 'out-of-distribution'));
-fprintf('        a threshold rule always returns some confident-looking grade;\n');
-fprintf('        only a set-valued predictor can say "none of these"\n');
+    [tA0, dA0] = conformalTiering(autoClearProbs, realCalib);
+    [n,f] = tbool(n, f, 'a one-hot grade-0 case is Tier A under the real calibration', ...
+        strcmp(tA0, 'A'), tA0);
 
-% ── Overrides ─────────────────────────────────────────────────────────────
-fprintf('\n--- what overrides the guarantee ---\n');
-autoClearProbs = [0.60 0.35 0.03 0.01 0.01];
+    [tD, dD] = conformalTiering(autoClearProbs, realCalib, struct('branchAgreement', false));
+    [n,f] = tbool(n, f, 'branch disagreement forces C over an otherwise Tier-A set', ...
+        strcmp(tD, 'C'), tD);
+    [n,f] = tbool(n, f, 'and says why', contains(dD.reason, 'branch disagreement'));
 
-[tD, dD] = conformalTiering(autoClearProbs, calib, struct('branchAgreement', false));
-[n,f] = tbool(n, f, 'branch disagreement forces C over an otherwise Tier-A set', ...
-    strcmp(tD, 'C'), tD);
-[n,f] = tbool(n, f, 'and says why', contains(dD.reason, 'branch disagreement'));
+    tNull = conformalTiering(autoClearProbs, realCalib, struct('branchAgreement', []));
+    [n,f] = tbool(n, f, 'a NULL branchAgreement does NOT force C (Branch B has not run)', ...
+        strcmp(tNull, 'A'), tNull);
+    fprintf('        treating null as disagreement would push every case to Tier C\n');
+    fprintf('        and drown the review queue -- Branch B needs Phase 4 counts\n');
 
-tNull = conformalTiering(autoClearProbs, calib, struct('branchAgreement', []));
-[n,f] = tbool(n, f, 'a NULL branchAgreement does NOT force C (Branch B has not run)', ...
-    strcmp(tNull, 'A'), tNull);
-fprintf('        treating null as disagreement would push every case to Tier C\n');
-fprintf('        and drown the review queue -- Branch B needs Phase 4 counts\n');
+    tQ = conformalTiering(autoClearProbs, realCalib, struct('qualityForced', true));
+    [n,f] = tbool(n, f, 'a force-flagged poor capture forces C', strcmp(tQ, 'C'), tQ);
 
-tQ = conformalTiering(autoClearProbs, calib, struct('qualityForced', true));
-[n,f] = tbool(n, f, 'a force-flagged poor capture forces C', strcmp(tQ, 'C'), tQ);
-
-% High epistemic uncertainty withholds the auto-clear but does not force C:
-% one extra review is cheap, a missed referral is not.
-tU = conformalTiering(autoClearProbs, calib, struct('uncertainty', 0.8));
-[n,f] = tbool(n, f, 'high MC-Dropout uncertainty downgrades A to B, not to C', ...
-    strcmp(tU, 'B'), tU);
-tU2 = conformalTiering(autoClearProbs, calib, struct('uncertainty', 0.1));
-[n,f] = tbool(n, f, 'low uncertainty leaves Tier A intact', strcmp(tU2, 'A'), tU2);
+    % High epistemic uncertainty withholds the auto-clear but does not force C:
+    % one extra review is cheap, a missed referral is not.
+    tU = conformalTiering(autoClearProbs, realCalib, struct('uncertainty', 0.8));
+    [n,f] = tbool(n, f, 'high MC-Dropout uncertainty downgrades A to B, not to C', ...
+        strcmp(tU, 'B'), tU);
+    tU2 = conformalTiering(autoClearProbs, realCalib, struct('uncertainty', 0.1));
+    [n,f] = tbool(n, f, 'low uncertainty leaves Tier A intact', strcmp(tU2, 'A'), tU2);
+else
+    fprintf('  SKIP  models/calibration_v1.json not present -- override tests need a real fit\n');
+end
 
 [n,f] = terr(n, f, 'refuses to assign a tier with no calibration struct', ...
-    @() conformalTiering(autoClearProbs, struct()), 'noCalibration');
+    @() conformalTiering(gapProbs, struct()), 'noCalibration');
 fprintf('        a tier assigned without a calibration would carry the authority\n');
 fprintf('        of a conformal guarantee while being a bare threshold\n');
+[n,f] = terr(n, f, 'refuses a calibration whose qhatPerStratum is the wrong length', ...
+    @() conformalTiering(gapProbs, struct('qhatPerStratum', [1 1 1], 'stratumOf', [0 0 1 1 1], ...
+        'referableThreshold', 0.5)), 'badCalibration');
 
 % ── The guarantee must describe its own scope ─────────────────────────────
-[n,f] = tbool(n, f, 'the calibration records that coverage is marginal, not per-case', ...
-    contains(calib.guaranteeScope, 'not conditional'));
+[n,f] = tbool(n, f, 'the calibration records that coverage is stratum-conditional, not per-case', ...
+    contains(calib2.guaranteeScope, 'not conditional'));
 [n,f] = tbool(n, f, 'and that it does not survive camera or site shift', ...
-    contains(calib.guaranteeScope, 'shift'));
+    contains(calib2.guaranteeScope, 'shift'));
 
 fprintf('\n===== %d checks, %d failed =====\n', n, f);
-fprintf(['NOTE: no conformal calibration has been FITTED. Branch A is an\n' ...
-         'untrained stub and no labelled calibration fold exists, so\n' ...
-         'gradingOrchestrator still uses its placeholder threshold rule.\n' ...
-         'What is verified here is the arithmetic and the tier logic.\n']);
 if f > 0
     error('testCalibrationPhase6:failed', '%d check(s) failed.', f);
 end
 end
 
 % ── Helpers ────────────────────────────────────────────────────────────────
-function [probs, labels] = buildCalibrationSet(trueClassProbs)
-% N rows whose TRUE-class probability is the given value, the remainder spread
-% evenly. Lets a test say "the model gave the right answer 0.85" directly.
-N = numel(trueClassProbs);
-probs = zeros(N, 5);
-labels = zeros(N, 1);
-for i = 1:N
-    g = mod(i - 1, 5);                 % cycle through the grades
-    labels(i) = g;
-    rest = (1 - trueClassProbs(i)) / 4;
-    probs(i, :) = rest;
-    probs(i, g + 1) = trueClassProbs(i);
-end
-end
-
 function r = normaliseRow(r)
 r = r / sum(r);
 end
