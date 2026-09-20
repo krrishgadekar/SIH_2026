@@ -572,8 +572,9 @@ async function getCaseDetail(caseId) {
     eyeLateralityMismatch: !!(r.eye_laterality_detected && r.eye_laterality_reported
       && r.eye_laterality_detected !== r.eye_laterality_reported),
 
-    // §I: true when the fovea could not be located reliably (lesion quadrants
-    // then follow the image axes). null when not reported.
+    // §I: true when the fovea could not be located reliably (the lesion
+    // quadrants are still keyed to that unreliable fovea, so they cannot be
+    // trusted). null when not reported.
     foveaUnreliable: r.fovea_unreliable ?? null,
 
     // §10.8: who is reviewing this case right now, if anyone. null once the

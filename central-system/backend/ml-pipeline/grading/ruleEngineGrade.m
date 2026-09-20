@@ -135,8 +135,11 @@ function [grade, evidence] = ruleEngineGrade(redLesionQuadrantCounts, brightLesi
 %   ══ FOVEA UNRELIABLE (backend plan §I) ═════════════════════════════════════
 %   Quadrants are defined around the fovea-to-disc axis. When the localizer
 %   says the fovea could not be placed (opts.foveaUnreliable = true), the
-%   upstream quadrant assignment falls back to the plain image axes, and those
-%   are not the anatomical quadrants the ETDRS rule is written for. So the two
+%   upstream quadrant assignment does NOT fall back to anything (Tanuj,
+%   2026-09-20): segInfer still builds the axis from the flagged fovea
+%   coordinate, so the counts arrive keyed to an axis drawn through a point
+%   the gate has already called untrustworthy. They are not the anatomical
+%   quadrants the ETDRS rule is written for. So the two
 %   criteria that depend on WHICH quadrants are involved are skipped:
 %     (a) lesions in all four quadrants, and (b) venous beading in >= 2.
 %   Grading then rests on totals only -- the criteria that do not care where a
@@ -365,9 +368,9 @@ end
 
 function note = foveaNote(cfg)
 if cfg.foveaUnreliable
-    note = ['Fovea could not be located reliably, so quadrants follow the image ' ...
-            'axes and the quadrant-dependent criteria (a) all-four-quadrants and ' ...
-            '(b) venous beading were not applied.'];
+    note = ['Fovea could not be located reliably, so the quadrant assignment ' ...
+            'cannot be trusted and the quadrant-dependent criteria (a) ' ...
+            'all-four-quadrants and (b) venous beading were not applied.'];
 else
     note = '';
 end

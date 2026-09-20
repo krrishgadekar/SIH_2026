@@ -19,7 +19,7 @@ Status as of 2026-09-20. Every item below was verified by running it, not by rea
 | F | `GET /admin/system-health` covering silent PHCs, stuck jobs, MATLAB status and unreviewed cases, plus the new `last_contact_at`. Also reports `segWorker`, kept separate from the MATLAB status on purpose: the MATLAB session being down fails cases, the worker being down only slows them. | Done | `verify_backend_health.js` |
 | G | Simulink README fixed. `referenceQueueingModel('recommend')` runs daily into `resource_recommendations`, served by `GET /admin/resource-recommendations`. **§G.2's other half is now scheduled too:** the `.slx` runs weekly as the validation check (`simulinkValidation.js`), writes `simulink-model/out/last-validation.json`, is served by `GET /admin/simulink-validation`, and raises `simulink_model_diverged` when the two models stop agreeing or the run cannot happen. | Done | ran live: 49 s, all three metrics agree; `verify_backend_health.js` |
 | H | Venous beading and IRMA wired into the rule engine as 4-element boolean arrays; they are passed only when present | Done | `testRuleEngineSignals.m` (17) + `testBranchB.m` (54) |
-| I | `fovea_unreliable` stored; rule engine skips the quadrant criteria; tier held at B or higher | Done on the backend side. See the §I.3 note below. | `testRuleEngineSignals.m`, live MATLAB run |
+| I | `fovea_unreliable` stored; rule engine skips the quadrant criteria; tier held at B or higher. Tanuj's gate is merged, so this is end-to-end now. See the §I.3 note below. | Done | `testRuleEngineSignals.m`, live MATLAB run, `verify_fallback_parity.js` (720 cases) |
 | J | `neovascularizationSuspicion.m` now runs inside the per-case MATLAB call; the real score is stored instead of NULL/0 | Done | live run: NV 0.078 / 0.101 on real images |
 | K | Camera probation | No action needed (as planned) | none |
 | M | `consentGivenAt` accepted and stored, at both the PHC and central | Done | tests |
@@ -90,7 +90,7 @@ Twelve defects, all fixed and covered by tests.
 - A boot warning when auth is enabled over plain HTTP, where the Secure
   session cookie is silently dropped by the browser.
 
-**Test suites:** 16 Node suites, 516 checks, all passing --
+**Test suites:** 17 Node suites, 516 checks plus 5,760 fallback-parity comparisons, all passing --
 `verify_backend_auth` (66), `verify_backend_ingestion` (20),
 `verify_backend_health` (28), `verify_backend_pipeline` (35),
 `verify_task27`–`verify_task82_83`, plus
@@ -118,7 +118,13 @@ The plan's own corrected guidance: self-hosted Postgres has no built-in transpar
 
   **One integration defect was found and fixed before it could bite.** `segInfer.py`'s output dict does not splat the localization result; it copies `opticDisc` and `fovea` out of it by name. A `foveaUnreliable` added inside `localize()` would therefore never have reached the backend — it would have been stored as NULL, the Tier B floor would not have fired, and a case whose fovea could not be found would have been auto-cleared at Tier A on quadrants nobody could place. Nothing would have errored. The flag is now promoted to the top level explicitly, with absent still meaning absent rather than false.
 
-  **Still waiting on the code itself:** as of this fetch, `foveaUnreliable` is not on `main` or on `origin/tanuj`. The contract is agreed and this side is ready for it.
+  **Delivered and merged (2026-09-20).** Tanuj's peak-confidence gate is on `origin/tanuj` and merged into this branch: `foveaUnreliable` is true when M3's fovea heatmap peak is below 0.37, and also when the heatmap is missing or NaN. It is computed in `localize()` and promoted to the top level of `segInfer.run_one()`'s output, which is where the backend reads it. The gate is validated on only 2 known failures, so it is a safety net, not a proven detector.
+
+  **Two defects came out of that handoff, both fixed.**
+
+  *The evidence text was wrong.* It told the ophthalmologist the quadrants "follow the image axes" — this file's earlier assumption. They do not: segInfer keeps building the axis from the flagged fovea, so the counts are keyed to a point already called untrustworthy. The sentence, and two code comments repeating it, now say that instead.
+
+  *The JS fallback rule engine ignored the flag entirely.* `services/matlabFallback.js` — used when MATLAB cannot be spawned — applied criteria (a) and (b) to quadrants the MATLAB engine skips, so one image could get two different grades depending only on whether MATLAB was installed. The port now mirrors `ruleEngineGrade.m`: the same `quadrantFlags` semantics (absent means *not assessed*, an all-false array means *assessed, found nothing*), the same skipping of (a) and (b), the same per-criterion caveats, and the orchestrator now passes it the same `caseRuleOpts(segResult)` the MATLAB path gets. `verify_fallback_parity.js` runs both engines over 720 cases and compares grade, lower-bound bookkeeping, both assessed flags, the criterion and the full limitation text: 0 mismatched.
 - **§S.4 latency, resolved.** The original finding was that serving M2–M4 from the MATLAB session gave no speedup at all: 22.5 s per image on MATLAB vs 21.4 s on PyTorch, over 20 images. The reason is now measured rather than suspected — it moved forward passes costing under a second each and left 17 s of Python process start exactly where it was.
 
   With the segmentation worker that process start is gone, and the comparison finally means something. It goes the other way:

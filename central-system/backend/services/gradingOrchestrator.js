@@ -643,6 +643,7 @@ async function processCase(caseId) {
         + 'is never taken.');
       mlResult = matlabFallback.runMatlabFallback({
         imagePath, segResult, branchAGrade: branchA.drGradeCnn,
+        ruleOpts: caseRuleOpts(segResult),
       });
     } else {
       // Re-wrap for context but CARRY THE CODE. Without this the classification
@@ -833,8 +834,10 @@ async function processCase(caseId) {
       + `${CAMERA_PROBATION_MIN_CASES} prior graded cases — not yet enough `
       + 'of a track record to auto-clear';
   }
-  // §I: quadrants were assigned on the image axes, not anatomical ones, and the
-  // rule engine skipped its quadrant criteria -- not a basis for auto-clearing.
+  // §I: the quadrants were keyed to an axis drawn through a fovea the gate
+  // flagged as untrustworthy (segInfer does not fall back to the image axes),
+  // and the rule engine skipped its quadrant criteria -- not a basis for
+  // auto-clearing.
   if (tier === 'A' && lateralityMismatch) {
     tier = 'B';
     tierReason = 'the image file and the technician disagree on which eye this is — '

@@ -122,6 +122,11 @@ cd phc-local-app/backend/quality-gate-matlab && matlab -batch "testQualityGateDe
 ```
 `22 checks, 0 failed`
 
+```bash
+node verify_fallback_parity.js
+```
+`720 cases x 8 fields, 0 mismatched`
+
 ### CORS
 
 ```bash
