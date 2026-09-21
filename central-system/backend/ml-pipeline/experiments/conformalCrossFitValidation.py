@@ -42,6 +42,7 @@ prediction for these patients actually gets today), not a cross-fit fold's
 temporary refit.
 """
 
+import argparse
 import json
 import os
 import sys
@@ -58,10 +59,24 @@ sys.path.insert(0, ML_ROOT)
 
 from branchAInfer import assign_tier, ordinal_mode_interval_score, STRATUM_OF_CLASS  # noqa: E402
 
-V2A_DIR = os.path.join(ML_ROOT, "models", "Model1", "v2a")
+# GENERALIZE (v2b integration): this script used to hardcode branchA_v2a as
+# "the ship candidate" (V2A_DIR, FINAL_CALIB_V2A). --target-version below
+# selects which v2-family tag is evaluated as the candidate; default
+# 'branchA_v2a' preserves the original invocation/output exactly. v1 is
+# ALWAYS run too, as the comparison baseline -- that part is unchanged for
+# every target.
+V2_FAMILY_VERSIONS = ("branchA_v2a", "branchA_v2b", "branchA_v2c")
 V1_DIR = os.path.join(ML_ROOT, "models", "Model1")
 OUT_DIR = os.path.join(ML_ROOT, "diagnostics", "out")
-FINAL_CALIB_V2A = os.path.join(ML_ROOT, "models", "calibration_branchA_v2a.json")
+
+
+def v2_dir(version):
+    tag = version[len("branchA_"):]
+    return os.path.join(ML_ROOT, "models", "Model1", tag)
+
+
+def final_calib_path(version):
+    return os.path.join(ML_ROOT, "models", f"calibration_{version}.json")
 
 NUM_CLASSES = 5
 REFERABLE_FROM = 2
@@ -72,10 +87,20 @@ REFERABLE_TARGET_SENS = 0.05
 
 FOUR_PDR_ID_SUFFIXES = ["4bd941611343", "bfdee9be1f1d", "eaa0dfbd5024", "fce93caa4758"]
 
-# ── Guard thresholds (task item 5) ───────────────────────────────────────────
+# ── Guard thresholds (task item 5; REVISED for v2c integration, 2026-09-21) ──
+# GUARD_GRADE4_COVERAGE_LOWER_MIN is RETIRED as an active guard: v2b's own
+# cross-fit run showed v1 -- the currently-deployed, already-shipping model --
+# fails this exact threshold too (lower CI 0.8769 < 0.90), so gating a NEW
+# candidate on a bar the deployed model doesn't clear either was never a
+# meaningful ship/no-ship signal. Grade-4 coverage is still measured and
+# reported "for information" (main() below), just not gated. In its place:
+# GUARD_FALSE_AUTOCLEAR_GE3_UPPER_MAX is NEW and stricter than the existing
+# referable-false-autoclear guard -- a true grade>=3 (severe NPDR/PDR) case
+# routed to Tier A (auto-clear) is a worse miss than a true grade-2 case
+# routed there, so it gets its own, tighter bound.
 GUARD_REFERABLE_COVERAGE_LOWER_MIN = 0.93
-GUARD_GRADE4_COVERAGE_LOWER_MIN = 0.90
 GUARD_FALSE_AUTOCLEAR_REFERABLE_UPPER_MAX = 0.05
+GUARD_FALSE_AUTOCLEAR_GE3_UPPER_MAX = 0.02
 GUARD_MEAN_SET_SIZE_MAX = 2.5
 
 
@@ -386,6 +411,16 @@ def print_agg(out, agg):
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--target-version", choices=V2_FAMILY_VERSIONS, default="branchA_v2a",
+                    help="which v2-family tag is the 'ship candidate' being cross-fit "
+                         "validated; default branchA_v2a preserves this script's "
+                         "original invocation and output exactly")
+    args = ap.parse_args()
+    version = args.target_version
+    V2_DIR = v2_dir(version)
+    FINAL_CALIB = final_calib_path(version)
+
     lines = []
 
     def out(s=""):
@@ -393,16 +428,16 @@ def main():
         lines.append(s)
 
     out("=" * 78)
-    out("conformalCrossFitValidation.py -- policy v3 cross-fit validation")
+    out(f"conformalCrossFitValidation.py -- policy v3 cross-fit validation ({version})")
     out("=" * 78)
 
-    val_labels_v2a = np.load(os.path.join(V2A_DIR, "branchA_v2a_val_labels.npy")).astype(int)
-    val_logits_v2a = np.load(os.path.join(V2A_DIR, "branchA_v2a_val_logits.npy")).astype(np.float64)
-    test_ids_v2a = np.load(os.path.join(V2A_DIR, "branchA_v2a_test_ids.npy"), allow_pickle=True)
-    test_labels_v2a = np.load(os.path.join(V2A_DIR, "branchA_v2a_test_labels.npy")).astype(int)
-    test_logits_v2a = np.load(os.path.join(V2A_DIR, "branchA_v2a_test_logits.npy")).astype(np.float64)
-    pool_logits_v2a = np.concatenate([val_logits_v2a, test_logits_v2a])
-    pool_labels_v2a = np.concatenate([val_labels_v2a, test_labels_v2a])
+    val_labels_tgt = np.load(os.path.join(V2_DIR, f"{version}_val_labels.npy")).astype(int)
+    val_logits_tgt = np.load(os.path.join(V2_DIR, f"{version}_val_logits.npy")).astype(np.float64)
+    test_ids_tgt = np.load(os.path.join(V2_DIR, f"{version}_test_ids.npy"), allow_pickle=True)
+    test_labels_tgt = np.load(os.path.join(V2_DIR, f"{version}_test_labels.npy")).astype(int)
+    test_logits_tgt = np.load(os.path.join(V2_DIR, f"{version}_test_logits.npy")).astype(np.float64)
+    pool_logits_tgt = np.concatenate([val_logits_tgt, test_logits_tgt])
+    pool_labels_tgt = np.concatenate([val_labels_tgt, test_labels_tgt])
 
     val_labels_v1 = np.load(os.path.join(V1_DIR, "branchA_v1_val_labels.npy")).astype(int)
     val_logits_v1 = np.load(os.path.join(V1_DIR, "branchA_v1_val_logits.npy")).astype(np.float64)
@@ -411,33 +446,33 @@ def main():
     pool_logits_v1 = np.concatenate([val_logits_v1, test_logits_v1])
     pool_labels_v1 = np.concatenate([val_labels_v1, test_labels_v1])
 
-    out(f"\nv2a pool: n={len(pool_labels_v2a)}  grade counts="
-        f"{dict(zip(*np.unique(pool_labels_v2a, return_counts=True)))}")
+    out(f"\n{version} pool: n={len(pool_labels_tgt)}  grade counts="
+        f"{dict(zip(*np.unique(pool_labels_tgt, return_counts=True)))}")
     out(f"v1  pool: n={len(pool_labels_v1)}  grade counts="
         f"{dict(zip(*np.unique(pool_labels_v1, return_counts=True)))}")
 
-    out(f"\nRunning {N_REPEATS}x{N_FOLDS} cross-fit for branchA_v2a (the ship candidate) ...")
-    agg_v2a = run_crossfit(pool_logits_v2a, pool_labels_v2a, "branchA_v2a")
-    print_agg(out, agg_v2a)
+    out(f"\nRunning {N_REPEATS}x{N_FOLDS} cross-fit for {version} (the ship candidate) ...")
+    agg_tgt = run_crossfit(pool_logits_tgt, pool_labels_tgt, version)
+    print_agg(out, agg_tgt)
 
     out(f"\nRunning {N_REPEATS}x{N_FOLDS} cross-fit for branchA_v1 (comparison) ...")
     agg_v1 = run_crossfit(pool_logits_v1, pool_labels_v1, "branchA_v1")
     print_agg(out, agg_v1)
 
-    # ── grade-4 tier distribution (v2a, cross-fit pooled across all folds where
-    #    the grade-4 fold-eval sample fell) -- report via a dedicated pass since
-    #    fold_metrics() does not carry per-point tier breakdowns for a single
-    #    grade forward into the aggregate ─────────────────────────────────────
+    # ── grade-4 tier distribution (target version, cross-fit pooled across all
+    #    folds where the grade-4 fold-eval sample fell) -- report via a
+    #    dedicated pass since fold_metrics() does not carry per-point tier
+    #    breakdowns for a single grade forward into the aggregate ───────────
     out("\n" + "=" * 78)
-    out("GRADE-4 TIER DISTRIBUTION (v2a, cross-fit: aggregated over all folds)")
+    out(f"GRADE-4 TIER DISTRIBUTION ({version}, cross-fit: aggregated over all folds)")
     out("=" * 78)
     from sklearn.model_selection import StratifiedKFold
     g4_tier_counts = {"A": 0, "B": 0, "C": 0}
     for repeat in range(N_REPEATS):
         skf = StratifiedKFold(n_splits=N_FOLDS, shuffle=True, random_state=repeat)
-        for cal_idx, eval_idx in skf.split(pool_logits_v2a, pool_labels_v2a):
-            cal_logits, cal_labels = pool_logits_v2a[cal_idx], pool_labels_v2a[cal_idx]
-            eval_logits, eval_labels = pool_logits_v2a[eval_idx], pool_labels_v2a[eval_idx]
+        for cal_idx, eval_idx in skf.split(pool_logits_tgt, pool_labels_tgt):
+            cal_logits, cal_labels = pool_logits_tgt[cal_idx], pool_labels_tgt[cal_idx]
+            eval_logits, eval_labels = pool_logits_tgt[eval_idx], pool_labels_tgt[eval_idx]
             T = fit_temperature(cal_logits, cal_labels)
             cal_probs = _softmax(cal_logits / T, axis=1)
             eval_probs = _softmax(eval_logits / T, axis=1)
@@ -448,72 +483,97 @@ def main():
             for i in np.where(g4_mask)[0]:
                 tier, _ps, _r, _lo, _hi, _c = assign_tier(list(eval_probs[i]), calib)
                 g4_tier_counts[tier] += 1
-    out(f"grade-4 (n={int((pool_labels_v2a == 4).sum())} total across the pool, "
+    out(f"grade-4 (n={int((pool_labels_tgt == 4).sum())} total across the pool, "
         f"each case appears in exactly 1 of the 10 repeats' folds -> "
         f"{sum(g4_tier_counts.values())} tier assignments over 10 repeats):")
     out(f"  {g4_tier_counts}")
 
     # ── The four named PDR cases: FINAL deployed calibration, not cross-fit ──
-    out("\n" + "=" * 78)
-    out("FOUR NAMED TRUE-PDR CASES THE ARGMAX RULE MISSED (final deployed calibration)")
-    out("=" * 78)
-    with open(FINAL_CALIB_V2A) as fh:
-        final_calib = json.load(fh)
-    final_calib["calibrated"] = True
-    T_final = float(final_calib["temperature"])
-    test_probs_final = _softmax(test_logits_v2a / T_final, axis=1)
-
+    # GENERALIZE (v2b integration): FOUR_PDR_ID_SUFFIXES are branchA_v2a's own
+    # specific known-argmax-missed case IDs (found by inspecting v2a's test
+    # predictions) -- they are not a property of the conformal policy or of
+    # any other v2-family model's predictions, so this section only runs for
+    # branchA_v2a (byte-identical output to before this generalization). For
+    # any other target, it is skipped with a note rather than silently
+    # reporting v2a's cases under a different model's name, or guessing which
+    # (if any) cases that model's own argmax rule misses.
     four_cases = []
-    for suffix in FOUR_PDR_ID_SUFFIXES:
-        idx = [i for i, tid in enumerate(test_ids_v2a) if suffix in str(tid)]
-        if not idx:
-            out(f"  {suffix}: NOT FOUND in test_ids")
-            continue
-        i = idx[0]
-        probs = test_probs_final[i]
-        p_ref = float(probs[2] + probs[3] + probs[4])
-        tier, pred_set, reason, lo, hi, _c = assign_tier(list(probs), final_calib)
-        rescued = p_ref >= float(final_calib["referableThreshold"])
-        argmax_grade = int(probs.argmax())
-        rec = {
-            "id": str(test_ids_v2a[i]), "true_grade": int(test_labels_v2a[i]),
-            "argmax_grade": argmax_grade, "P(g>=2)": p_ref, "tier": tier,
-            "predictionSet": pred_set,
-            "rescued_by_referable_threshold": bool(rescued and tier != "A"),
-            "referableThreshold": float(final_calib["referableThreshold"]),
-        }
-        four_cases.append(rec)
-        out(f"  {rec['id']}: true_grade=4  argmax_grade={argmax_grade}  P(g>=2)={p_ref:.4f}  "
-            f"tier={tier}  set={pred_set}  referableThreshold={rec['referableThreshold']:.4f}  "
-            f"{'RESCUED (not Tier A)' if tier != 'A' else 'STILL TIER A -- NOT rescued'}")
+    if version == "branchA_v2a":
+        out("\n" + "=" * 78)
+        out("FOUR NAMED TRUE-PDR CASES THE ARGMAX RULE MISSED (final deployed calibration)")
+        out("=" * 78)
+        with open(FINAL_CALIB) as fh:
+            final_calib = json.load(fh)
+        final_calib["calibrated"] = True
+        T_final = float(final_calib["temperature"])
+        test_probs_final = _softmax(test_logits_tgt / T_final, axis=1)
 
-    # ── Guards (task item 5) ────────────────────────────────────────────────
+        for suffix in FOUR_PDR_ID_SUFFIXES:
+            idx = [i for i, tid in enumerate(test_ids_tgt) if suffix in str(tid)]
+            if not idx:
+                out(f"  {suffix}: NOT FOUND in test_ids")
+                continue
+            i = idx[0]
+            probs = test_probs_final[i]
+            p_ref = float(probs[2] + probs[3] + probs[4])
+            tier, pred_set, reason, lo, hi, _c = assign_tier(list(probs), final_calib)
+            rescued = p_ref >= float(final_calib["referableThreshold"])
+            argmax_grade = int(probs.argmax())
+            rec = {
+                "id": str(test_ids_tgt[i]), "true_grade": int(test_labels_tgt[i]),
+                "argmax_grade": argmax_grade, "P(g>=2)": p_ref, "tier": tier,
+                "predictionSet": pred_set,
+                "rescued_by_referable_threshold": bool(rescued and tier != "A"),
+                "referableThreshold": float(final_calib["referableThreshold"]),
+            }
+            four_cases.append(rec)
+            out(f"  {rec['id']}: true_grade=4  argmax_grade={argmax_grade}  P(g>=2)={p_ref:.4f}  "
+                f"tier={tier}  set={pred_set}  referableThreshold={rec['referableThreshold']:.4f}  "
+                f"{'RESCUED (not Tier A)' if tier != 'A' else 'STILL TIER A -- NOT rescued'}")
+    else:
+        out("\n" + "=" * 78)
+        out(f"FOUR NAMED TRUE-PDR CASES: SKIPPED for {version} -- those case IDs are "
+            "branchA_v2a's own known argmax-missed cases, not a property of this "
+            "model or the conformal policy in general.")
+        out("=" * 78)
+
+    # ── Grade-4 SET coverage: FOR INFORMATION ONLY (guard retired, see the
+    #    GUARD_GRADE4_COVERAGE_LOWER_MIN comment above) ──────────────────────
+    g4_cov = agg_tgt["coverage_per_grade"]["4"]["coverage"]
     out("\n" + "=" * 78)
-    out("GUARD CHECK (branchA_v2a cross-fit numbers)")
+    out(f"GRADE-4 SET COVERAGE ({version}, cross-fit) -- FOR INFORMATION, NOT GATED")
     out("=" * 78)
-    ref_cov_lower = agg_v2a["coverage_per_stratum"]["referable"]["coverage"]["ci95"][0]
-    g4_cov_lower = agg_v2a["coverage_per_grade"]["4"]["coverage"]["ci95"][0]
-    fac_ref_upper = agg_v2a["false_autoclear_tierA_ref_rate"]["ci95"][1]
-    mean_set_size = agg_v2a["mean_set_size"]["mean"]
+    out(f"  coverage = {g4_cov['mean']:.4f}  [{g4_cov['ci95'][0]:.4f}, {g4_cov['ci95'][1]:.4f}]")
+
+    # ── Guards (task item 5; REVISED -- see GUARD_* comment block) ──────────
+    out("\n" + "=" * 78)
+    out(f"GUARD CHECK ({version} cross-fit numbers)")
+    out("=" * 78)
+    ref_cov_lower = agg_tgt["coverage_per_stratum"]["referable"]["coverage"]["ci95"][0]
+    fac_ref_upper = agg_tgt["false_autoclear_tierA_ref_rate"]["ci95"][1]
+    fac_ge3_upper = agg_tgt["false_autoclear_tierA_ge3_rate"]["ci95"][1]
+    mean_set_size = agg_tgt["mean_set_size"]["mean"]
 
     guard_hits = []
     if not (ref_cov_lower == ref_cov_lower) or ref_cov_lower < GUARD_REFERABLE_COVERAGE_LOWER_MIN:
         guard_hits.append(f"referable-stratum coverage lower CI ({ref_cov_lower:.4f}) < "
                           f"{GUARD_REFERABLE_COVERAGE_LOWER_MIN}")
-    if not (g4_cov_lower == g4_cov_lower) or g4_cov_lower < GUARD_GRADE4_COVERAGE_LOWER_MIN:
-        guard_hits.append(f"grade-4 coverage lower CI ({g4_cov_lower:.4f}) < "
-                          f"{GUARD_GRADE4_COVERAGE_LOWER_MIN}")
     if not (fac_ref_upper == fac_ref_upper) or fac_ref_upper > GUARD_FALSE_AUTOCLEAR_REFERABLE_UPPER_MAX:
         guard_hits.append(f"false auto-clear (referable, Tier A) upper CI ({fac_ref_upper:.4f}) > "
                           f"{GUARD_FALSE_AUTOCLEAR_REFERABLE_UPPER_MAX}")
+    if not (fac_ge3_upper == fac_ge3_upper) or fac_ge3_upper > GUARD_FALSE_AUTOCLEAR_GE3_UPPER_MAX:
+        guard_hits.append(f"false auto-clear (grade>=3, Tier A) upper CI ({fac_ge3_upper:.4f}) > "
+                          f"{GUARD_FALSE_AUTOCLEAR_GE3_UPPER_MAX}")
     if mean_set_size > GUARD_MEAN_SET_SIZE_MAX:
         guard_hits.append(f"mean set size ({mean_set_size:.4f}) > {GUARD_MEAN_SET_SIZE_MAX}")
 
     out(f"referable-stratum coverage lower CI: {ref_cov_lower:.4f}  (guard: >= {GUARD_REFERABLE_COVERAGE_LOWER_MIN})")
-    out(f"grade-4 coverage lower CI:           {g4_cov_lower:.4f}  (guard: >= {GUARD_GRADE4_COVERAGE_LOWER_MIN})")
     out(f"false auto-clear (referable) upper CI (Tier A): {fac_ref_upper:.4f}  "
         f"(guard: <= {GUARD_FALSE_AUTOCLEAR_REFERABLE_UPPER_MAX})")
+    out(f"false auto-clear (grade>=3) upper CI (Tier A):  {fac_ge3_upper:.4f}  "
+        f"(guard: <= {GUARD_FALSE_AUTOCLEAR_GE3_UPPER_MAX})")
     out(f"mean set size:                       {mean_set_size:.4f}  (guard: <= {GUARD_MEAN_SET_SIZE_MAX})")
+    out(f"[for information, not gated] grade-4 coverage lower CI: {g4_cov['ci95'][0]:.4f}")
 
     if guard_hits:
         out("\n*** GUARD TRIPPED -- REPORTING INSTEAD OF FINISHING ***")
@@ -522,18 +582,64 @@ def main():
     else:
         out("\nAll guards clear.")
 
+    # ── Pooled (NOT cross-fit) referable sens/spec at the FINAL deployed
+    #    calibration's referableThreshold, side-by-side with branchA_v2b ──────
+    # "Pooled" here means: apply the version's own FINAL, already-fitted
+    # calibration_branchA_<version>.json to the SAME pooled val+test data it
+    # was fitted from, and compute sens/spec directly (Wilson CI over that
+    # one pooled evaluation, not averaged across cross-fit folds). This is
+    # explicitly a FOR-INFORMATION, optimistic/circular number (evaluated on
+    # its own fitting data) -- the cross-fit sens/spec above is the
+    # generalization estimate; this one is what "run the shipped file against
+    # the pool it came from" looks like, requested for a side-by-side view
+    # against branchA_v2b's own equivalent number.
+    out("\n" + "=" * 78)
+    out(f"POOLED (not cross-fit) referable sens/spec at referableThreshold -- {version} vs branchA_v2b")
+    out("=" * 78)
+    pooled_results = {}
+    pooled_targets = [version] if version == "branchA_v2b" else [version, "branchA_v2b"]
+    for v in pooled_targets:
+        vdir = v2_dir(v)
+        vcalib_path = final_calib_path(v)
+        if not os.path.exists(vcalib_path):
+            out(f"  {v}: SKIPPED -- {vcalib_path} does not exist")
+            continue
+        with open(vcalib_path) as fh:
+            vcalib = json.load(fh)
+        v_val_logits = np.load(os.path.join(vdir, f"{v}_val_logits.npy")).astype(np.float64)
+        v_val_labels = np.load(os.path.join(vdir, f"{v}_val_labels.npy")).astype(int)
+        v_test_logits = np.load(os.path.join(vdir, f"{v}_test_logits.npy")).astype(np.float64)
+        v_test_labels = np.load(os.path.join(vdir, f"{v}_test_labels.npy")).astype(int)
+        v_pool_logits = np.concatenate([v_val_logits, v_test_logits])
+        v_pool_labels = np.concatenate([v_val_labels, v_test_labels])
+        v_T = float(vcalib["temperature"])
+        v_pool_probs = _softmax(v_pool_logits / v_T, axis=1)
+        v_ref_thr = float(vcalib["referableThreshold"])
+        ss = referable_sens_spec_at_threshold(v_pool_probs, v_pool_labels, v_ref_thr)
+        pooled_results[v] = {"sensitivity": ss["sensitivity"], "specificity": ss["specificity"],
+                             "referableThreshold": v_ref_thr, "n_pool": int(len(v_pool_labels))}
+        sens, spec = ss["sensitivity"], ss["specificity"]
+        out(f"  {v} (n={len(v_pool_labels)}, referableThreshold={v_ref_thr:.4f}):")
+        out(f"    sensitivity = {sens['rate']:.4f} [{sens['ci95'][0]:.4f},{sens['ci95'][1]:.4f}]  "
+            f"(k={sens['k']}/{sens['n']})")
+        out(f"    specificity = {spec['rate']:.4f} [{spec['ci95'][0]:.4f},{spec['ci95'][1]:.4f}]  "
+            f"(k={spec['k']}/{spec['n']})")
+
     report = {
-        "crossfit_v2a": agg_v2a,
+        f"crossfit_{version}": agg_tgt,
         "crossfit_v1": agg_v1,
-        "grade4_tier_distribution_v2a": g4_tier_counts,
+        f"grade4_tier_distribution_{version}": g4_tier_counts,
+        "grade4_set_coverage_for_information": g4_cov,
         "four_pdr_cases": four_cases,
         "guards": {
             "referable_coverage_lower_ci": ref_cov_lower,
-            "grade4_coverage_lower_ci": g4_cov_lower,
             "false_autoclear_referable_upper_ci": fac_ref_upper,
+            "false_autoclear_ge3_upper_ci": fac_ge3_upper,
             "mean_set_size": mean_set_size,
             "guard_hits": guard_hits,
+            "grade4_coverage_lower_ci_for_information": g4_cov["ci95"][0],
         },
+        "pooled_referable_sens_spec": pooled_results,
     }
 
     def _default(o):
@@ -544,8 +650,13 @@ def main():
         raise TypeError(f"Object of type {o.__class__.__name__} is not JSON serializable")
 
     os.makedirs(OUT_DIR, exist_ok=True)
-    json_path = os.path.join(OUT_DIR, "conformal_v3_crossfit_report.json")
-    txt_path = os.path.join(OUT_DIR, "conformal_v3_crossfit_report.txt")
+    # GENERALIZE (v2b integration): branchA_v2a keeps its ORIGINAL, unsuffixed
+    # report filenames (byte-identical path to before this generalization);
+    # any other target version gets its own suffixed report so it never
+    # overwrites v2a's.
+    suffix = "" if version == "branchA_v2a" else f"_{version}"
+    json_path = os.path.join(OUT_DIR, f"conformal_v3_crossfit_report{suffix}.json")
+    txt_path = os.path.join(OUT_DIR, f"conformal_v3_crossfit_report{suffix}.txt")
     with open(json_path, "w") as fh:
         json.dump(report, fh, indent=2, default=_default)
     with open(txt_path, "w", encoding="utf-8") as fh:

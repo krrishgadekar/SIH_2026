@@ -1,0 +1,40 @@
+===== Parity check capture header (branchA_v2b) =====
+Report generated: 2026-09-21 19:38:39
+Git commit (HEAD): 23ce9d23525e0321f83a875b9a587e0551a992ed
+Git working tree: DIRTY (uncommitted changes present)
+
+MATLAB release:
+26.1.0.3346908 (R2026a) Update 5
+
+Installed toolboxes / support packages (ver):
+--------------------------------------------------------------------------------------
+MATLAB Version: 26.1.0.3346908 (R2026a) Update 5
+MATLAB License Number: 41005741
+Operating System: Microsoft Windows 11 Home Single Language Version 10.0 (Build 26200)
+Java Version: Java is not loaded
+--------------------------------------------------------------------------------------
+MATLAB                                                Version 26.1        (R2026a)
+Deep Learning Toolbox                                 Version 26.1        (R2026a)
+Image Processing Toolbox                              Version 26.1        (R2026a)
+MATLAB                                                Version 26.1        (R2026a)
+Medical Imaging Toolbox                               Version 26.1        (R2026a)
+Statistics and Machine Learning Toolbox               Version 26.1        (R2026a)
+
+===== Begin parityCheckV2() output =====
+
+===== parityCheckV2: PyTorch vs imported MATLAB dlnetwork (branchA_v2b, 10 real images) =====
+  image  1   max|diff| = 0.000000   MATLAB grade=0  PyTorch grade=0  AGREE
+  image  2   max|diff| = 0.000000   MATLAB grade=0  PyTorch grade=0  AGREE
+  image  3   max|diff| = 0.000000   MATLAB grade=0  PyTorch grade=0  AGREE
+  image  4   max|diff| = 0.000000   MATLAB grade=0  PyTorch grade=0  AGREE
+  image  5   max|diff| = 0.000000   MATLAB grade=0  PyTorch grade=0  AGREE
+  image  6   max|diff| = 0.000000   MATLAB grade=0  PyTorch grade=0  AGREE
+  image  7   max|diff| = 0.000000   MATLAB grade=0  PyTorch grade=0  AGREE
+  image  8   max|diff| = 0.000000   MATLAB grade=0  PyTorch grade=0  AGREE
+  image  9   max|diff| = 0.000001   MATLAB grade=0  PyTorch grade=0  AGREE
+  image 10   max|diff| = 0.000000   MATLAB grade=0  PyTorch grade=0  AGREE
+
+===== Summary =====
+PASS  overall max|diff| = 0.000001  (threshold 0.01)
+argmax (predicted grade) agreement: 10/10 (100.0%)
+===== End parityCheckV2() output =====

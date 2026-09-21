@@ -111,14 +111,26 @@ def remap_v2a_state_dict(state_dict: dict) -> dict:
     return out
 
 
-def build_v2a_5class_model(ckpt: dict) -> nn.Module:
-    """Load branchA_v2a.pt's checkpoint dict into DRClassifierV2Export,
-    strict=True, 5-class head only. Shared by this file's export_v2a() and
-    prepare_parity_inputs.py so the wrapper is defined and loaded in exactly
-    one place."""
+def build_v2a_5class_model(ckpt: dict, label: str = "M1 branchA_v2a (5-class head only)") -> nn.Module:
+    """Load a v2-family checkpoint dict (branchA_v2a.pt, branchA_v2b.pt, ...)
+    into DRClassifierV2Export, strict=True, 5-class head only. Shared by
+    this file's export_m1_v2()/export_m1_v2a() and prepare_parity_inputs.py
+    so the wrapper is defined and loaded in exactly one place. Kept under
+    this name (a historical artifact of v2a being first) rather than
+    renamed -- its body only ever reads fields off `ckpt`, so it is already
+    generic across the whole v2-family.
+
+    GENERALIZE (v2b integration): `label` used to be hardcoded to
+    "M1 branchA_v2a (5-class head only)" regardless of which checkpoint was
+    actually loaded -- harmless for v2a callers (unchanged default here) but
+    misleading strict_load() stderr output for v2b/v2c (it would claim
+    "branchA_v2a" while loading a different checkpoint). Callers that know
+    their own version tag should pass label=f"M1 {version} (5-class head
+    only)"; the default preserves v2a's exact original output for anyone
+    still calling this positionally with one argument."""
     m = DRClassifierV2Export(ckpt["model_name"], ckpt["num_classes"], ckpt["drop_rate"])
     remapped = remap_v2a_state_dict(ckpt["model_state_dict"])
-    strict_load(m, remapped, "M1 branchA_v2a (5-class head only)")
+    strict_load(m, remapped, label)
     return m
 
 
@@ -165,20 +177,57 @@ def export_m1():
     export(m, dummy, OUT_DIR / "branchA_v1.onnx", ["input"], ["logits"])
 
 
-def export_m1_v2a():
-    """branchA_v2a.pt -> models/Model1/branchA_v2a.onnx (NOT training/onnx_out/,
-    per this export's brief -- v1's other 4 models stay in onnx_out/, only
-    v2a's output path differs). 5-class logits only (DRClassifierV2Export
-    drops the binary head); same opset/conventions/input size convention as
-    v1 (1x3xHxH, H = ckpt["img_size"])."""
-    ckpt_path = find_ckpt("branchA_v2a.pt")
+# v2-family tags: same dual-head-checkpoint / 5-class-only-export contract as
+# branchA_v2a (build_v2a_5class_model is already generic -- it only reads
+# fields off whatever ckpt dict it's handed, never the filename), just a
+# different checkpoint. GENERALIZE (v2b integration): export_m1_v2a's old
+# inline body now lives in export_m1_v2() below, parameterized by version;
+# export_m1_v2a() is a thin wrapper so its behaviour/output is unchanged.
+V2_FAMILY_VERSIONS = ("branchA_v2a", "branchA_v2b", "branchA_v2c")
+
+
+def export_m1_v2(version: str):
+    """Generalized v2-family classifier export (5-class head only):
+    <version>.pt -> models/Model1/<version>.onnx (NOT training/onnx_out/,
+    per export_m1_v2a's original brief -- v1's other 4 models stay in
+    onnx_out/, only the v2-family's output path differs). 5-class logits
+    only (DRClassifierV2Export drops the binary head); same opset/
+    conventions/input size convention as v1 (1x3xHxH, H = ckpt["img_size"]).
+    Filenames are derived directly from `version` (e.g. 'branchA_v2b' ->
+    checkpoint 'branchA_v2b.pt', output 'branchA_v2b.onnx') -- every
+    v2-family tag follows this exact naming convention, no lookup table
+    needed. A later tag (branchA_v2c) needs only a thin wrapper like
+    export_m1_v2a()/export_m1_v2b() below plus an ALL-dict entry, once its
+    checkpoint exists."""
+    if version not in V2_FAMILY_VERSIONS:
+        raise ValueError(f"version must be one of {V2_FAMILY_VERSIONS}, got {version!r}")
+    ckpt_path = find_ckpt(f"{version}.pt")
     ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
-    m = build_v2a_5class_model(ckpt)
+    m = build_v2a_5class_model(ckpt, label=f"M1 {version} (5-class head only)")
     size = ckpt["img_size"]
     dummy = torch.randn(1, 3, size, size)
-    out_path = MODELS_DIR / "Model1" / "branchA_v2a.onnx"
+    out_path = MODELS_DIR / "Model1" / f"{version}.onnx"
     export(m, dummy, out_path, ["input"], ["logits"])
     return ckpt, m
+
+
+def export_m1_v2a():
+    """branchA_v2a.pt -> models/Model1/branchA_v2a.onnx. Thin wrapper over
+    export_m1_v2("branchA_v2a") (GENERALIZE, v2b integration) -- behaviour
+    and output byte-identical to before this generalization."""
+    return export_m1_v2("branchA_v2a")
+
+
+def export_m1_v2b():
+    """branchA_v2b.pt -> models/Model1/branchA_v2b.onnx. Same wrapper/
+    contract as export_m1_v2a() -- see export_m1_v2()."""
+    return export_m1_v2("branchA_v2b")
+
+
+def export_m1_v2c():
+    """branchA_v2c.pt -> models/Model1/branchA_v2c.onnx. Same wrapper/
+    contract as export_m1_v2a()/export_m1_v2b() -- see export_m1_v2()."""
+    return export_m1_v2("branchA_v2c")
 
 
 def export_m2():
@@ -245,6 +294,7 @@ def export_m5_v2():
 ALL = {
     "m1": export_m1, "m2": export_m2, "m3": export_m3,
     "m4": export_m4, "m5": export_m5, "m1_v2a": export_m1_v2a,
+    "m1_v2b": export_m1_v2b, "m1_v2c": export_m1_v2c,
     "m5_v2": export_m5_v2,
 }
 

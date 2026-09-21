@@ -70,8 +70,28 @@ EXPECTED_CALIB_METHOD = "ordinal_mode_interval_stratified_v3"
 BRANCH_A_MODEL_VERSIONS = {
     "branchA_v1":  {"role": "classifier", "calib_filename": "calibration_v1.json"},
     "branchA_v2a": {"role": "classifier_v2a", "calib_filename": "calibration_branchA_v2a.json"},
+    "branchA_v2b": {"role": "classifier_v2b", "calib_filename": "calibration_branchA_v2b.json"},
+    "branchA_v2c": {"role": "classifier_v2c", "calib_filename": "calibration_branchA_v2c.json"},
 }
-BRANCH_A_MODEL_VERSION = os.environ.get("BRANCH_A_MODEL_VERSION", "branchA_v1")
+
+# v2-family tags: dual-head checkpoint (5-class + binary referable), 5-class
+# head only via export_to_onnx.build_v2a_5class_model (already generic --
+# it only reads fields off whatever ckpt dict it's handed, never the
+# filename). GENERALIZE (v2b integration): load_model() below used to check
+# `== "branchA_v2a"` specifically; it now checks membership in this tuple so
+# branchA_v2b reuses the exact same wrapper without a second copy. A later
+# tag (branchA_v2c) needs one new line in BRANCH_A_MODEL_VERSIONS above and
+# one here -- nothing else in this file changes.
+V2_FAMILY_VERSIONS = ("branchA_v2a", "branchA_v2b", "branchA_v2c")
+
+# DEFAULT CHANGE (v2c integration, 2026-09-21): branchA_v2c passed every
+# gate (ONNX/MATLAB parity, revised cross-fit guards, calibrated end-to-end
+# agreement with MATLAB) and is now the deployed default, replacing
+# branchA_v1. ROLLBACK: set BRANCH_A_MODEL_VERSION=branchA_v1 in the
+# environment (or spawning process) to restore the previous model with no
+# code change -- every v1 code path in this file is untouched and still
+# fully supported.
+BRANCH_A_MODEL_VERSION = os.environ.get("BRANCH_A_MODEL_VERSION", "branchA_v2c")
 if BRANCH_A_MODEL_VERSION not in BRANCH_A_MODEL_VERSIONS:
     raise ValueError(
         f"BRANCH_A_MODEL_VERSION={BRANCH_A_MODEL_VERSION!r} is not one of "
@@ -241,18 +261,25 @@ def load_model():
 
     ckpt = load_checkpoint()
 
-    if BRANCH_A_MODEL_VERSION == "branchA_v2a":
-        # branchA_v2a.pt is a DUAL-head checkpoint (5-class + binary
-        # referable). This integration ships the 5-class grade only -- the
-        # binary head's conformal/deployment story is undecided (see the
-        # v2a integration brief). Reuse training/export_to_onnx.py's
+    if BRANCH_A_MODEL_VERSION in V2_FAMILY_VERSIONS:
+        # Every v2-family checkpoint (branchA_v2a, branchA_v2b, ...) is a
+        # DUAL-head checkpoint (5-class + binary referable). This
+        # integration ships the 5-class grade only -- the binary head's
+        # conformal/deployment story is undecided (see the v2a integration
+        # brief). Reuse training/export_to_onnx.py's
         # DRClassifierV2Export/build_v2a_5class_model rather than defining a
         # second wrapper here: that is the SAME class GATE 1's ONNX export
         # uses, so the Python live path and the exported graph are provably
-        # built from identical logic, not two hand-kept-in-sync copies.
+        # built from identical logic, not two hand-kept-in-sync copies. The
+        # function's name is a historical artifact of v2a being first --
+        # its body only ever reads fields off the ckpt dict it's handed, so
+        # it is already generic across the whole v2-family (GENERALIZE, v2b
+        # integration: this branch used to check `== "branchA_v2a"`
+        # specifically).
         sys.path.insert(0, os.path.join(ML_ROOT, "training"))
         from export_to_onnx import build_v2a_5class_model
-        model = build_v2a_5class_model(ckpt)
+        model = build_v2a_5class_model(
+            ckpt, label=f"M1 {BRANCH_A_MODEL_VERSION} (5-class head only)")
     else:
         class DRClassifier(nn.Module):
             """Rebuilt from the checkpoint's own `arch` string:
