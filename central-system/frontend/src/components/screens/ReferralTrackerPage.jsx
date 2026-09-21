@@ -4,6 +4,7 @@ import { centralApi } from '../../api/centralApiClient';
 
 const getStatusConfig = (t) => ({
   referred: { label: t('central.referral.pipeline.referred', 'REFERRED'), badge: 'badge--warning', next: 'contacted' },
+  manual_follow_up: { label: 'MANUAL FOLLOW-UP (SMS FAILED)', badge: 'badge--fail', next: 'contacted' },
   contacted: { label: t('central.referral.pipeline.contacted', 'CONTACTED'), badge: 'badge--neutral', next: 'attended' },
   attended: { label: t('central.referral.pipeline.attended', 'ATTENDED'), badge: 'badge--pass', next: null },
   lost: { label: t('central.referral.pipeline.lost', 'LOST TO FOLLOW-UP'), badge: 'badge--fail', next: null },
@@ -40,28 +41,42 @@ const ReferralRow = React.memo(({ item, onAdvance }) => {
   const config = statusConfig[item.status];
   const nextConfig = config?.next ? statusConfig[config.next] : null;
   const isLost = item.status === 'lost';
+  const isManual = item.status === 'manual_follow_up';
 
   return (
-    <tr style={isLost ? { background: 'rgba(168, 34, 34, 0.05)' } : {}}>
+    <tr style={isLost ? { background: 'rgba(168, 34, 34, 0.05)' } : isManual ? { background: 'rgba(249, 115, 22, 0.06)' } : {}}>
       <td className="t-mono">
         {isLost && <span style={{ color: 'var(--c-crimson)', marginRight: '6px' }} title="Urgent Action Required">●</span>}
+        {isManual && <span style={{ color: '#F97316', marginRight: '6px' }} title="SMS Failed — Outreach Needed">⚠</span>}
         <span style={{ fontWeight: 700 }}>{item.patientName || item.patientReference}</span>
         {item.patientName && <span style={{ fontSize: '11px', opacity: 0.5, marginLeft: '6px' }}>({item.patientReference})</span>}
+        {isManual && item.failureReason && (
+          <div style={{ fontSize: '10px', color: '#C2410C', fontWeight: 600, marginTop: '2px' }}>
+            📵 SMS Failed: {item.failureReason}
+          </div>
+        )}
       </td>
-      <td className="t-mono">{item.phcName}</td>
+      <td className="t-mono">
+        <div>{item.phcName}</div>
+        {item.phone && <div style={{ fontSize: '10px', color: 'var(--c-text-muted)' }}>{item.phone}</div>}
+      </td>
       <td>
         <span className={`badge ${item.drGrade >= 3 ? 'badge--fail' : item.drGrade >= 2 ? 'badge--warning' : 'badge--pass'}`}>
           GRADE {item.drGrade}
         </span>
       </td>
       <td>
-        <span className={`badge ${config?.badge || 'badge--neutral'}`}>{config?.label}</span>
+        <span className={`badge ${config?.badge || 'badge--neutral'}`} style={isManual ? { background: '#F97316', color: '#FFF' } : {}}>
+          {config?.label}
+        </span>
       </td>
       <td className="t-mono">
         {item.assignedWorker ? (
           <span>{item.assignedWorker}</span>
         ) : (
-          <span style={{ color: 'var(--c-text-muted)', fontWeight: 600 }}>{t('central.referral.table.unassigned', 'UNASSIGNED')}</span>
+          <span style={{ color: isManual ? '#C2410C' : 'var(--c-text-muted)', fontWeight: 700 }}>
+            {isManual ? 'ASSIGN ASHA WORKER' : t('central.referral.table.unassigned', 'UNASSIGNED')}
+          </span>
         )}
       </td>
       <td className="t-mono u-text-right" style={{ fontSize: 'var(--fs-tiny)', color: 'var(--c-text-muted)' }}>
@@ -151,6 +166,7 @@ export const ReferralTrackerPage = () => {
   const statusCounts = useMemo(() => {
     return {
       referred: referrals.filter(r => r.status === 'referred').length,
+      manual_follow_up: referrals.filter(r => r.status === 'manual_follow_up').length,
       contacted: referrals.filter(r => r.status === 'contacted').length,
       attended: referrals.filter(r => r.status === 'attended').length,
       lost: referrals.filter(r => r.status === 'lost').length,
@@ -328,7 +344,7 @@ export const ReferralTrackerPage = () => {
           </div>
 
           {/* Status Filter Dropdown */}
-          <div style={{ width: '170px' }}>
+          <div style={{ width: '190px' }}>
             <select
               className="select"
               value={filter}
@@ -337,11 +353,33 @@ export const ReferralTrackerPage = () => {
             >
               <option value="all">{t('central.referral.search.allStatuses', 'ALL STATUSES')}</option>
               <option value="referred">{t('central.referral.pipeline.referred', 'REFERRED')}</option>
+              <option value="manual_follow_up">⚠ MANUAL FOLLOW-UP (SMS FAILED)</option>
               <option value="contacted">{t('central.referral.pipeline.contacted', 'CONTACTED')}</option>
               <option value="attended">{t('central.referral.pipeline.attended', 'ATTENDED')}</option>
               <option value="lost">{t('central.referral.pipeline.lost', 'LOST TO FOLLOW-UP')}</option>
             </select>
           </div>
+
+          {/* Urgent Chip: Manual Follow-up (SMS Failed) */}
+          <button
+            className={`badge ${filter === 'manual_follow_up' ? 'badge--fail' : 'badge--neutral'}`}
+            style={{
+              height: '38px',
+              padding: '0 12px',
+              cursor: 'pointer',
+              fontWeight: 700,
+              fontSize: 'var(--fs-tiny)',
+              border: filter === 'manual_follow_up' ? '2px solid #000' : '1px solid #F97316',
+              background: filter === 'manual_follow_up' ? '#F97316' : 'rgba(249, 115, 22, 0.08)',
+              color: filter === 'manual_follow_up' ? '#FFF' : '#C2410C',
+              boxShadow: filter === 'manual_follow_up' ? '2px 2px 0px #000' : 'none',
+              transition: 'all 0.15s ease',
+            }}
+            onClick={() => setFilter(filter === 'manual_follow_up' ? 'all' : 'manual_follow_up')}
+            title="Filter directly to patients where SMS delivery failed and manual outreach is needed"
+          >
+            📵 SMS FAILED ({statusCounts.manual_follow_up || 0})
+          </button>
 
           {/* Urgent Chip: Lost to Follow-up */}
           <button

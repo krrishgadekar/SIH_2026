@@ -166,6 +166,85 @@ class CentralApiClient {
     await delay(300);
     return [...mockData.mockPhcSyncStatuses];
   }
+
+  // ── District Admin Resource Recommendations & System Health ──
+
+  async getResourceRecommendations() {
+    if (USE_MOCK_DATA) {
+      await delay(400);
+      return { ...mockData.mockResourceRecommendations };
+    }
+    try {
+      return await this._fetch('/api/v1/admin/resource-recommendations');
+    } catch (err) {
+      console.warn('[centralApi] getResourceRecommendations failed, falling back to mock:', err.message);
+      return { ...mockData.mockResourceRecommendations };
+    }
+  }
+
+  async refreshResourceRecommendations() {
+    if (USE_MOCK_DATA) {
+      await delay(1200); // Simulate model simulation time
+      return {
+        ...mockData.mockResourceRecommendations,
+        generatedAt: new Date().toISOString(),
+      };
+    }
+    try {
+      return await this._fetch('/api/v1/admin/resource-recommendations/refresh', { method: 'POST' }, 35000);
+    } catch (err) {
+      console.warn('[centralApi] refreshResourceRecommendations failed, using simulated update:', err.message);
+      return {
+        ...mockData.mockResourceRecommendations,
+        generatedAt: new Date().toISOString(),
+      };
+    }
+  }
+
+  async getSimulinkValidation() {
+    if (USE_MOCK_DATA) {
+      await delay(350);
+      return { ...mockData.mockSimulinkValidation };
+    }
+    try {
+      return await this._fetch('/api/v1/admin/simulink-validation');
+    } catch (err) {
+      console.warn('[centralApi] getSimulinkValidation failed, falling back to mock:', err.message);
+      return { ...mockData.mockSimulinkValidation };
+    }
+  }
+
+  async refreshSimulinkValidation() {
+    if (USE_MOCK_DATA) {
+      await delay(1500);
+      return {
+        ...mockData.mockSimulinkValidation,
+        ranAt: new Date().toISOString(),
+      };
+    }
+    try {
+      return await this._fetch('/api/v1/admin/simulink-validation/refresh', { method: 'POST' }, 60000);
+    } catch (err) {
+      console.warn('[centralApi] refreshSimulinkValidation failed, using simulated update:', err.message);
+      return {
+        ...mockData.mockSimulinkValidation,
+        ranAt: new Date().toISOString(),
+      };
+    }
+  }
+
+  async getSystemHealth() {
+    if (USE_MOCK_DATA) {
+      await delay(300);
+      return { ...mockData.mockSystemHealth };
+    }
+    try {
+      return await this._fetch('/api/v1/admin/system-health');
+    } catch (err) {
+      console.warn('[centralApi] getSystemHealth failed, falling back to mock:', err.message);
+      return { ...mockData.mockSystemHealth };
+    }
+  }
 }
 
 export const centralApi = new CentralApiClient();

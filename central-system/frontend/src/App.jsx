@@ -9,6 +9,7 @@ import { ReferralTrackerPage } from './components/screens/ReferralTrackerPage';
 import { PhcHealthPage } from './components/screens/PhcHealthPage';
 import { PatientTimelinePage } from './components/screens/PatientTimelinePage';
 import { ProgramHealthPage } from './components/screens/ProgramHealthPage';
+import { ResourceRecommendationsPanel } from './components/screens/ResourceRecommendationsPanel';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -133,6 +134,7 @@ const RoleRouter = () => {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="referrals" element={<ReferralTrackerPage />} />
         <Route path="phc-health" element={<PhcHealthPage />} />
+        <Route path="resources" element={<ResourceRecommendationsPanel />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
