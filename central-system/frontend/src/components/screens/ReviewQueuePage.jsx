@@ -34,10 +34,39 @@ const SortHeader = ({ label, sortKey, currentSort, onRequestSort, width }) => {
   );
 };
 
-const TierBadge = ({ tier }) => {
-  const cls = tier === 'C' ? 'badge badge--tier-c' : 'badge badge--tier-b';
-  return <span className={cls}>TIER {tier}</span>;
+const SeverityBadge = ({ grade }) => {
+  let cls = 'badge badge--neutral';
+  let label = 'UNKNOWN';
+  if (grade === 0) {
+    cls = 'badge badge--pass';
+    label = 'LOW';
+  } else if (grade === 1 || grade === 2) {
+    cls = 'badge badge--warning';
+    label = 'MID';
+  } else if (grade === 3 || grade === 4) {
+    cls = 'badge badge--fail';
+    label = 'HIGH';
+  }
+  return <span className={cls}>{label}</span>;
 };
+
+const InfoModal = ({ onClose, t }) => (
+  <div style={{
+    position: 'absolute', top: '100%', left: 0, width: '360px', zIndex: 100,
+    background: 'var(--bg-panel)', border: 'var(--border)', boxShadow: '4px 4px 0px #000',
+    padding: 'var(--sp-4)', marginTop: '8px'
+  }}>
+    <div className="u-flex u-justify-between u-items-center u-mb-3">
+      <h3 className="t-h3" style={{ margin: 0 }}>{t('central.queue.modal.title', 'CLINICAL GUIDANCE')}</h3>
+      <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+    </div>
+    <div className="t-body" style={{ fontSize: 'var(--fs-small)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div><strong>SEVERITY:</strong> {t('central.queue.modal.severity', 'Severity indicates clinical urgency. High (Red) for PDR and Severe NPDR. Mid (Yellow) for Mild/Moderate NPDR. Low (Green) for No DR.')}</div>
+      <div><strong>CONFIDENCE:</strong> {t('central.queue.modal.confidence', 'The confidence score shows the model\'s certainty. Lower scores should be scrutinized closely.')}</div>
+      <div><strong>AGREEMENT:</strong> {t('central.queue.modal.agreement', 'A mismatch means the holistic CNN and explicit rule engine produced different grades. You must resolve this manually.')}</div>
+    </div>
+  </div>
+);
 
 const ConfidenceBar = ({ value }) => {
   const pct = Math.round(value * 100);
@@ -84,7 +113,8 @@ export const ReviewQueuePage = () => {
   const { t } = useTranslation();
   const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // all, tier-c, tier-b, disagreement
+  const [filter, setFilter] = useState('all');
+  const [showInfoModal, setShowInfoModal] = useState(false);
   // Default is newest-first (by capture time), NOT clinical priority. This is
   // deliberate: under demo/presentation pressure "find the case I just
   // submitted" matters more than the priority ranking a real ophthalmologist
@@ -136,10 +166,10 @@ export const ReviewQueuePage = () => {
   const filteredQueue = useMemo(() => {
     let list = queue;
 
-    // Tier / disagreement filter
-    if (filter === 'tier-c') list = list.filter(item => item.conformalTier === 'C');
-    if (filter === 'tier-b') list = list.filter(item => item.conformalTier === 'B');
-    if (filter === 'disagreement') list = list.filter(item => item.branchAgreement === false);
+    // Status filter
+    if (filter === 'confirmed') list = list.filter(item => item.reviewStatus === 'confirmed');
+    if (filter === 'overridden') list = list.filter(item => item.reviewStatus === 'overridden');
+    if (filter === 'pending') list = list.filter(item => item.reviewStatus === 'pending' || !item.reviewStatus);
 
     // PHC filter
     if (phcFilter !== 'all') {
@@ -206,9 +236,9 @@ export const ReviewQueuePage = () => {
     setSortConfig({ key, direction });
   };
 
-  const tierCCount = queue.filter(q => q.conformalTier === 'C').length;
-  const tierBCount = queue.filter(q => q.conformalTier === 'B').length;
-  const disagreeCount = queue.filter(q => q.branchAgreement === false).length;
+  const confirmedCount = queue.filter(q => q.reviewStatus === 'confirmed').length;
+  const overriddenCount = queue.filter(q => q.reviewStatus === 'overridden').length;
+  const pendingCount = queue.filter(q => q.reviewStatus === 'pending' || !q.reviewStatus).length;
 
   const hasActiveFilters = searchQuery.trim() !== '' || phcFilter !== 'all' || gradeFilter !== 'all' || filter !== 'all';
 
@@ -236,20 +266,28 @@ export const ReviewQueuePage = () => {
       <div className="u-flex u-items-center u-justify-between u-mb-6">
         <div>
           <p className="section__subtitle">{t('central.queue.subtitle', 'OPHTHALMOLOGIST INTERFACE')}</p>
-          <h1 className="section__title" style={{ marginBottom: 0 }}>{t('central.queue.title', 'REVIEW QUEUE')}</h1>
+          <div className="u-flex u-items-center u-gap-3">
+            <h1 className="section__title" style={{ marginBottom: 0 }}>{t('central.queue.title', 'CASES')}</h1>
+            <div style={{ position: 'relative' }}>
+              <button 
+                className="btn btn--outline" 
+                style={{ padding: '4px 8px', fontSize: '12px', borderRadius: '50%' }}
+                onClick={() => setShowInfoModal(!showInfoModal)}
+                title="Clinical Guidance Info"
+              >
+                ℹ
+              </button>
+              {showInfoModal && <InfoModal onClose={() => setShowInfoModal(false)} t={t} />}
+            </div>
+          </div>
         </div>
         <div className="u-flex u-items-center u-gap-3">
           <span className="badge badge--neutral">{queue.length} {t('central.queue.stats.total', 'TOTAL')}</span>
-          <span className="badge badge--tier-c">{tierCCount} {t('central.queue.stats.tierC', 'TIER C')}</span>
-          <span className="badge badge--tier-b">{tierBCount} {t('central.queue.stats.tierB', 'TIER B')}</span>
-          {disagreeCount > 0 && <span className="badge badge--fail">⚠ {disagreeCount} {t('central.queue.stats.mismatch', 'MISMATCH')}</span>}
+          <span className="badge badge--pass">{confirmedCount} {t('central.queue.stats.confirmed', 'CONFIRMED')}</span>
+          <span className="badge badge--warning">{overriddenCount} {t('central.queue.stats.overridden', 'OVERRIDDEN')}</span>
+          {pendingCount > 0 && <span className="badge badge--fail">{pendingCount} {t('central.queue.stats.pending', 'PENDING')}</span>}
         </div>
       </div>
-
-      <InfoBanner 
-        title={t('central.queue.banner.title', 'QUEUE PRIORITIZATION')}
-        text={t('central.queue.banner.text', 'Cases are automatically sorted by urgency. Tier C cases and branch disagreements are floated to the top, followed by lowest confidence scores. Spot-check Tier B cases appear last.')}
-      />
 
       {/* Search & Multi-Filter Bar (matching ReferralTrackerPage) */}
       <div className="panel u-mb-4" style={{ padding: 'var(--sp-4)', border: 'var(--border)' }}>
@@ -298,26 +336,7 @@ export const ReviewQueuePage = () => {
             </select>
           </div>
 
-          {/* Mismatch Chip */}
-          <button
-            className={`badge ${filter === 'disagreement' ? 'badge--fail' : 'badge--neutral'}`}
-            style={{
-              height: '38px',
-              padding: '0 12px',
-              cursor: 'pointer',
-              fontWeight: 700,
-              fontSize: 'var(--fs-tiny)',
-              border: filter === 'disagreement' ? '2px solid #000' : '1px solid var(--c-crimson)',
-              background: filter === 'disagreement' ? 'var(--c-crimson)' : 'rgba(168, 34, 34, 0.08)',
-              color: filter === 'disagreement' ? '#FFF' : 'var(--c-crimson)',
-              boxShadow: filter === 'disagreement' ? '2px 2px 0px #000' : 'none',
-              transition: 'all 0.15s ease',
-            }}
-            onClick={() => setFilter(filter === 'disagreement' ? 'all' : 'disagreement')}
-            title="Filter to branch mismatch cases"
-          >
-            {t('central.queue.search.mismatchChip', '⚠ MISMATCH')} ({disagreeCount})
-          </button>
+          {/* Mismatch Chip removed as per request */}
 
           {/* Reset Filters */}
           {hasActiveFilters && (
@@ -337,9 +356,9 @@ export const ReviewQueuePage = () => {
       <div className="queue-filter-bar u-mb-4">
         {[
           { id: 'all', label: t('central.queue.filters.all', 'ALL CASES') },
-          { id: 'tier-c', label: t('central.queue.filters.tierC', 'TIER C — FULL REVIEW') },
-          { id: 'tier-b', label: t('central.queue.filters.tierB', 'TIER B — SPOT CHECK') },
-          { id: 'disagreement', label: t('central.queue.filters.mismatch', '⚠ BRANCH MISMATCH') },
+          { id: 'confirmed', label: t('central.queue.filters.confirmed', 'CONFIRMED CASES') },
+          { id: 'overridden', label: t('central.queue.filters.overridden', 'OVERRIDDEN CASES') },
+          { id: 'pending', label: t('central.queue.filters.pending', 'PENDING CASES') },
         ].map(f => (
           <button
             key={f.id}
@@ -360,7 +379,7 @@ export const ReviewQueuePage = () => {
               <SortHeader label={t('central.queue.table.colCaptured', 'CAPTURED')} sortKey="capturedAt" currentSort={sortConfig} onRequestSort={requestSort} />
               <th>{t('central.queue.table.colPatientRef', 'PATIENT REF')}</th>
               <th>{t('central.queue.table.colPhc', 'PHC')}</th>
-              <SortHeader label={t('central.queue.table.colTier', 'TIER')} sortKey="conformalTier" currentSort={sortConfig} onRequestSort={requestSort} />
+              <SortHeader label={t('central.queue.table.colSeverity', 'SEVERITY')} sortKey="drGradeCnn" currentSort={sortConfig} onRequestSort={requestSort} />
               <SortHeader label={t('central.queue.table.colCnnGrade', 'CNN GRADE')} sortKey="drGradeCnn" currentSort={sortConfig} onRequestSort={requestSort} />
               <SortHeader label={t('central.queue.table.colRuleEngine', 'RULE ENGINE')} sortKey="drGradeRuleEngine" currentSort={sortConfig} onRequestSort={requestSort} />
               <SortHeader label={t('central.queue.table.colAgreement', 'AGREEMENT')} sortKey="branchAgreement" currentSort={sortConfig} onRequestSort={requestSort} />
@@ -403,7 +422,7 @@ export const ReviewQueuePage = () => {
                   </div>
                 </td>
                 <td className="t-mono">{item.phcName}</td>
-                <td><TierBadge tier={item.conformalTier} /></td>
+                <td><SeverityBadge grade={item.drGradeCnn} /></td>
                 <td>
                   <span className="t-mono" style={{ fontWeight: 700 }}>
                     {t('central.queue.table.grade', 'Grade')} {item.drGradeCnn}

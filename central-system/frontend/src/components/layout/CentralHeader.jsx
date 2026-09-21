@@ -53,7 +53,7 @@ const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) => {
 
   const navLinks = isOphth
     ? [
-        { to: '/ophth/queue', label: t('central.header.nav.queue', 'REVIEW QUEUE') },
+        { to: '/ophth/queue', label: t('central.header.nav.queue', 'CASES') },
         { to: '/ophth/timeline', label: t('central.header.nav.timeline', 'PATIENT TIMELINE') },
         { to: '/ophth/health', label: t('central.header.nav.programHealth', 'PROGRAM HEALTH') },
       ]

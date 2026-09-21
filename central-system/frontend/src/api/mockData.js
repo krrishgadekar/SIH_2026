@@ -14,6 +14,7 @@ export const mockOphthQueue = [
     confidenceScore: 0.81,
     conformalTier: 'C',
     priorityRank: 1,
+    reviewStatus: 'pending',
   },
   {
     caseId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
@@ -26,6 +27,7 @@ export const mockOphthQueue = [
     confidenceScore: 0.64,
     conformalTier: 'C',
     priorityRank: 2,
+    reviewStatus: 'pending',
   },
   {
     caseId: 'c3d4e5f6-a7b8-9012-cdef-123456789012',
@@ -38,6 +40,7 @@ export const mockOphthQueue = [
     confidenceScore: 0.93,
     conformalTier: 'B',
     priorityRank: 101,
+    reviewStatus: 'pending',
   },
   {
     caseId: 'd4e5f6a7-b8c9-0123-defa-234567890123',
@@ -50,6 +53,7 @@ export const mockOphthQueue = [
     confidenceScore: 0.72,
     conformalTier: 'C',
     priorityRank: 3,
+    reviewStatus: 'pending',
   },
   {
     caseId: 'e5f6a7b8-c9d0-1234-efab-345678901234',
@@ -62,6 +66,7 @@ export const mockOphthQueue = [
     confidenceScore: 0.97,
     conformalTier: 'B',
     priorityRank: 102,
+    reviewStatus: 'pending',
   },
   {
     caseId: 'f6a7b8c9-d0e1-2345-fabc-456789012345',
@@ -74,6 +79,7 @@ export const mockOphthQueue = [
     confidenceScore: 0.88,
     conformalTier: 'B',
     priorityRank: 103,
+    reviewStatus: 'pending',
   },
 ];
 
