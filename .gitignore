@@ -57,6 +57,9 @@ central-system/backend/ml-pipeline/models/**/*.ckpt
 central-system/backend/ml-pipeline/models/**/*.h5
 # Keep the README that documents where models live
 !central-system/backend/ml-pipeline/models/README.md
+# Exported ONNX for a model version still in progress -- large, not deployment
+# ready yet, ships via the netrasetu_handoff drop like the other v2 binaries.
+central-system/backend/ml-pipeline/training/onnx_out/red_lesion_unet_v2.onnx
 
 # MATLAB Compiler standalone executable output (Task 8.1)
 *.exe
