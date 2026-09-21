@@ -961,6 +961,19 @@ async function processCase(caseId) {
           // the same way, and a reader six months from now cannot recover that
           // from four integers.
           procedure: segResult.countingProcedure ?? null,
+
+          // ── M5 v2, additive and absent under v1 ──────────────────────────
+          // Under RED_LESION_MODEL_VERSION=v2 the red-lesion model separates
+          // microaneurysms from haemorrhages, and segInfer reports both the
+          // per-quadrant split and its own totals. Stored with `?? null`
+          // throughout, so a v1 case keeps exactly the shape it has today:
+          // absent stays absent, and services/lesionCounts.js reads null as
+          // "this detector does not exist yet" rather than "none were found".
+          ma: segResult.maPerQuadrant ?? null,
+          he: segResult.hePerQuadrant ?? null,
+          maTotal: segResult.lesionCounts?.microaneurysms ?? null,
+          heTotal: segResult.lesionCounts?.hemorrhages ?? null,
+          redLesionModelVersion: segResult.redLesionModelVersion ?? 'v1',
         }),
         masks.vessel ?? null,
         // One column for both lesion masks: the schema predates there being two

@@ -224,9 +224,28 @@ def export_m5():
     export(m, dummy, OUT_DIR / "red_lesion_unet_v1.onnx", ["input"], ["logits"])
 
 
+def export_m5_v2():
+    """red_lesion_unet_v2.pt -- M5 phase 2 (Gate 3). 3-class logits
+    (background/MA/HE, checkpoint's own class_map), same conventions as
+    export_m5(): resnet34 encoder, activation=None (raw logits out, caller
+    applies softmax -- NOT sigmoid, since the 3 classes are mutually
+    exclusive, unlike M2/M4/M5-v1's single-channel sigmoid contract), same
+    512x512x3 input, same training/onnx_out/ output location as every other
+    non-v2a export. NOT models/Model1/ -- that path is v2a-branchA-specific
+    (see export_m1_v2a's own docstring), not a general 'v2' convention."""
+    ckpt_path = find_ckpt("red_lesion_unet_v2.pt")
+    ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+    m = smp.Unet(encoder_name="resnet34", encoder_weights=None,
+                 in_channels=3, classes=3, activation=None)
+    strict_load(m, ckpt["model_state_dict"], "M5v2 red_lesion_unet_v2")
+    dummy = torch.randn(1, 3, 512, 512)
+    export(m, dummy, OUT_DIR / "red_lesion_unet_v2.onnx", ["input"], ["logits"])
+
+
 ALL = {
     "m1": export_m1, "m2": export_m2, "m3": export_m3,
     "m4": export_m4, "m5": export_m5, "m1_v2a": export_m1_v2a,
+    "m5_v2": export_m5_v2,
 }
 
 

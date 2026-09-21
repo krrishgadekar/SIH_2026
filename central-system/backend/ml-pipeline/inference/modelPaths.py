@@ -46,13 +46,24 @@ ML_ROOT = os.path.dirname(HERE)
 MODELS_DIR = os.path.join(ML_ROOT, "models")
 
 # Filenames, as the source of truth. Folder names deliberately absent.
+#
+# GATE 4 RENAME (M5 phase 2): the role key for the exudate-detection model is
+# "hard_exudate", not "bright_lesion" -- bright_lesion/brightLesion was never
+# clinically accurate (soft exudates are also "bright") and is renamed here
+# and everywhere this role is looked up (segInfer.py's _ARCH/load() calls,
+# verifySegModels.py). The FILENAME (an artifact name, not an identifier) is
+# deliberately UNCHANGED: bright_lesion_unet_v1.pt/.mat/.onnx, and every JSON
+# key sent to the backend (brightLesions, brightPerQuadrant,
+# verified.brightLesion) are also unchanged -- see segInfer.py's own
+# GATE-4 comment at those keys.
 CHECKPOINTS = {
     "classifier":     "branchA_v1.pt",
     "classifier_v2a": "branchA_v2a.pt",   # BRANCH_A_MODEL_VERSION=branchA_v2a -- see branchAInfer.py
     "vessel":         "vessel_unet_v1.pt",
     "localization":   "localization_v1.pt",
-    "bright_lesion":  "bright_lesion_unet_v1.pt",
+    "hard_exudate":   "bright_lesion_unet_v1.pt",   # GATE 4: role renamed, filename (artifact) unchanged
     "red_lesion":     "red_lesion_unet_v1.pt",
+    "red_lesion_v2":  "red_lesion_unet_v2.pt",   # RED_LESION_MODEL_VERSION=v2 -- see segInfer.py
 }
 
 

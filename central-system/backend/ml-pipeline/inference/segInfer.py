@@ -85,6 +85,47 @@ OD_MASK_RADIUS = 58
 # CI [1.5%,12.9%]). Across all 516 images this flags 14 (2.71%).
 FOVEA_PEAK_THRESHOLD = 0.37
 
+# ── RED_LESION_MODEL_VERSION switch (M5 phase 2) ────────────────────────────
+# Style matches BRANCH_A_MODEL_VERSION (inference/branchAInfer.py): an env var
+# read once at import time, default stays the currently-deployed model. With
+# v1 selected (the default), every line touched below reduces to exactly the
+# code that ran before this switch existed -- see lesions()'s v1 branch --
+# so v1 output is unchanged, not merely equivalent.
+RED_LESION_MODEL_VERSIONS = {"v1": "red_lesion", "v2": "red_lesion_v2"}
+RED_LESION_MODEL_VERSION = os.environ.get("RED_LESION_MODEL_VERSION", "v1")
+
+# 10 px at 512. NOT a free parameter: redFloor and grade3QuadMin were
+# calibrated against counts produced with this exact filter.
+DEFAULT_MIN_AREA = 10
+if RED_LESION_MODEL_VERSION not in RED_LESION_MODEL_VERSIONS:
+    raise ValueError(
+        f"RED_LESION_MODEL_VERSION={RED_LESION_MODEL_VERSION!r} is not one of "
+        f"{sorted(RED_LESION_MODEL_VERSIONS)}.")
+
+# v2's per-class connected-component floors. Read from the config the floors
+# were actually chosen against (models/red_lesion_v2_config.json's
+# floor-sweep -- see red_lesion_v2_metrics.json's "floor_sweep" section)
+# rather than hardcoded a second time here, but the recalibration in Gate 2
+# was fitted specifically against MA=5/HE=10, so a config drift is asserted
+# against, not silently followed.
+_RED_V2_CONFIG_PATH = os.path.join(ML_ROOT, "models", "red_lesion_v2_config.json")
+
+
+def _red_v2_floors():
+    import json as _json
+    with open(_RED_V2_CONFIG_PATH) as fh:
+        cfg = _json.load(fh)
+    floors = cfg["chosen_min_area_floors"]
+    ma, he = int(floors["MA"]), int(floors["HE"])
+    if (ma, he) != (5, 10):
+        raise ValueError(
+            f"models/red_lesion_v2_config.json's chosen_min_area_floors is now "
+            f"MA={ma} HE={he}, but Gate 2's rule-threshold recalibration was "
+            f"fitted against MA=5/HE=10 -- it does not automatically transfer "
+            f"to different floors. Recalibrate before changing this.")
+    return ma, he
+
+
 _MODELS = {}
 
 
@@ -101,8 +142,9 @@ def _fail(msg, code=3):
 _ARCH = {
     "vessel":        dict(encoder_name="resnet34", in_channels=1, classes=1),
     "localization":  dict(encoder_name="resnet18", in_channels=3, classes=2),
-    "bright_lesion": dict(encoder_name="resnet34", in_channels=3, classes=1),
+    "hard_exudate":  dict(encoder_name="resnet34", in_channels=3, classes=1),  # GATE 4: was "bright_lesion"
     "red_lesion":    dict(encoder_name="resnet34", in_channels=3, classes=1),
+    "red_lesion_v2": dict(encoder_name="resnet34", in_channels=3, classes=3),
 }
 
 
@@ -130,7 +172,6 @@ def _forward(model, x):
         return model(torch.from_numpy(x))[0].numpy()
 
 
-# ── Backend switch (backend plan §S) ───────────────────────────────────────
 # SEG_INFERENCE_BACKEND=matlab|python. With matlab, the forward pass of the
 # three MATLAB-converted models runs in the persistent MATLAB session; every
 # pre- and post-processing step below is unchanged, so both backends share one
@@ -145,7 +186,7 @@ SEG_BACKEND = os.environ.get("SEG_INFERENCE_BACKEND", "matlab").strip().lower()
 _MATLAB_NETS = {
     "vessel": "vessel_unet_v1",
     "localization": "localization_v1",
-    "bright_lesion": "bright_lesion_unet_v1",
+    "hard_exudate": "bright_lesion_unet_v1",
 }
 BACKEND_USED = {}
 
@@ -196,7 +237,7 @@ def localize(bgr):
     resized = cv2.resize(bgr, (INPUT_SIZE, INPUT_SIZE), interpolation=cv2.INTER_AREA)
     rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
     x = (rgb.astype(np.float32) / 255.0 - IMAGENET_MEAN) / IMAGENET_STD
-    hm = _run("localization", np.ascontiguousarray(x.transpose(2, 0, 1)[None, ...]))
+    hm = _run("localization", x.transpose(2, 0, 1)[None, ...])
 
     pts = {}
     for idx, name in ((0, "opticDisc"), (1, "fovea")):
@@ -253,7 +294,7 @@ def vessels(bgr):
     green = bgr[:, :, 1]
     padded, (ox, oy, nw, nh) = _aspect_pad(green)
     x = ((padded.astype(np.float32) / 255.0) - 0.5) / 0.5
-    logits = _run("vessel", np.ascontiguousarray(x[None, None, ...]))[0]
+    logits = _run("vessel", x[None, None, ...])[0]
     prob = 1.0 / (1.0 + np.exp(-logits))
     # Undo the pad BEFORE resizing back: the padding is not part of the image,
     # and resizing it in would drag black bands into the retina.
@@ -284,20 +325,68 @@ def _lesion_prob(role, rgb512):
     # ground truth: this norm 0.49, ImageNet norm 0.33. Note the failure mode:
     # 0.33 still yields a plausible-looking mask, so it degrades quietly.
     x = ((rgb512.astype(np.float32) / 255.0) - 0.5) / 0.5
-    logits = _run(role, np.ascontiguousarray(x.transpose(2, 0, 1)[None, ...]))[0]
+    logits = _run(role, x.transpose(2, 0, 1)[None, ...])[0]
     return 1.0 / (1.0 + np.exp(-logits))
 
 
+def _lesion_prob_v2(role, rgb512):
+    """3-channel softmax counterpart of _lesion_prob, for red_lesion_v2 only.
+
+    Same input normalization as _lesion_prob -- verified against the
+    checkpoint's own 'preprocessing' metadata string, not assumed -- only the
+    activation differs: softmax over 3 classes here (background/MA/HE)
+    instead of sigmoid over one logit. Returns (3, H, W) probabilities.
+    """
+    x = ((rgb512.astype(np.float32) / 255.0) - 0.5) / 0.5
+    # NO extra [0] here: _forward() already strips the batch dim (see
+    # localize()'s identical multi-channel pattern), leaving (3, H, W). The
+    # single-channel _lesion_prob() above needs its own trailing [0] to drop
+    # a channel dim of size 1 -- that pattern does NOT generalise to 3
+    # classes, and copying it here silently kept only channel 0 (background),
+    # which is exactly the bug this comment is now guarding against.
+    # PyTorch directly, not _run(): the 3-class model has no MATLAB
+    # conversion, so the dispatch would only add a lookup that always misses.
+    logits = _forward(load(role)[0], x.transpose(2, 0, 1)[None, ...])  # (3, H, W)
+    e = np.exp(logits - logits.max(axis=0, keepdims=True))
+    return e / e.sum(axis=0, keepdims=True)
+
+
 def lesions(bgr, disc_xy):
-    """Red and bright lesion masks, both in ORIGINAL image pixels."""
+    """Red-lesion and hard-exudate masks, both in ORIGINAL image pixels.
+    (Local variable/JSON-key names below still say 'bright' -- see the GATE 4
+    comment at this file's JSON contract keys for exactly what did and did
+    not get renamed and why.)
+
+    Returns (redOriginal, brightOriginal, odMasked, red512, bright512, box,
+    redV2Extra). redV2Extra is None under RED_LESION_MODEL_VERSION=='v1' (the
+    default) and a {'ma512', 'he512'} dict of the two per-class 512-space
+    masks under 'v2' -- everything else in this function's v1 code path is
+    untouched by the version switch, not merely equivalent under it.
+    """
     h, w = bgr.shape[:2]
     rgb512, box = _crop512(bgr)
 
-    red = _lesion_prob("red_lesion", rgb512) > 0.5
-    bright = _lesion_prob("bright_lesion", rgb512) > 0.5
+    role = RED_LESION_MODEL_VERSIONS[RED_LESION_MODEL_VERSION]
+    ma512 = he512 = None
+    if RED_LESION_MODEL_VERSION == "v2":
+        # class_map (from the checkpoint): 0=background, 1=microaneurysm,
+        # 2=haemorrhage. argmax rather than a per-class >0.5 threshold: the
+        # three channels are softmaxed together (mutually exclusive classes),
+        # not three independent sigmoids, so argmax is the correct decision
+        # rule the model was trained under -- see red_lesion_v2_config.json's
+        # class_map and the checkpoint's own 'preprocessing' note ("3-class
+        # target = MA(1) precedence over HE(2) over bg(0)").
+        probs3 = _lesion_prob_v2(role, rgb512)
+        cls = probs3.argmax(axis=0)
+        red = cls != 0
+        ma512 = cls == 1
+        he512 = cls == 2
+    else:
+        red = _lesion_prob(role, rgb512) > 0.5
+    bright = _lesion_prob("hard_exudate", rgb512) > 0.5  # GATE 4: role was "bright_lesion"
 
     # M4's optic-disc masking: trained-in behaviour the model does not apply.
-    # The disc is bright and round and the bright-lesion model fires on it, so
+    # The disc is bright and round and the hard-exudate model fires on it, so
     # without this every image gains a large false exudate exactly where the
     # disc is -- which, with redFloor now at 3, is enough to move a grade.
     od_masked = False
@@ -321,6 +410,9 @@ def lesions(bgr, disc_xy):
     roi512 = retinal_mask(cv2.cvtColor(rgb512, cv2.COLOR_RGB2BGR))
     red = red & roi512
     bright = bright & roi512
+    if RED_LESION_MODEL_VERSION == "v2":
+        ma512 = ma512 & roi512
+        he512 = he512 & roi512
 
     def to_original(mask):
         x0, y0, bw, bh = box
@@ -345,7 +437,8 @@ def lesions(bgr, disc_xy):
     # Original-space masks stay for overlays and for anything that has to line
     # up with the photograph; counts come from the space the thresholds were
     # calibrated in.
-    return to_original(red), to_original(bright), od_masked, red, bright, box
+    red_v2_extra = {"ma512": ma512, "he512": he512} if RED_LESION_MODEL_VERSION == "v2" else None
+    return to_original(red), to_original(bright), od_masked, red, bright, box, red_v2_extra
 
 
 # ── Reporting ──────────────────────────────────────────────────────────────
@@ -438,47 +531,27 @@ def save_mask(mask, path):
     return path
 
 
-# 10 px at 512, matching diagnostics/check_agreement.py's MIN_BLOB_AREA. This
-# is NOT a free parameter: redFloor and grade3QuadMin were calibrated against
-# counts produced with this exact filter, so changing it silently rescales what
-# those thresholds mean. Verified to reproduce that script's red counts 14/14
-# on its own images.
-DEFAULT_MIN_AREA = 10
-
-
 def run_one(image, outdir=None, min_area=DEFAULT_MIN_AREA):
-    """Segment one image; returns the result dict, raises on failure.
+    """One image in, the full segmentation payload out.
 
-    Split out of main() so the persistent worker (segSession/runSegWorker.py)
-    can call it in a process that has already paid for the torch import and the
-    model load -- about 17 s of the ~19 s a one-shot run costs, against 2 s of
-    actual work.
-
-    It RAISES rather than exiting, so one unreadable image cannot take a
-    long-lived worker down with it. main() still turns a failure into the same
-    stderr line and exit code the Node side has always read.
+    THE API THE BACKEND CALLS. The segmentation worker
+    (segSession/runSegWorker.py) holds the models in memory and calls this
+    per case; main() below is the same work through a fresh process. Keeping
+    one implementation is the point -- when this logic lived in main() only,
+    the worker had nothing to call, and a merge that dropped it would have
+    taken the warm path down without any test noticing.
     """
-    # Cleared per CALL, not per process: BACKEND_USED records which backend
-    # served each network, and in a long-lived worker a stale entry would
-    # report the PREVIOUS image's MATLAB fallback as this one's.
-    BACKEND_USED.clear()
-
-    if not os.path.exists(image):
-        raise FileNotFoundError(f"no file at {image}")
     bgr = cv2.imread(image, cv2.IMREAD_COLOR)
     if bgr is None:
-        raise ValueError(f"could not read image: {image}")
+        _fail(f"could not read image: {image}")
     h, w = bgr.shape[:2]
 
     pts = localize(bgr)
-    # pop, not get: the flag is about the localization, not one of its POINTS,
-    # and an unconditional pop means a localizer that stops reporting it fails
-    # here and loudly, rather than quietly dropping the key from the output.
     fovea_unreliable_flag = pts.pop("foveaUnreliable")
     disc = (pts["opticDisc"]["x"], pts["opticDisc"]["y"])
 
     vessel = vessels(bgr)
-    red, bright, od_masked, red512, bright512, box = lesions(bgr, disc)
+    red, bright, od_masked, red512, bright512, box, red_v2_extra = lesions(bgr, disc)
     rgb512_for_roi, _ = _crop512(bgr)
 
     # Counting and quadrant assignment both happen in CROP-512, the space
@@ -492,23 +565,40 @@ def run_one(image, outdir=None, min_area=DEFAULT_MIN_AREA):
     red_q = quadrant_counts(red_comps, fovea512, disc512)
     bright_q = quadrant_counts(bright_comps, fovea512, disc512)
 
+    # RED_LESION_MODEL_VERSION=='v2' only, additive: per-class quadrant
+    # counts and real lesionCounts totals. redPerQuadrant is then
+    # OVERWRITTEN to be maPerQuadrant + hePerQuadrant, each already
+    # filtered by its OWN floor -- not a fresh describe() on the MA|HE
+    # union, which would merge any MA/HE components that touch pixel-
+    # to-pixel into one blob and undercount both classes.
+    ma_q = he_q = None
+    lesion_counts_v2 = None
+    if RED_LESION_MODEL_VERSION == "v2":
+        ma_floor, he_floor = _red_v2_floors()
+        ma_comps = describe(red_v2_extra["ma512"], ma_floor)
+        he_comps = describe(red_v2_extra["he512"], he_floor)
+        ma_q = quadrant_counts(ma_comps, fovea512, disc512)
+        he_q = quadrant_counts(he_comps, fovea512, disc512)
+        red_q = [m + hh for m, hh in zip(ma_q, he_q)]
+        lesion_counts_v2 = {"microaneurysms": len(ma_comps),
+                            "hemorrhages": len(he_comps),
+                            "softExudates": None}
+
     out = {
         "image": os.path.abspath(image),
         "imageSize": [int(h), int(w)],
         "opticDisc": pts["opticDisc"],
         "fovea": pts["fovea"],
-        # Backend plan §I. Promoted out of the localization result to the top
-        # level, because that is where the contract says the backend reads it
-        # (docs/api-contracts.md). It matters that this is explicit: `out` does
-        # not splat `pts`, it copies named keys out of it, so a flag left
-        # inside `pts` would never reach the backend at all. It would be
-        # stored as NULL, and NULL is deliberately not false -- a case whose
-        # fovea could not be located would then be graded on quadrants nobody
-        # could place and auto-cleared at Tier A, with nothing erroring.
         "foveaUnreliable": fovea_unreliable_flag,
         "vessel": {"pixels": int(vessel.sum()),
                    "fraction": float(vessel.mean())},
         "redLesions": summarise(red512, min_area),
+        # "brightLesions"/"brightPerQuadrant" (below) and "brightLesion"
+        # (in "verified") are JSON CONTRACT KEYS, deliberately NOT renamed
+        # by GATE 4's bright_lesion->hard_exudate internal rename -- the
+        # model/role is now called hard_exudate internally (see _ARCH,
+        # modelPaths.CHECKPOINTS), but these three wire keys are untouched
+        # on purpose.
         "brightLesions": summarise(bright512, min_area),
         "odMaskApplied": od_masked,
         "odMaskRadiusCrop512": OD_MASK_RADIUS,
@@ -524,18 +614,33 @@ def run_one(image, outdir=None, min_area=DEFAULT_MIN_AREA):
                              "ImageNet) but its val split is not recorded, "
                              "so its exact Dice cannot be reproduced. "
                              "See verifySegModels.py / verifyModel3.py."),
-        # Which backend actually ran each network (backend plan §S). A
-        # fallback to PyTorch after a MATLAB failure is visible here.
-        "segBackend": {"requested": SEG_BACKEND, "used": dict(BACKEND_USED)},
         # Quadrant counts, in the frame the ICDR thresholds were fitted in.
         "redPerQuadrant": red_q,
         "brightPerQuadrant": bright_q,
         "countingProcedure": (
-            "prob > 0.5, 8-connectivity, components >= %d px at 512, "
-            "quadrants centred on the fovea with the x-axis along "
-            "fovea->disc. Reproduces diagnostics/check_agreement.py "
-            "exactly: 14/14 red counts on its own images." % min_area),
+            (
+                "3-class softmax, argmax class map (0=background,1=MA,2=HE), "
+                "8-connectivity, MA components >= %d px and HE components >= "
+                "%d px (both at 512, per models/red_lesion_v2_config.json), "
+                "quadrants centred on the fovea with the x-axis along "
+                "fovea->disc. redPerQuadrant = maPerQuadrant + hePerQuadrant, "
+                "each already filtered by its own floor." % _red_v2_floors()
+            ) if RED_LESION_MODEL_VERSION == "v2" else (
+                "prob > 0.5, 8-connectivity, components >= %d px at 512, "
+                "quadrants centred on the fovea with the x-axis along "
+                "fovea->disc. Reproduces diagnostics/check_agreement.py "
+                "exactly: 14/14 red counts on its own images." % min_area
+            )),
     }
+
+    # RED_LESION_MODEL_VERSION=='v2' ONLY: additive fields per the M5
+    # phase 2 contract. Never added under 'v1' -- v1's dict above (and
+    # therefore its JSON) is unchanged from before this switch existed.
+    if RED_LESION_MODEL_VERSION == "v2":
+        out["maPerQuadrant"] = ma_q
+        out["hePerQuadrant"] = he_q
+        out["lesionCounts"] = lesion_counts_v2
+        out["redLesionModelVersion"] = RED_LESION_MODEL_VERSION
 
     if outdir:
         base = os.path.splitext(os.path.basename(image))[0]
@@ -581,6 +686,8 @@ def main():
     if not args.image:
         print("usage: segInfer.py <imagePath> [--outdir DIR]", file=sys.stderr)
         sys.exit(2)
+    if not os.path.exists(args.image):
+        _fail(f"no file at {args.image}")
 
     try:
         print(json.dumps(run_one(args.image, args.outdir, args.min_area)))

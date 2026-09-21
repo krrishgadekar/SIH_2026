@@ -105,6 +105,12 @@ MODEL_SPECS = {
     "localization_v1": dict(preprocess=preprocess_m3, build="m3", ckpt="localization_v1.pt"),
     "bright_lesion_unet_v1": dict(preprocess=preprocess_m4_m5, build="m4", ckpt="bright_lesion_unet_v1.pt"),
     "red_lesion_unet_v1": dict(preprocess=preprocess_m4_m5, build="m5", ckpt="red_lesion_unet_v1.pt"),
+    # M5 phase 2 (Gate 3): SAME preprocessing as v1 (Ben Graham 512, RGB,
+    # (x-0.5)/0.5 -- confirmed against the checkpoint's own 'preprocessing'
+    # metadata string), 3-class logits instead of 1. Downstream (parity
+    # check) applies SOFTMAX to these, not sigmoid -- see
+    # parityCheckRedLesionV2.m.
+    "red_lesion_unet_v2": dict(preprocess=preprocess_m4_m5, build="m5_v2", ckpt="red_lesion_unet_v2.pt"),
 }
 
 
@@ -120,6 +126,7 @@ def build_model(tag):
         "m3": ("localization_v1.pt", "resnet18", 3, 2),
         "m4": ("bright_lesion_unet_v1.pt", "resnet34", 3, 1),
         "m5": ("red_lesion_unet_v1.pt", "resnet34", 3, 1),
+        "m5_v2": ("red_lesion_unet_v2.pt", "resnet34", 3, 3),
     }[tag]
     ckpt = torch.load(ex.find_ckpt(fname), map_location="cpu", weights_only=False)
     m = smp.Unet(encoder_name=enc, encoder_weights=None, in_channels=inc, classes=cls, activation=None)
