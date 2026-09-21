@@ -80,7 +80,7 @@ def lesion_mask_384(bgr):
     import segInfer as S
     rgb512, _box = S._crop512(bgr)
     red = S._lesion_prob("red_lesion", rgb512) > 0.5
-    bright = S._lesion_prob("bright_lesion", rgb512) > 0.5
+    bright = S._lesion_prob("hard_exudate", rgb512) > 0.5  # GATE 4: role was "bright_lesion"
     from gradcam import retinal_mask
     roi512 = retinal_mask(cv2.cvtColor(rgb512, cv2.COLOR_RGB2BGR))
     union = (red | bright) & roi512

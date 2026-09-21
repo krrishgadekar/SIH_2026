@@ -150,7 +150,26 @@ assertCheck('output is 512x512x1', isequal(size(y), [512 512 1 1]));
 save(fullfile(modelsDir, 'red_lesion_unet_v1.mat'), 'net');
 fprintf('  SAVED %s\n', fullfile(modelsDir, 'red_lesion_unet_v1.mat'));
 
-fprintf('\nAll 5 v1 models + branchA_v2a imported and saved.\n');
+%% M5 v2 -- red_lesion_unet_v2 (M5 phase 2, Gate 3: 3-class segmentation)
+% Same import pattern as M5 v1 (raw logits out, no post-processing here --
+% caller applies SOFTMAX over the 3 channels, NOT sigmoid, since the classes
+% are mutually exclusive: background/microaneurysm/haemorrhage). NOT wired
+% into any live inference path -- this only proves the export/import round
+% trip; see parityCheckRedLesionV2.m for the numeric check and
+% inference/segInfer.py's RED_LESION_MODEL_VERSION switch for the (Python-
+% only, MATLAB-untouched) live v1/v2 selection.
+fprintf('\n-- M5v2 red_lesion_unet_v2 --\n');
+net = importNetworkFromONNX(fullfile(onnxDir, 'red_lesion_unet_v2.onnx'), ...
+                             'InputDataFormats', {'BCSS'});
+if ~net.Initialized
+    net = initialize(net, dlarray(single(zeros(512, 512, 3, 1)), 'SSCB'));
+end
+y = predict(net, dlarray(single(zeros(512, 512, 3, 1)), 'SSCB'));
+assertCheck('output is 512x512x3 (ch1=bg,ch2=MA,ch3=HE)', isequal(size(y), [512 512 3 1]));
+save(fullfile(modelsDir, 'red_lesion_unet_v2.mat'), 'net');
+fprintf('  SAVED %s\n', fullfile(modelsDir, 'red_lesion_unet_v2.mat'));
+
+fprintf('\nAll 5 v1 models + branchA_v2a + red_lesion_unet_v2 imported and saved.\n');
 end
 
 function assertCheck(label, ok)

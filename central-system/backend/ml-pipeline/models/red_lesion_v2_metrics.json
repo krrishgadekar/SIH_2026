@@ -1,0 +1,259 @@
+{
+  "phase": "M5 red-lesion retrain, Phase 1 (training + evaluation only)",
+  "best_epoch": 82,
+  "best_val_dice_merged": 0.599374574746393,
+  "val_dice_ma": 0.44165716990813975,
+  "val_dice_he": 0.5705328187852601,
+  "val_dice_merged": 0.599374574746393,
+  "per_image_val_dice_ma": {
+    "IDRiD_09": 0.5718113612004287,
+    "IDRiD_13": 0.5155497152869032,
+    "IDRiD_16": 0.5346938775510204,
+    "IDRiD_24": 0.36423841059602646,
+    "IDRiD_31": 0.38035961272475793,
+    "IDRiD_33": 0.4010644959298685,
+    "IDRiD_37": 0.476280834914611,
+    "IDRiD_50": 0.3788659793814433,
+    "IDRiD_51": 0.4777015437392796,
+    "IDRiD_53": 0.38461538461538464,
+    "IDRiD_54": 0.473125,
+    "IDRiD_58": 0.4493192133131619,
+    "IDRiD_64": 0.48383084577114427,
+    "IDRiD_66": 0.3455818022747157,
+    "IDRiD_71": 0.4004078857919782,
+    "IDRiD_78": 0.4290687554395126
+  },
+  "per_image_val_dice_he": {
+    "IDRiD_09": 0.5659441107338731,
+    "IDRiD_13": 0.40800810947795235,
+    "IDRiD_16": 0.7145769622833843,
+    "IDRiD_24": 0.7324052590873936,
+    "IDRiD_31": 0.7939907173682925,
+    "IDRiD_33": 0.6883723427098991,
+    "IDRiD_37": 0.6450559701492538,
+    "IDRiD_50": 0.49689791314156795,
+    "IDRiD_51": 0.7005893909626719,
+    "IDRiD_53": 0.6514678326046222,
+    "IDRiD_54": 0.46801470588235294,
+    "IDRiD_58": 0.2652901202300052,
+    "IDRiD_64": 0.56791104050834,
+    "IDRiD_66": 0.5331905781584583,
+    "IDRiD_71": 0.513128038897893,
+    "IDRiD_78": 0.3836820083682008
+  },
+  "per_image_val_dice_merged": {
+    "IDRiD_09": 0.6169652265542677,
+    "IDRiD_13": 0.5830787309048179,
+    "IDRiD_16": 0.7012244897959183,
+    "IDRiD_24": 0.7214137214137214,
+    "IDRiD_31": 0.7874336691532723,
+    "IDRiD_33": 0.703496631685074,
+    "IDRiD_37": 0.6580524344569288,
+    "IDRiD_50": 0.49953703703703706,
+    "IDRiD_51": 0.6660377358490566,
+    "IDRiD_53": 0.6728104014859265,
+    "IDRiD_54": 0.5540634406112526,
+    "IDRiD_58": 0.32300490414623273,
+    "IDRiD_64": 0.593113482056256,
+    "IDRiD_66": 0.484073928430987,
+    "IDRiD_71": 0.5596048298572996,
+    "IDRiD_78": 0.4660825325042397
+  },
+  "v1_comparison": {
+    "v1_best_val_dice": 0.5353,
+    "v2_val_dice_merged": 0.599374574746393,
+    "delta": 0.0641,
+    "stop_condition_margin": 0.03,
+    "stop_condition_triggered": false
+  },
+  "train_image_count": 65,
+  "val_image_count": 16,
+  "seed": 42,
+  "class_pixel_counts_train": {
+    "background": 16784057,
+    "MA": 20604,
+    "HE": 234699
+  },
+  "class_weights_ce": [
+    1.0,
+    28.541231155395508,
+    8.45654296875
+  ],
+  "ma_he_overlap_px_full_res": 132,
+  "ma_size_distribution_512px": {
+    "n_components": 3452,
+    "min": 1,
+    "median": 6.0,
+    "mean": 7.990150637311704,
+    "max": 59,
+    "cumulative_below": {
+      "<1px": 0,
+      "<2px": 75,
+      "<3px": 383,
+      "<5px": 1137,
+      "<8px": 2027,
+      "<10px": 2461,
+      "<20px": 3283,
+      "<30px": 3418,
+      "<50px": 3446,
+      "<100px": 3452
+    },
+    "pct_cumulative_below": {
+      "<1px": 0.0,
+      "<2px": 2.2,
+      "<3px": 11.1,
+      "<5px": 32.9,
+      "<8px": 58.7,
+      "<10px": 71.3,
+      "<20px": 95.1,
+      "<30px": 99.0,
+      "<50px": 99.8,
+      "<100px": 100.0
+    }
+  },
+  "floor_sweep": {
+    "ma": [
+      {
+        "floor": 1,
+        "recall": 0.7548309178743962,
+        "precision": 0.5359361135758651,
+        "f1": 0.6268228714797254,
+        "n_gt": 828,
+        "n_pred_kept": 1127,
+        "kept_components": 1127,
+        "discarded_components": 0
+      },
+      {
+        "floor": 2,
+        "recall": 0.7306763285024155,
+        "precision": 0.5593869731800766,
+        "f1": 0.6336600990699193,
+        "n_gt": 828,
+        "n_pred_kept": 1044,
+        "kept_components": 1044,
+        "discarded_components": 83
+      },
+      {
+        "floor": 3,
+        "recall": 0.7101449275362319,
+        "precision": 0.5893970893970893,
+        "f1": 0.6441613243528362,
+        "n_gt": 828,
+        "n_pred_kept": 962,
+        "kept_components": 962,
+        "discarded_components": 165
+      },
+      {
+        "floor": 5,
+        "recall": 0.6666666666666666,
+        "precision": 0.6302021403091558,
+        "f1": 0.647921760391198,
+        "n_gt": 828,
+        "n_pred_kept": 841,
+        "kept_components": 841,
+        "discarded_components": 286
+      },
+      {
+        "floor": 8,
+        "recall": 0.5990338164251208,
+        "precision": 0.6742532005689901,
+        "f1": 0.6344217173080037,
+        "n_gt": 828,
+        "n_pred_kept": 703,
+        "kept_components": 703,
+        "discarded_components": 424
+      }
+    ],
+    "he": [
+      {
+        "floor": 10,
+        "recall": 0.5403899721448467,
+        "precision": 0.6608391608391608,
+        "f1": 0.5945757489763652,
+        "n_gt": 359,
+        "n_pred_kept": 286,
+        "kept_components": 286,
+        "discarded_components": 174
+      },
+      {
+        "floor": 20,
+        "recall": 0.48467966573816157,
+        "precision": 0.7229437229437229,
+        "f1": 0.5803069487852857,
+        "n_gt": 359,
+        "n_pred_kept": 231,
+        "kept_components": 231,
+        "discarded_components": 229
+      },
+      {
+        "floor": 30,
+        "recall": 0.4428969359331476,
+        "precision": 0.7626262626262627,
+        "f1": 0.5603622317396226,
+        "n_gt": 359,
+        "n_pred_kept": 198,
+        "kept_components": 198,
+        "discarded_components": 262
+      },
+      {
+        "floor": 50,
+        "recall": 0.37604456824512533,
+        "precision": 0.7888198757763976,
+        "f1": 0.5092977661596959,
+        "n_gt": 359,
+        "n_pred_kept": 161,
+        "kept_components": 161,
+        "discarded_components": 299
+      }
+    ]
+  },
+  "chosen_floors": {
+    "ma": 5,
+    "he": 10
+  },
+  "shared_floor_baseline_on_v2": {
+    "floor": 10,
+    "kept": 859,
+    "discarded": 493,
+    "total": 1352,
+    "pct_discarded": 36.46449704142012
+  },
+  "v1_measured_shared_floor_discard_pct": 41.4,
+  "timing": {
+    "mean_seconds_per_epoch": 16.75563478937336,
+    "num_epochs_run": 102,
+    "total_wall_minutes": 29.34
+  },
+  "model_config": {
+    "architecture": "segmentation_models_pytorch.Unet",
+    "encoder_name": "resnet34",
+    "encoder_init": "transfer from models/vessel_unet_v1.pt (encoder only)",
+    "in_channels": 3,
+    "classes": 3,
+    "class_map": {
+      "0": "background",
+      "1": "microaneurysm",
+      "2": "haemorrhage"
+    },
+    "image_input_size": 512,
+    "patch_size": 256,
+    "batch_size": 8,
+    "lr": 0.0005,
+    "max_epochs": 150,
+    "es_patience": 20,
+    "loss": "0.5*WeightedCE + 0.5*Dice(classes=[MA,HE])"
+  },
+  "vessel_transfer": {
+    "encoder_param_tensors_loaded": 216,
+    "encoder_scalar_params_loaded": 21301732,
+    "encoder_tensors_changed_vs_random_init": 216,
+    "missing_encoder_keys": [],
+    "unexpected_keys_ignored": [],
+    "shape_mismatch_keys": [],
+    "conv1_handling": "adapted (64, 1, 7, 7) -> (64, 3, 7, 7) (tile across 3 channels, /3)",
+    "conv1_verified": true,
+    "deep_layer_verified": true,
+    "vessel_ckpt_best_val_dice": 0.7771457731723785,
+    "vessel_ckpt_in_channels": 1
+  }
+}

@@ -207,7 +207,7 @@ def verify_red():
 
 # ── M4 ─────────────────────────────────────────────────────────────────────
 def verify_bright():
-    model = build("bright_lesion", "resnet34", 3, 1)
+    model = build("hard_exudate", "resnet34", 3, 1)  # GATE 4: role was "bright_lesion"
     ids = sorted({os.path.splitext(os.path.basename(p))[0]
                   for p in glob.glob(os.path.join(SEG, "1. Original Images", "**", "*.jpg"),
                                      recursive=True)})
