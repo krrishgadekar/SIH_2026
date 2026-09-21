@@ -27,6 +27,22 @@ const MetricBar = ({ label, value, maxVal = 1, color = 'var(--c-crimson)' }) => 
   );
 };
 
+const SeverityBadge = ({ grade }) => {
+  let cls = 'badge badge--neutral';
+  let label = 'UNKNOWN';
+  if (grade === 0) {
+    cls = 'badge badge--pass';
+    label = 'LOW';
+  } else if (grade === 1 || grade === 2) {
+    cls = 'badge badge--warning';
+    label = 'MID';
+  } else if (grade === 3 || grade === 4) {
+    cls = 'badge badge--fail';
+    label = 'HIGH';
+  }
+  return <span className={cls}>SEVERITY: {label}</span>;
+};
+
 export const CaseDetailPage = () => {
   const { caseId } = useParams();
   const navigate = useNavigate();
@@ -36,11 +52,22 @@ export const CaseDetailPage = () => {
   const [showGradCam, setShowGradCam] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
+  const [claimedBy, setClaimedBy] = useState(null);
+  const [priorReview, setPriorReview] = useState(null);
   const startTimeRef = useRef(Date.now());
 
   useEffect(() => {
     startTimeRef.current = Date.now();
-    centralApi.getCaseDetail(caseId).then(data => {
+    
+    Promise.all([
+      centralApi.getCaseDetail(caseId),
+      centralApi.claimCase(caseId).catch(err => {
+        if (err.status === 409) setClaimedBy(err.claimedBy || 'Another Reviewer');
+      }),
+      centralApi.getReviews(caseId).then(reviews => {
+        if (reviews && reviews.length > 0) setPriorReview(reviews[0]);
+      })
+    ]).then(([data]) => {
       setCaseData(data);
       setLoading(false);
     });
@@ -81,7 +108,7 @@ export const CaseDetailPage = () => {
       <div className={`case-detail__top-bar ${isBranchMismatch ? 'case-detail__top-bar--mismatch' : ''}`}>
         <div className="u-flex u-items-center u-gap-4">
           <button className="btn btn--outline" onClick={() => navigate('/ophth/queue')} style={{ padding: 'var(--sp-2) var(--sp-3)' }}>
-            <span>← {t('central.caseDetail.nav.queue', 'QUEUE')}</span>
+            <span>← {t('central.caseDetail.nav.queue', 'CASES')}</span>
           </button>
           <div>
             <span className="t-mono" style={{ fontSize: 'var(--fs-small)', opacity: 0.5 }}>{t('central.caseDetail.caseLabel', 'CASE')}</span>
@@ -95,9 +122,7 @@ export const CaseDetailPage = () => {
         </div>
 
         <div className="u-flex u-items-center u-gap-4">
-          <span className={`badge ${c.conformalTier === 'C' ? 'badge--tier-c' : 'badge--tier-b'}`}>
-            {t('central.caseDetail.tier', 'TIER')} {c.conformalTier} — {c.conformalTier === 'C' ? t('central.caseDetail.fullManualReview', 'FULL MANUAL REVIEW') : t('central.caseDetail.spotCheck', 'SPOT CHECK')}
-          </span>
+          <SeverityBadge grade={c.drGradeCnn} />
           {isBranchMismatch && (
             <span className="badge badge--fail case-detail__mismatch-badge">
               {t('central.caseDetail.mismatchWarning', '⚠ BRANCH MISMATCH — REVIEW REQUIRED')}
@@ -230,6 +255,8 @@ export const CaseDetailPage = () => {
           caseData={c}
           onSubmit={handleReviewSubmit}
           submitted={reviewSubmitted}
+          claimedBy={claimedBy}
+          priorReview={priorReview}
         />
 
         <div style={{ marginTop: 'var(--sp-4)' }}>
@@ -250,7 +277,7 @@ export const CaseDetailPage = () => {
           <div className="case-detail__success-content">
             <span style={{ fontSize: '4rem' }}>✓</span>
             <h2 className="t-h2">{t('central.caseDetail.success.title', 'REVIEW SUBMITTED')}</h2>
-            <p className="t-mono" style={{ opacity: 0.6 }}>{t('central.caseDetail.success.subtitle', 'REDIRECTING TO QUEUE...')}</p>
+            <p className="t-mono" style={{ opacity: 0.6 }}>{t('central.caseDetail.success.subtitle', 'REDIRECTING TO CASES...')}</p>
           </div>
         </div>
       )}
