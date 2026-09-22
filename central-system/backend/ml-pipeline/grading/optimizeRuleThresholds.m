@@ -834,7 +834,7 @@ combos = zeros(total, numel(lists));
 for k = 1:numel(lists), combos(:, k) = grids{k}(:); end
 
 costs = inf(total, 1);
-if getdef(opts, 'useParallel', total > 20000) && haveParallelPool()
+if getdef(opts, 'useParallel', true) && haveParallelPool(total)
     parfor i = 1:total
         costs(i) = scoreFn(combos(i, :));
     end
@@ -993,14 +993,40 @@ function t = roundInt(t, intcon)
 t(intcon) = round(t(intcon));
 end
 
-function tf = haveParallelPool()
-% Only reports true for a pool that ALREADY exists. Starting one costs tens of
-% seconds, which on a grid this size is slower than just running the loop.
+function tf = haveParallelPool(nEvals)
+% A usable pool: one that already exists, or one worth STARTING for this grid.
+%
+% ── WHY THIS CHANGED ───────────────────────────────────────────────────────
+% This used to accept only a pool that already existed, on the reasoning that
+% a ~30 s startup is not worth paying. That is right for a small grid and was
+% wrong for a real one: the first v2 refit ran 6 passes (1 fit + 5 CV folds)
+% of ~1.1M combinations each, entirely SERIAL, because `matlab -batch` starts
+% with no pool -- so the toolbox was wired in and never actually ran.
+%
+% The startup is now amortised against the work in front of it. Below the
+% threshold the old behaviour stands, because for a few thousand evaluations
+% the pool genuinely costs more than it saves.
+%
+% Starting a pool is best-effort: a machine with no Parallel Computing Toolbox,
+% or a cluster profile that refuses, falls back to the serial loop rather than
+% failing the fit.
+PARALLEL_WORTH_IT = 2e5;    % evaluations, measured against a ~30 s pool start
+
 tf = false;
+if isempty(which('gcp')), return; end
 try
-    if isempty(which('gcp')), return; end
-    tf = ~isempty(gcp('nocreate'));
-catch
+    p = gcp('nocreate');
+    if ~isempty(p), tf = true; return; end
+    if nargin < 1 || ~isfinite(nEvals) || nEvals < PARALLEL_WORTH_IT, return; end
+    fprintf('parallel  : starting a pool for %d evaluations...\n', nEvals);
+    p = parpool('local');
+    tf = ~isempty(p);
+    if tf
+        fprintf('parallel  : pool of %d workers\n', p.NumWorkers);
+    end
+catch ME
+    fprintf('parallel  : no pool (%s) -- running serial\n', ME.identifier);
+    tf = false;
 end
 end
 
