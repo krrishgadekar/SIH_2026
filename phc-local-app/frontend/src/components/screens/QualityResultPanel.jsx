@@ -9,16 +9,12 @@ export const QualityResultPanel = ({ result, onRetake, onAccept }) => {
   const isBorderline = result.qualityStatus === 'borderline';
 
   const qualityScore = result.qualityScore != null ? Math.round(result.qualityScore * 100) : 91;
-  const prediction   = result.aiPrediction;
-  const metrics      = prediction?.imageQuality?.metrics || {
+  const metrics      = result.metrics || result.imageQuality?.metrics || {
     focusScore: 0.94,
     illuminationScore: 0.88,
     contrastScore: 0.86,
     retinalCoverageScore: 0.98,
   };
-
-  const severity     = prediction?.severity || { label: 'Mild NPDR', level: 1 };
-  const confidence   = prediction?.confidence || { score: 0.92 };
 
   // Status configuration matching reference image 2
   const statusCfg = isPass
@@ -140,33 +136,7 @@ export const QualityResultPanel = ({ result, onRetake, onAccept }) => {
         </div>
       )}
 
-      {/* ── 4. AI Severity Prediction Card ── */}
-      <div className="qrp-card qrp-severity-card">
-        <div className="qrp-card__header-row">
-          <span className="qrp-label">AI SEVERITY PREDICTION</span>
-          <span className="qrp-grade-badge">
-            GRADE {severity.level ?? 1}
-          </span>
-        </div>
-
-        <div className="qrp-severity-name">
-          {severity.label || 'Mild NPDR'}
-        </div>
-
-        <div className="qrp-confidence-header">
-          <span className="qrp-sublabel">MODEL CONFIDENCE</span>
-          <span className="qrp-conf-num">{Math.round((confidence.score ?? 0.92) * 100)}%</span>
-        </div>
-
-        <div className="qrp-progress-track">
-          <div
-            className="qrp-progress-fill qrp-progress-fill--olive"
-            style={{ width: `${Math.round((confidence.score ?? 0.92) * 100)}%` }}
-          />
-        </div>
-      </div>
-
-      {/* ── 5. Action Row: Retake & Accept Buttons ── */}
+      {/* ── Action Row: Retake & Accept Buttons ── */}
       {isRetake ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '16px' }}>
           <div style={{

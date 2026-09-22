@@ -1,38 +1,184 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { localApi } from '../../api/localApiClient';
 import { RetinalWaveCanvas } from '../shared/RetinalWaveCanvas';
 
+/* ── tiny internal questionnaire ─────────────────────────── */
+const BLOOD_PRESSURE_OPTIONS = [
+  { value: 'normal',   label: 'Normal' },
+  { value: 'high',     label: 'High (Hypertension)' },
+  { value: 'low',      label: 'Low (Hypotension)' },
+  { value: 'unknown',  label: 'Unknown' },
+];
+
+const EYE_SYMPTOMS = [
+  { id: 'blurredVision',      label: 'BLURRED VISION' },
+  { id: 'floaters',           label: 'FLOATERS' },
+  { id: 'suddenVisionChange', label: 'SUDDEN VISION CHANGE' },
+  { id: 'eyePain',            label: 'EYE PAIN' },
+];
+
+const INDIAN_STATES = [
+  'Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh',
+  'Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka',
+  'Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram',
+  'Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana',
+  'Tripura','Uttar Pradesh','Uttarakhand','West Bengal',
+  'Andaman & Nicobar Islands','Chandigarh','Dadra & Nagar Haveli','Daman & Diu',
+  'Delhi','Jammu & Kashmir','Ladakh','Lakshadweep','Puducherry',
+];
+
+/* ── Top-level Helper Components (must be outside to preserve DOM input focus) ── */
+const SectionHeader = ({ title, label }) => (
+  <div className="reg-section-header">
+    {label && <span className="reg-section-header__badge">{label}</span>}
+    <h2 className="reg-section-header__title">{title}</h2>
+    <div className="reg-section-header__line" />
+  </div>
+);
+
+const Field = ({ label, required, children, span }) => (
+  <div className={`reg-field${span ? ` reg-field--span-${span}` : ''}`}>
+    <label className="reg-label">{required && <span className="reg-req">*</span>}{label}</label>
+    {children}
+  </div>
+);
+
+const ChipGroup = ({ options, value, onChange, multi = false }) => (
+  <div className="reg-chip-group">
+    {options.map(opt => {
+      const isActive = multi ? value[opt.id] : value === (opt.id || opt.value);
+      return (
+        <button
+          key={opt.id || opt.value}
+          type="button"
+          className={`reg-chip${isActive ? ' reg-chip--active' : ''}`}
+          onClick={() => multi ? onChange(opt.id) : onChange(opt.id || opt.value)}
+        >
+          {isActive && multi && <span className="reg-chip__check">✓ </span>}
+          {opt.label}
+        </button>
+      );
+    })}
+  </div>
+);
+
 export const PatientRegistrationForm = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({ name: '', age: '', contactNumber: '' });
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e) => {
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  /* ── patient-info (prefilled with realistic mock data for rapid testing) ── */
+  const [patientType, setPatientType] = useState('new');
+  const [abhaId, setAbhaId] = useState('91827364501928');
+  const [visitNo, setVisitNo] = useState('1');
+  const [title, setTitle] = useState('Mrs');
+  const [firstName, setFirstName] = useState('Sunita');
+  const [middleName, setMiddleName] = useState('K.');
+  const [lastName, setLastName] = useState('Devi');
+  const [gender, setGender] = useState('female');
+  const [dob, setDob] = useState('12/03/1972');
+  const [age, setAge] = useState('54');
+  const [maritalStatus, setMaritalStatus] = useState('married');
+  const [bloodGroup, setBloodGroup] = useState('B+');
+
+  /* ── address ──────────────────────────────────────────── */
+  const [address, setAddress] = useState('Plot No. 24, Near Gram Panchayat, Village Rampur');
+  const [state, setState] = useState('Maharashtra');
+  const [pincode, setPincode] = useState('413102');
+  const [district, setDistrict] = useState('Solapur');
+  const [occupation, setOccupation] = useState('homemaker');
+  const [contactNumber, setContactNumber] = useState('+919876543210');
+  const [altPhone, setAltPhone] = useState('+919811223344');
+
+  /* ── questionnaire ────────────────────────────────────── */
+  const [knownDiabetic, setKnownDiabetic] = useState(true);
+  const [yearsSinceDx, setYearsSinceDx] = useState('5to10');
+  const [glycemicControl, setGlycemicControl] = useState('moderate');
+  const [bloodPressure, setBloodPressure] = useState('high');
+  const [pregnancy, setPregnancy] = useState('not_applicable');
+  const [eyeSymptoms, setEyeSymptoms] = useState({
+    blurredVision: true, floaters: false, suddenVisionChange: false, eyePain: false,
+  });
+
+  /* ── consent ──────────────────────────────────────────── */
+  const [consentObtained, setConsentObtained] = useState(true);
+  const [consentGivenAt, setConsentGivenAt] = useState(() => new Date().toISOString());
+
+  /* derived */
+  const parsedAge = parseInt(age, 10);
+  const couldBePregnant = !age || isNaN(parsedAge) || parsedAge < 55;
+  const fullName = [firstName, middleName, lastName].filter(Boolean).join(' ');
+
+  /* auto-compute age from DOB */
+  useEffect(() => {
+    if (!dob) return;
+    const [d, m, y] = dob.split('/').map(Number);
+    if (!y || y < 1900) return;
+    const birth = new Date(y, (m || 1) - 1, d || 1);
+    const diff = Date.now() - birth.getTime();
+    const computed = Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+    if (computed > 0 && computed < 120) setAge(String(computed));
+  }, [dob]);
+
+  const toggleSymptom = (id) =>
+    setEyeSymptoms(prev => ({ ...prev, [id]: !prev[id] }));
+
+  const handleConsentChange = (e) => {
+    const checked = e.target.checked;
+    setConsentObtained(checked);
+    setConsentGivenAt(checked ? new Date().toISOString() : null);
+  };
+
+  const handleClearAll = () => {
+    setPatientType('new'); setAbhaId(''); setVisitNo('');
+    setTitle('Mr'); setFirstName(''); setMiddleName(''); setLastName('');
+    setGender(''); setDob(''); setAge(''); setMaritalStatus(''); setBloodGroup('Unknown');
+    setAddress(''); setState(''); setPincode(''); setDistrict('');
+    setOccupation(''); setContactNumber(''); setAltPhone('');
+    setKnownDiabetic(false); setYearsSinceDx('1to5'); setGlycemicControl('moderate');
+    setBloodPressure('normal'); setPregnancy('not_applicable');
+    setEyeSymptoms({ blurredVision: false, floaters: false, suddenVisionChange: false, eyePain: false });
+    setConsentObtained(false); setConsentGivenAt(null);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!consentObtained) {
+      alert('Informed verbal consent is required before initiating screening.');
+      return;
+    }
     setLoading(true);
     try {
-      const newPatient = await localApi.registerPatient(formData);
-      // Store in localStorage for cross-screen and cross-system sync
+      const payload = {
+        name: fullName || firstName,
+        age,
+        contactNumber,
+        abhaId,
+        visitNo,
+        title,
+        firstName, middleName, lastName,
+        gender, dob, maritalStatus, bloodGroup,
+        address, state, pincode, district, occupation, altPhone,
+        questionnaire: {
+          knownDiabetic, yearsSinceDiagnosis: yearsSinceDx,
+          glycemicControl, bloodPressure, pregnancy,
+          ...eyeSymptoms,
+        },
+        consentGivenAt: consentGivenAt || new Date().toISOString(),
+      };
+      const newPatient = await localApi.registerPatient(payload);
       try {
-        localStorage.setItem('netra_latest_patient', JSON.stringify({ ...newPatient, ...formData }));
+        localStorage.setItem('netra_latest_patient', JSON.stringify({ ...newPatient, ...payload }));
         const existing = JSON.parse(localStorage.getItem('netra_registered_patients') || '[]');
-        localStorage.setItem('netra_registered_patients', JSON.stringify([{ ...newPatient, ...formData }, ...existing]));
-      } catch (err) {
-        console.warn('Storage sync failed:', err);
-      }
-      // Pass patient ID, full name, and age to capture screen
+        localStorage.setItem('netra_registered_patients', JSON.stringify([{ ...newPatient, ...payload }, ...existing]));
+      } catch (err) { console.warn('Storage sync failed:', err); }
       const query = new URLSearchParams({
         patientId: newPatient.patientId,
-        name: formData.name,
-        age: formData.age || '',
-        contact: formData.contactNumber || ''
+        name: payload.name,
+        age: payload.age || '',
+        contact: payload.contactNumber || '',
       }).toString();
       navigate(`/capture?${query}`);
     } catch (err) {
@@ -44,63 +190,297 @@ export const PatientRegistrationForm = () => {
   };
 
   return (
-    <div className="registration-screen">
+    <div className="reg-screen">
       <RetinalWaveCanvas />
-      
-      <div className="registration-screen__content">
-        <h1 className="t-display u-text-center u-mb-6" dangerouslySetInnerHTML={{ __html: t('registration.title').replace(' ', '<br/>') }}></h1>
-        
-        <form onSubmit={handleSubmit} className="panel u-p-6">
-          <div className="grid grid--2">
-            <div className="panel u-p-4">
-              <label className="label">{t('registration.fullName')}</label>
-              <input 
-                type="text" 
-                name="name" 
-                className="input" 
-                placeholder={t('registration.namePlaceholder')}
-                value={formData.name}
-                onChange={handleChange}
-                required 
-              />
+
+      <form className="reg-form" onSubmit={handleSubmit} noValidate>
+
+        {/* ── 1. PATIENT INFORMATION ─────────────────────── */}
+        <SectionHeader title="PATIENT INFORMATION" label="01" />
+
+        <div className="reg-grid">
+          <Field label="PATIENT TYPE">
+            <select className="select reg-select" value={patientType} onChange={e => setPatientType(e.target.value)}>
+              <option value="new">New Patient</option>
+              <option value="revisit">Revisit</option>
+              <option value="referral">Referral</option>
+            </select>
+          </Field>
+
+          <Field label="PATIENT ID">
+            <input className="input" placeholder="auto-generated" readOnly />
+          </Field>
+
+          <Field label="ABHA ID (OPTIONAL)">
+            <input className="input" placeholder="14-digit ABHA number" value={abhaId}
+              onChange={e => setAbhaId(e.target.value)} maxLength={14} />
+          </Field>
+
+          <Field label="VISIT NO.">
+            <input className="input" placeholder="e.g. 1" value={visitNo}
+              onChange={e => setVisitNo(e.target.value)} />
+          </Field>
+        </div>
+
+        <div className="reg-grid">
+          <Field label="TITLE">
+            <select className="select reg-select" value={title} onChange={e => setTitle(e.target.value)}>
+              {['Mr', 'Mrs', 'Ms', 'Dr', 'Prof'].map(t => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </select>
+          </Field>
+
+          <Field label="FIRST NAME" required>
+            <input className="input" placeholder="e.g. Sunita" value={firstName}
+              onChange={e => setFirstName(e.target.value)} required />
+          </Field>
+
+          <Field label="MIDDLE NAME">
+            <input className="input" placeholder="Optional" value={middleName}
+              onChange={e => setMiddleName(e.target.value)} />
+          </Field>
+
+          <Field label="LAST NAME" required>
+            <input className="input" placeholder="e.g. Devi" value={lastName}
+              onChange={e => setLastName(e.target.value)} required />
+          </Field>
+        </div>
+
+        <div className="reg-grid">
+          <Field label="GENDER" required>
+            <select className="select reg-select" value={gender} onChange={e => setGender(e.target.value)} required>
+              <option value="">Select</option>
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+              <option value="other">Other</option>
+            </select>
+          </Field>
+
+          <Field label="DATE OF BIRTH" required>
+            <input className="input" placeholder="DD/MM/YYYY" value={dob}
+              onChange={e => setDob(e.target.value)} />
+          </Field>
+
+          <Field label="AGE" required>
+            <input className="input" type="number" placeholder="e.g. 54" value={age}
+              onChange={e => setAge(e.target.value)} min="0" max="120" required />
+          </Field>
+
+          <Field label="MARITAL STATUS">
+            <select className="select reg-select" value={maritalStatus} onChange={e => setMaritalStatus(e.target.value)}>
+              <option value="">Select</option>
+              <option value="single">Single</option>
+              <option value="married">Married</option>
+              <option value="widowed">Widowed</option>
+              <option value="divorced">Divorced</option>
+            </select>
+          </Field>
+
+          <Field label="BLOOD GROUP">
+            <select className="select reg-select" value={bloodGroup} onChange={e => setBloodGroup(e.target.value)}>
+              {['Unknown','A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bg => (
+                <option key={bg} value={bg}>{bg}</option>
+              ))}
+            </select>
+          </Field>
+        </div>
+
+        {/* ── 2. ADDRESS ───────────────────────────────────── */}
+        <SectionHeader title="ADDRESS" label="02" />
+
+        <div className="reg-grid">
+          <Field label="ADDRESS" required span={2}>
+            <textarea className="input reg-textarea" placeholder="Full address" value={address}
+              onChange={e => setAddress(e.target.value)} required rows={3} />
+          </Field>
+
+          <Field label="STATE" required>
+            <select className="select reg-select" value={state} onChange={e => setState(e.target.value)} required>
+              <option value="">Select</option>
+              {INDIAN_STATES.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </Field>
+
+          <Field label="PINCODE">
+            <input className="input" placeholder="6-digit PIN" value={pincode}
+              onChange={e => setPincode(e.target.value)} maxLength={6} />
+          </Field>
+        </div>
+
+        <div className="reg-grid">
+          <Field label="DISTRICT" required>
+            <input className="input" placeholder="e.g. Pune" value={district}
+              onChange={e => setDistrict(e.target.value)} required />
+          </Field>
+
+          <Field label="OCCUPATION">
+            <select className="select reg-select" value={occupation} onChange={e => setOccupation(e.target.value)}>
+              <option value="">Select</option>
+              <option value="farmer">Farmer</option>
+              <option value="labourer">Daily Labourer</option>
+              <option value="homemaker">Homemaker</option>
+              <option value="govt_employee">Govt. Employee</option>
+              <option value="business">Business</option>
+              <option value="student">Student</option>
+              <option value="other">Other</option>
+            </select>
+          </Field>
+
+          <Field label="CONTACT NUMBER" required>
+            <input className="input" type="tel" placeholder="+91..." value={contactNumber}
+              onChange={e => setContactNumber(e.target.value)} required
+              title="Required — only channel for delayed/offline result delivery" />
+          </Field>
+
+          <Field label="ALTERNATE PHONE">
+            <input className="input" type="tel" placeholder="Optional" value={altPhone}
+              onChange={e => setAltPhone(e.target.value)} />
+          </Field>
+        </div>
+
+        {/* ── 3. CLINICAL SYMPTOM & RISK QUESTIONNAIRE ─────── */}
+        <SectionHeader title="CLINICAL SYMPTOM & RISK QUESTIONNAIRE" label="03" />
+
+        <div className="reg-questionnaire-card">
+
+          {/* Known Diabetic */}
+          <div className="reg-q-row reg-q-row--inline">
+            <span className="meta-label">KNOWN DIABETIC?</span>
+            <div
+              className={`meta-toggle ${knownDiabetic ? 'meta-toggle--active' : ''}`}
+              onClick={() => setKnownDiabetic(v => !v)}
+              role="switch"
+              aria-checked={knownDiabetic}
+              tabIndex={0}
+              onKeyDown={e => e.key === ' ' && setKnownDiabetic(v => !v)}
+            >
+              <div className="meta-toggle__track">
+                <div className="meta-toggle__thumb" />
+              </div>
             </div>
-            <div className="panel u-p-4">
-              <label className="label">{t('registration.age')}</label>
-              <input 
-                type="number" 
-                name="age" 
-                className="input" 
-                placeholder={t('registration.agePlaceholder')}
-                value={formData.age}
-                onChange={handleChange}
-                required 
-                min="0"
-                max="120"
-              />
-            </div>
-          </div>
-          
-          <div className="panel u-p-4 u-mt-0">
-            <label className="label">{t('registration.contact')}</label>
-            <input
-              type="tel"
-              name="contactNumber"
-              className="input"
-              placeholder={t('registration.contactPlaceholder')}
-              value={formData.contactNumber}
-              onChange={handleChange}
-              required
-              title="Required — this is the only channel for delivering a result to a patient who has already gone home. Without it, registration silently falls back to offline practice data."
-            />
           </div>
 
-          <div className="panel u-p-4 u-text-right">
-            <button type="submit" className="btn btn--lg" disabled={loading}>
-              <span>{loading ? t('registration.btnRegistering') : t('registration.btnInitiate')}</span>
-            </button>
+          {/* Years Since Diagnosis (conditional) */}
+          {knownDiabetic && (
+            <div className="reg-q-row">
+              <span className="meta-label">YEARS SINCE DIAGNOSIS</span>
+              <div className="reg-chip-group">
+                {[
+                  { id: 'lt1',   label: '< 1 YR'    },
+                  { id: '1to5',  label: '1–5 YRS'   },
+                  { id: '5to10', label: '5–10 YRS'  },
+                  { id: 'gt10',  label: '> 10 YRS'  },
+                ].map(opt => (
+                  <button key={opt.id} type="button"
+                    className={`reg-chip${yearsSinceDx === opt.id ? ' reg-chip--active' : ''}`}
+                    onClick={() => setYearsSinceDx(opt.id)}
+                  >{opt.label}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Glycemic Control */}
+          <div className="reg-q-row">
+            <span className="meta-label">GLYCEMIC CONTROL (BLOOD SUGAR)</span>
+            <div className="reg-chip-group">
+              {[
+                { id: 'good',     label: 'GOOD'     },
+                { id: 'moderate', label: 'MODERATE' },
+                { id: 'poor',     label: 'POOR'     },
+              ].map(opt => (
+                <button key={opt.id} type="button"
+                  className={`reg-chip${glycemicControl === opt.id ? ' reg-chip--active' : ''}`}
+                  onClick={() => setGlycemicControl(opt.id)}
+                >{opt.label}</button>
+              ))}
+            </div>
           </div>
-        </form>
-      </div>
+
+          {/* Blood Pressure */}
+          <div className="reg-q-row">
+            <span className="meta-label">BLOOD PRESSURE STATUS</span>
+            <select className="select meta-select"
+              value={bloodPressure}
+              onChange={e => setBloodPressure(e.target.value)}>
+              {BLOOD_PRESSURE_OPTIONS.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Pregnancy */}
+          {couldBePregnant && (
+            <div className="reg-q-row">
+              <span className="meta-label">CURRENTLY PREGNANT?</span>
+              <div className="reg-chip-group">
+                {[
+                  { id: 'yes',            label: 'YES' },
+                  { id: 'no',             label: 'NO'  },
+                  { id: 'not_applicable', label: 'N / A' },
+                ].map(opt => (
+                  <button key={opt.id} type="button"
+                    className={`reg-chip${pregnancy === opt.id ? ' reg-chip--active' : ''}`}
+                    onClick={() => setPregnancy(opt.id)}
+                  >{opt.label}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Eye Symptoms */}
+          <div className="reg-q-row">
+            <span className="meta-label">CURRENT EYE SYMPTOMS (SELECT ALL THAT APPLY)</span>
+            <div className="reg-chip-group reg-chip-group--grid">
+              {EYE_SYMPTOMS.map(sym => (
+                <button key={sym.id} type="button"
+                  className={`reg-chip${eyeSymptoms[sym.id] ? ' reg-chip--active' : ''}`}
+                  onClick={() => toggleSymptom(sym.id)}
+                >
+                  {eyeSymptoms[sym.id] && <span className="reg-chip__check">✓ </span>}
+                  {sym.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── 4. INFORMED VERBAL CONSENT ──────────────────── */}
+        <div className="reg-consent-block">
+          <label className="reg-consent-label">
+            <input
+              type="checkbox"
+              className="reg-consent-checkbox"
+              checked={consentObtained}
+              onChange={handleConsentChange}
+              required
+            />
+            <div className="reg-consent-text">
+              <span className="reg-consent-title">INFORMED VERBAL CONSENT (DPDP ACT SEC 9.7)</span>
+              <span className="reg-consent-body">
+                I confirm that informed verbal consent has been obtained from the patient for retinal image
+                capture, clinical risk assessment, and tele-ophthalmology review.
+              </span>
+            </div>
+          </label>
+        </div>
+
+        {/* ── 5. FOOTER ACTIONS ───────────────────────────── */}
+        <div className="reg-footer">
+          <button type="button" className="btn btn--outline" onClick={handleClearAll}>
+            <span>CLEAR ALL</span>
+          </button>
+          <button
+            type="submit"
+            className="btn btn--lg"
+            disabled={loading || !consentObtained || !firstName || !contactNumber}
+          >
+            <span>{loading ? 'REGISTERING...' : 'INITIATE CAPTURE →'}</span>
+          </button>
+        </div>
+
+      </form>
     </div>
   );
 };

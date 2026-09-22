@@ -6,7 +6,7 @@ import { PHC_NAME } from '../../config';
 import { ConsoleStatus } from '../shared/ConsoleStatus';
 import { LanguageSelector } from '../shared/LanguageSelector';
 
-export const Header = () => {
+export const Header = ({ auth, onLogout }) => {
   const { t } = useTranslation();
   const [syncStatus, setSyncStatus] = useState({ online: false, pendingCount: 0 });
 
@@ -74,6 +74,29 @@ export const Header = () => {
         </button>
       </div>
 
+      {/* Operator Info & Logout */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+        <div className="app-header__operator-badge" title={`Active Operator: ${auth?.name || 'Krrish Gadekar'}`}>
+          <div className="app-header__operator-dot" />
+          <div className="app-header__operator-info">
+            <span className="app-header__operator-role">{auth?.roleTitle || 'PHC TECHNICIAN'}</span>
+            <span className="app-header__operator-name">{auth?.name || auth?.username || 'Krrish Gadekar'}</span>
+          </div>
+        </div>
+
+        {onLogout && (
+          <button
+            type="button"
+            className="app-header__logout-btn"
+            onClick={onLogout}
+            title={t('header.logout', 'Log out of technician session')}
+          >
+            <span>LOGOUT</span>
+            <span style={{ fontSize: '12px' }}>⏻</span>
+          </button>
+        )}
+      </div>
+
       {/* Sync Status & PHC Info */}
       <div>
         <div className="u-flex-col">
@@ -90,3 +113,4 @@ export const Header = () => {
     </header>
   );
 };
+

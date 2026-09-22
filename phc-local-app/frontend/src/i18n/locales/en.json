@@ -10,6 +10,39 @@
       "online": "ONLINE",
       "offline": "OFFLINE",
       "pending": "PENDING"
+    },
+    "logout": "Log out"
+  },
+  "login": {
+    "title": "RETINAL✦DIAGNOSTICS",
+    "subtitle": "PRIMARY HEALTH CENTRE MODULE · LOCAL QUALITY GATE",
+    "version": "NETRA SETU PLATFORM v1.0 · PHC KHARADI",
+    "selectRole": "SELECT OPERATOR PROFILE TO PROCEED",
+    "roles": {
+      "technician": {
+        "title": "PHC TECHNICIAN",
+        "subtitle": "Patient Intake & Fundus Capture",
+        "desc": "Register patients, capture retinal fundus images, execute instant local AI quality triage, and manage the clinic queue.",
+        "stats": "PHC Kharadi · Local AI Ready"
+      },
+      "field_worker": {
+        "title": "COMMUNITY HEALTH WORKER",
+        "subtitle": "Camp Screening & Rapid Vitals",
+        "desc": "Outreach screening registration, risk factor questionnaires, and community camp triage intake.",
+        "stats": "Rural Outreach · Fast Queue"
+      }
+    },
+    "auth": {
+      "authenticatingAs": "AUTHENTICATING AS: {{role}}",
+      "back": "← BACK",
+      "username": "USERNAME",
+      "password": "PASSWORD",
+      "initiate": "INITIATE SESSION ✦",
+      "authenticating": "AUTHENTICATING...",
+      "demo": "DEMO CREDENTIALS:",
+      "errorEmpty": "Please enter both username and password.",
+      "errorInvalid": "INVALID CREDENTIALS. USE DEMO: krrish / tech123",
+      "errorInvalidField": "INVALID CREDENTIALS. USE DEMO: asha_worker / camp123"
     }
   },
   "registration": {
