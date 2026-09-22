@@ -51,11 +51,11 @@ export const RetinalWaveCanvas = () => {
         {/* Macula representation */}
         <circle cx="650" cy="500" r="20" fill="none" stroke="var(--c-black)" opacity="0.3" />
 
-        {/* Retinal focal / fixation target from reference - positioned safely below header */}
-        <circle cx="340" cy="350" r="16" fill="none" stroke="var(--c-crimson)" opacity="0.35" strokeWidth="1" />
-        <circle cx="340" cy="350" r="10" fill="none" stroke="var(--c-black)" opacity="0.6" strokeWidth="1" />
-        <circle cx="340" cy="350" r="5" fill="var(--c-black)" opacity="0.85" />
-        <circle cx="340" cy="350" r="2" fill="var(--c-crimson)" />
+        {/* Retinal focal / fixation target shifted to bottom-right away from form headers */}
+        <circle cx="840" cy="800" r="16" fill="none" stroke="var(--c-crimson)" opacity="0.35" strokeWidth="1" />
+        <circle cx="840" cy="800" r="10" fill="none" stroke="var(--c-black)" opacity="0.6" strokeWidth="1" />
+        <circle cx="840" cy="800" r="5" fill="var(--c-black)" opacity="0.85" />
+        <circle cx="840" cy="800" r="2" fill="var(--c-crimson)" />
       </svg>
     </div>
   );
