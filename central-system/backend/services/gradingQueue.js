@@ -84,6 +84,7 @@ const PERMANENT = new Set([
 const queue = [];              // caseIds waiting for a worker
 const queued = new Set();      // membership test for the above (dedupe)
 const inflight = new Set();    // caseIds a worker currently holds
+const retrying = new Set();    // caseIds waiting out a retry backoff (neither of the above)
 
 let workers = 0;
 let started = false;
@@ -107,9 +108,12 @@ let runGrading = processCase;
  */
 function enqueue(caseId) {
   if (!caseId) throw new Error('enqueue: caseId is required');
-  if (queued.has(caseId) || inflight.has(caseId)) return false;
+  if (queued.has(caseId) || inflight.has(caseId) || retrying.has(caseId)) return false;
   queue.push({ caseId, attempts: 0 });
   queued.add(caseId);
+  // Fire-and-forget: a stale failure reason must not survive a re-queue, but
+  // clearing it is bookkeeping and must not delay or block the grading itself.
+  clearFailure(caseId);
   if (started) pump();
   return true;
 }
@@ -145,7 +149,7 @@ async function runJob(job) {
       console.error(
         `[gradingQueue] ${job.caseId} failed after ${job.attempts} attempt(s)`
         + `${permanent ? ' (permanent)' : ''}: ${err.message}`);
-      await markError(job.caseId);
+      await markError(job.caseId, err, job.attempts);
       return;
     }
 
@@ -156,7 +160,13 @@ async function runJob(job) {
       `[gradingQueue] ${job.caseId} attempt ${job.attempts} failed, retrying in `
       + `${delay}ms: ${err.message}`);
 
+    // `retrying` covers the backoff gap, when the job is neither queued nor
+    // inflight. Without it the watchdog (§D) would see a 'processing' case the
+    // queue does not know about, enqueue a FRESH job with attempts = 0, and a
+    // permanently failing case would be retried forever.
+    retrying.add(job.caseId);
     const t = setTimeout(() => {
+      retrying.delete(job.caseId);
       if (!queued.has(job.caseId) && !inflight.has(job.caseId)) {
         queue.push(job);
         queued.add(job.caseId);
@@ -168,20 +178,59 @@ async function runJob(job) {
 }
 
 /**
- * markError(caseId)
+ * markError(caseId, err, attempts)
  *
  * 'error', not left on 'processing'. A poller cannot distinguish "still
  * working" from "gave up" otherwise, and the case would look active forever.
+ *
+ * The CAUSE is written too (migration 0014). It used to live only in the line
+ * printed just above this call, which meant that by the time anyone looked at
+ * a failed case -- on the dashboard, or during a demo -- the reason was gone
+ * and the database could only say "error". err.code is the classification this
+ * queue already computes for the retry decision; keeping it makes failures
+ * groupable, which is the difference between 62 mysteries and one cause with
+ * 62 instances.
+ *
+ * The message is truncated at 500 characters: a stack-laden library error can
+ * run to kilobytes, and the first line is the part anyone reads.
  *
  * A failure to write the status is swallowed and logged: it means the database
  * is unreachable, which the next case will surface anyway, and throwing out of
  * a worker would take the queue down with it.
  */
-async function markError(caseId) {
+async function markError(caseId, err, attempts) {
+  const code = (err && err.code) || 'unknown';
+  const reason = [
+    err && err.message ? String(err.message) : 'no message',
+    attempts ? `(after ${attempts} attempt${attempts === 1 ? '' : 's'})` : '',
+  ].join(' ').trim().slice(0, 500);
   try {
-    await pool.query("UPDATE cases SET status = 'error' WHERE case_id = $1", [caseId]);
+    await pool.query(
+      `UPDATE cases
+          SET status = 'error', failure_code = $2, failure_reason = $3,
+              failed_at = now()
+        WHERE case_id = $1`, [caseId, code, reason]);
+  } catch (dbErr) {
+    console.error(`[gradingQueue] could not mark ${caseId} as error: ${dbErr.message}`);
+  }
+}
+
+/**
+ * clearFailure(caseId)
+ *
+ * A case being tried again has no current failure. Leaving the old reason in
+ * place would describe a state that no longer exists, and the dashboard would
+ * keep showing a cause for a case that has since graded -- someone would act
+ * on it. Cleared on enqueue rather than on success, so a case that is retrying
+ * does not read as still-broken while it runs.
+ */
+async function clearFailure(caseId) {
+  try {
+    await pool.query(
+      `UPDATE cases SET failure_code = NULL, failure_reason = NULL, failed_at = NULL
+        WHERE case_id = $1 AND failure_code IS NOT NULL`, [caseId]);
   } catch (err) {
-    console.error(`[gradingQueue] could not mark ${caseId} as error: ${err.message}`);
+    console.error(`[gradingQueue] could not clear the failure on ${caseId}: ${err.message}`);
   }
 }
 
@@ -202,11 +251,25 @@ async function markError(caseId) {
  *
  * @returns {Promise<number>} how many were re-enqueued.
  */
-async function recoverStranded() {
+async function recoverStranded({ source = 'boot', minAgeSeconds = 0, maxRecoveries = null } = {}) {
   let rows;
   try {
-    ({ rows } = await pool.query(
-      "SELECT case_id FROM cases WHERE status = 'processing' ORDER BY received_at ASC"));
+    // minAgeSeconds: the watchdog skips rows younger than this, so it never
+    // races a POST handler that has committed a case but not yet enqueued it.
+    // maxRecoveries: the watchdog stops re-enqueuing a case it has already
+    // recovered this many times; System Health surfaces it for a human instead
+    // (§D.3). Boot recovery passes neither -- after a restart every
+    // 'processing' row really is stranded.
+    ({ rows } = await pool.query(`
+      SELECT c.case_id
+      FROM cases c
+      WHERE c.status = 'processing'
+        AND COALESCE(c.processing_started_at, c.received_at)
+              <= now() - make_interval(secs => $1)
+        AND ($2::int IS NULL OR
+             (SELECT count(*) FROM grading_recoveries r WHERE r.case_id = c.case_id) < $2::int)
+      ORDER BY COALESCE(c.processing_started_at, c.received_at) ASC
+    `, [minAgeSeconds, maxRecoveries]));
   } catch (err) {
     // A failure here must not stop the server booting: the alternative is a
     // central system that will not start because of old rows, which takes every
@@ -215,12 +278,22 @@ async function recoverStranded() {
     return 0;
   }
 
-  let n = 0;
-  for (const r of rows) if (enqueue(r.case_id)) n++;
-  if (n > 0) {
-    console.log(`[gradingQueue] recovered ${n} case(s) left 'processing' by a previous run`);
+  // enqueue() returns false for anything already queued, inflight or backing
+  // off, so only genuinely lost cases are counted -- and recorded (§D.3).
+  const recovered = rows.map((r) => r.case_id).filter((id) => enqueue(id));
+  if (recovered.length > 0) {
+    console.log(`[gradingQueue] ${source}: recovered ${recovered.length} case(s) ` +
+      "left 'processing' with no job behind them");
+    try {
+      await pool.query(`
+        INSERT INTO grading_recoveries (case_id, source)
+        SELECT unnest($1::uuid[]), $2
+      `, [recovered, source]);
+    } catch (err) {
+      console.error(`[gradingQueue] could not record recoveries: ${err.message}`);
+    }
   }
-  return n;
+  return recovered.length;
 }
 
 function start() {
@@ -261,6 +334,7 @@ function stats() {
   return {
     queued: queue.length,
     inflight: inflight.size,
+    retrying: retrying.size,
     processed,
     failed,
     concurrency: CONCURRENCY,
@@ -280,6 +354,7 @@ function _reset() {
   queue.length = 0;
   queued.clear();
   inflight.clear();
+  retrying.clear();
   workers = 0;
   started = false;
   processed = 0;
@@ -289,7 +364,7 @@ function _reset() {
 }
 
 module.exports = {
-  enqueue, start, stop, onIdle, recoverStranded, stats,
+  enqueue, start, stop, onIdle, recoverStranded, stats, clearFailure,
   _setGradingFn, _reset,
   MAX_ATTEMPTS, CONCURRENCY,
 };

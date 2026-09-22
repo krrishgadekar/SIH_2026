@@ -1,0 +1,15 @@
+Segmentation backend parity (backend plan §S.3): PyTorch vs MATLAB session
+20 IDRiD test images, 4 per ground-truth grade 0-4
+MATLAB actually served all three nets on 19/20 images
+
+optic disc position identical (shift 0 px): 20/20  (max shift 0.0 px)
+fovea position identical:                   20/20  (max shift 0.0 px)
+vessel pixel count identical:               17/20  (max |diff| 1 px)
+red per-quadrant counts identical:          20/20
+bright per-quadrant counts identical:       20/20
+RULE-ENGINE GRADE identical:                20/20
+
+mean segInfer wall time, python backend: 21.40 s/image
+mean segInfer wall time, matlab backend: 22.54 s/image
+(each segInfer call is a fresh Python process; both columns include its
+ start-up and the PyTorch M5 load, which stays on Python either way)

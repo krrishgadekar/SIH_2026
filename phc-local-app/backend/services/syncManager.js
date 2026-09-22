@@ -59,6 +59,17 @@ const CHUNK_TIMEOUT = parseInt(process.env.SYNC_CHUNK_TIMEOUT_MS || '120000', 10
 // name -- correct, but not useful. Configure it.
 const PHC_ID = process.env.PHC_ID || null;
 
+// This site's central API key (backend plan §A.12), issued once by
+// scripts/provisionPhcKey.js on the central side. Sent on every ingestion
+// request. Optional until central sets PHC_AUTH_ENABLED=true -- after that, a
+// PHC without it cannot sync at all, so set it when the site is provisioned.
+const PHC_API_KEY = process.env.PHC_API_KEY || null;
+
+/** Request headers for central ingestion calls: the API key, when configured. */
+function centralHeaders(extra = {}) {
+  return PHC_API_KEY ? { ...extra, 'x-phc-api-key': PHC_API_KEY } : extra;
+}
+
 let timer   = null;
 let running = false;   // guards against a slow cycle overlapping the next tick
 
@@ -128,6 +139,9 @@ function buildCaseFields({ capture, patient, questionnaire, metadata }) {
     fields.patientName          = patient.name;
     fields.patientAge           = String(patient.age);
     fields.patientContactNumber = patient.contact_number;
+    // §9.7 verbal consent, timestamped at registration. Absent for patients
+    // registered before the field existed; central stores NULL for those.
+    if (patient.consent_given_at) fields.consentGivenAt = patient.consent_given_at;
   }
 
   // Local columns are TEXT holding JSON; central expects JSON strings it will
@@ -148,6 +162,8 @@ function buildCaseFields({ capture, patient, questionnaire, metadata }) {
       lightingEnvironment:   metadata.lighting_environment,
       observedIssues:        JSON.parse(metadata.observed_issues),
       workerUsabilityRating: metadata.worker_usability_rating,
+      // §10.4. null for captures recorded before the field was stored.
+      eyeLaterality:         metadata.eye_laterality ?? null,
     });
   }
 
@@ -215,7 +231,7 @@ async function uploadChunked({ capture, patient, questionnaire, metadata }) {
 
   const initRes = await fetch(`${base}/init`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: centralHeaders({ 'content-type': 'application/json' }),
     body: JSON.stringify({
       ...buildCaseFields(bundle),
       totalChunks,
@@ -250,7 +266,8 @@ async function uploadChunked({ capture, patient, questionnaire, metadata }) {
     form.append('chunk', new Blob([slice], { type: 'application/octet-stream' }), `${i}.part`);
 
     const res = await fetch(`${base}/${i}`, {
-      method: 'POST', body: form, signal: AbortSignal.timeout(CHUNK_TIMEOUT),
+      method: 'POST', headers: centralHeaders(), body: form,
+      signal: AbortSignal.timeout(CHUNK_TIMEOUT),
     });
     if (!res.ok) {
       // Thrown, so the case stays 'pending' and the next cycle resumes from
@@ -261,7 +278,7 @@ async function uploadChunked({ capture, patient, questionnaire, metadata }) {
   }
 
   const doneRes = await fetch(`${base}/complete`, {
-    method: 'POST', signal: AbortSignal.timeout(UPLOAD_TIMEOUT),
+    method: 'POST', headers: centralHeaders(), signal: AbortSignal.timeout(UPLOAD_TIMEOUT),
   });
   if (!doneRes.ok) {
     throw new Error(`chunk complete returned ${doneRes.status}: `
@@ -328,6 +345,7 @@ async function syncOnce() {
       } else {
         const res = await fetch(`${CENTRAL_URL}/api/v1/cases`, {
           method: 'POST',
+          headers: centralHeaders(),
           body: buildFormData(bundle),
           signal: AbortSignal.timeout(UPLOAD_TIMEOUT),
         });
@@ -389,7 +407,8 @@ function start({ intervalMs = SYNC_INTERVAL } = {}) {
   if (timer.unref) timer.unref();
 
   console.log(`[syncManager] polling ${CENTRAL_URL} every ${intervalMs}ms`
-    + `${PHC_ID ? '' : ' (PHC_ID unset — cases will sync without a PHC attribution)'}`);
+    + `${PHC_ID ? '' : ' (PHC_ID unset — cases will sync without a PHC attribution)'}`
+    + `${PHC_API_KEY ? '' : ' (PHC_API_KEY unset — sync will fail once central enforces PHC keys)'}`);
 
   tick();   // one immediate pass, so startup does not wait a full interval
   return { stop };

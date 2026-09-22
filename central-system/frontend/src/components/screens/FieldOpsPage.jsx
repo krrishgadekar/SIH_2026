@@ -107,7 +107,7 @@ export const FieldOpsPage = () => {
 
       <InfoBanner 
         title="PHC OVERSIGHT" 
-        text="Monitor aggregate quality metrics across deployed sites. Search by PHC or technician to isolate low-performing units. Click on any row to instantly filter your Review Queue to that specific center." 
+        text="Monitor aggregate quality metrics across deployed sites. Search by PHC or technician to isolate low-performing units. Click on any row to instantly filter your Cases to that specific center." 
       />
 
       <div style={{ border: 'var(--border)' }}>

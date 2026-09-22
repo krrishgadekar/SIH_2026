@@ -54,5 +54,9 @@ function addColumnIfMissing(table, column, definition) {
 }
 
 addColumnIfMissing('captures', 'quality_scores', 'TEXT');
+// Design doc §9.7: when the technician confirmed verbal consent (ISO-8601).
+addColumnIfMissing('patients', 'consent_given_at', 'TEXT');
+// Design doc §10.4: which eye this capture is of ('left' | 'right').
+addColumnIfMissing('capture_metadata_responses', 'eye_laterality', 'TEXT');
 
 module.exports = db;

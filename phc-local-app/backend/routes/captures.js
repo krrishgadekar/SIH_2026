@@ -191,7 +191,7 @@ router.post('/:captureId/capture-metadata', (req, res) => {
   const { captureId } = req.params;
   const {
     cameraDeviceReported, pupilStatus, lightingEnvironment,
-    observedIssues, workerUsabilityRating,
+    observedIssues, workerUsabilityRating, eyeLaterality,
   } = req.body || {};
 
   if (!captureExists(captureId)) {
@@ -203,6 +203,13 @@ router.post('/:captureId/capture-metadata', (req, res) => {
   if (!checkEnum(res, 'pupilStatus', pupilStatus, PUPIL_STATUS)) return;
   if (!checkEnum(res, 'lightingEnvironment', lightingEnvironment, LIGHTING_ENVIRONMENT)) return;
   if (!checkEnum(res, 'workerUsabilityRating', workerUsabilityRating, USABILITY_RATING)) return;
+  // Design doc §10.4: DR is graded per eye, so every capture is tagged left or
+  // right. Optional at the API only so older clients keep working; the capture
+  // screen already asks the technician for it.
+  if (eyeLaterality !== undefined && eyeLaterality !== null &&
+      !['left', 'right'].includes(eyeLaterality)) {
+    return bad(res, 'invalid_field', "eyeLaterality must be 'left' or 'right'.");
+  }
 
   if (!Array.isArray(observedIssues)) {
     return bad(res, 'invalid_field', 'observedIssues must be an array.');
@@ -226,8 +233,9 @@ router.post('/:captureId/capture-metadata', (req, res) => {
   db.prepare(`
     INSERT INTO capture_metadata_responses
       (response_id, capture_id, camera_device_reported, pupil_status,
-       lighting_environment, observed_issues, worker_usability_rating, recorded_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       lighting_environment, observed_issues, worker_usability_rating, recorded_at,
+       eye_laterality)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     responseId, captureId,
     cameraDeviceReported || null,
@@ -235,6 +243,7 @@ router.post('/:captureId/capture-metadata', (req, res) => {
     JSON.stringify(observedIssues),
     workerUsabilityRating,
     new Date().toISOString(),
+    eyeLaterality || null,
   );
 
   res.status(201).json({ responseId, captureId });

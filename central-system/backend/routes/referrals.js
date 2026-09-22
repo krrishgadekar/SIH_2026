@@ -22,13 +22,19 @@
 
 const express = require('express');
 const analytics = require('../services/analyticsAggregator');
+const requireAuth = require('../middleware/requireAuth');
+const requireRole = require('../middleware/requireRole');
+const { logAccess } = require('../services/accessLog');
 
 const router = express.Router();
 
-const STATUSES = ['referred', 'contacted', 'attended', 'lost'];
+// manual_follow_up (design doc §10.5) is set automatically when an SMS cannot
+// be delivered; it is listed here so a worker can also set it by hand.
+const STATUSES = ['referred', 'manual_follow_up', 'contacted', 'attended', 'lost'];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-router.patch('/:referralId', async (req, res, next) => {
+// District admin: the Referral Tracker is an admin screen (design doc §5.3).
+router.patch('/:referralId', requireAuth, requireRole('district_admin'), async (req, res, next) => {
   const { referralId } = req.params;
   const { status, assignedWorker } = req.body || {};
 
@@ -68,6 +74,7 @@ router.patch('/:referralId', async (req, res, next) => {
         error: 'referral_not_found', message: `No referral with id ${referralId}`,
       });
     }
+    await logAccess(req.user?.userId, 'update_referral', 'referral', referralId);
     res.json(updated);
   } catch (err) { next(err); }
 });

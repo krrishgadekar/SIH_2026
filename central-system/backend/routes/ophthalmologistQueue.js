@@ -24,10 +24,14 @@
 
 const express = require('express');
 const pool    = require('../db/pgClient');
+const cfg         = require('../services/authConfig');
+const requireAuth = require('../middleware/requireAuth');
+const requireRole = require('../middleware/requireRole');
+const { logAccess } = require('../services/accessLog');
 
 const router = express.Router();
 
-router.get('/queue', async (req, res, next) => {
+router.get('/queue', requireAuth, requireRole('ophthalmologist'), async (req, res, next) => {
   try {
     const { rows } = await pool.query(`
       WITH ranked AS (
@@ -36,6 +40,10 @@ router.get('/queue', async (req, res, next) => {
           p.patient_reference,
           site.name AS phc_name,
           c.captured_at,
+          COALESCE(c.eye_laterality_detected, c.eye_laterality_reported) AS eye_laterality,
+          g.claimed_by,
+          g.claimed_at,
+          u.name AS claimed_by_name,
           g.dr_grade_cnn,
           g.dr_grade_rule_engine,
           g.branch_agreement,
@@ -60,12 +68,20 @@ router.get('/queue', async (req, res, next) => {
         JOIN      patients        p    ON p.patient_id = c.patient_id
         JOIN      grading_results g    ON g.case_id    = c.case_id
         LEFT JOIN phc_sites       site ON site.phc_id  = c.phc_id
+        LEFT JOIN users           u    ON u.user_id    = g.claimed_by
         -- <> 'A' would also drop NULL tiers, but saying so explicitly documents
         -- that an ungraded case has no tier and belongs in neither bucket.
         WHERE g.conformal_tier IS NOT NULL AND g.conformal_tier <> 'A'
+          -- A case that has been reviewed is DONE and must leave the queue.
+          -- Without this it stayed forever: the queue grew without bound and a
+          -- reviewer could not tell outstanding work from finished work. Review
+          -- history stays available at GET /cases/:caseId/reviews.
+          AND NOT EXISTS (
+            SELECT 1 FROM ophthalmologist_reviews r WHERE r.case_id = c.case_id)
       ),
       c_count AS (SELECT COUNT(*) AS n FROM ranked WHERE conformal_tier = 'C')
       SELECT ranked.*,
+             claimed_at > now() - make_interval(mins => $1) AS claim_live,
              CASE
                WHEN conformal_tier = 'C' THEN tier_rank
                -- Tier B starts at 101 per the contract. GREATEST guards the
@@ -77,13 +93,23 @@ router.get('/queue', async (req, res, next) => {
              END AS priority_rank
       FROM ranked
       ORDER BY priority_rank ASC
-    `);
+    `, [cfg.CLAIM_TTL_MINUTES]);
+
+    await logAccess(req.user?.userId, 'view_queue', 'review_queue');
 
     res.json(rows.map((r) => ({
       caseId:            r.case_id,
       patientReference:  r.patient_reference ?? null,
       phcName:           r.phc_name ?? null,
       capturedAt:        r.captured_at ? r.captured_at.toISOString() : null,
+      // design doc §5.2: each row shows the eye, and whether someone else is
+      // already reviewing this case (§10.8), so the UI can show it before the
+      // reviewer opens a case they cannot act on.
+      eyeLaterality:     r.eye_laterality ?? null,
+      claimedBy:         r.claim_live
+        ? { userId: r.claimed_by, name: r.claimed_by_name ?? null }
+        : null,
+      claimedAt:         r.claim_live ? r.claimed_at.toISOString() : null,
       drGradeCnn:        r.dr_grade_cnn ?? null,
       // null until Branch B ships in Phase 5. The frontend must handle null
       // here from day one, not once Branch B lands.

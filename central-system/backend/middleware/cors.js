@@ -44,11 +44,19 @@
  * is anchored at both ends and the suffix must itself contain a dot, so a host
  * like `evil-vercel.app` or `vercel.app.attacker.com` does not match.
  *
- * ── NO CREDENTIALS ──────────────────────────────────────────────────────────
- * Access-Control-Allow-Credentials is deliberately NOT set. Nothing here uses
- * cookies or session auth, and turning it on would forbid the wildcard forms
- * above anyway. If auth is added later, this needs revisiting together with it,
- * not before.
+ * ── CREDENTIALS (added with login, backend plan §A) ─────────────────────────
+ * The session is an httpOnly cookie, so an allow-listed origin now also gets
+ * Access-Control-Allow-Credentials: true -- without it the browser discards the
+ * login response's Set-Cookie and never sends the cookie back. This is safe
+ * ONLY because origins are allow-listed and echoed individually, never `*`
+ * (browsers refuse credentials with `*` anyway). The `*.vercel.app` pattern
+ * above is still expanded to the one concrete origin that asked.
+ *
+ * Two more things a cross-site frontend (Vercel -> this backend) needs, neither
+ * of which CORS can do for it:
+ *   - fetch(..., { credentials: 'include' }) on every call;
+ *   - COOKIE_SAMESITE=none on this server (see services/authConfig.js), since
+ *     a SameSite=Lax cookie is never sent cross-site.
  */
 
 const DEV_DEFAULTS = [
@@ -117,6 +125,7 @@ module.exports = function cors(options = {}) {
     }
 
     res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
     // Vary: Origin, or a shared cache could serve one origin's allow header to
     // another origin — which either leaks access or breaks it, depending on
     // which way round the cache filled.
@@ -127,7 +136,7 @@ module.exports = function cors(options = {}) {
         'GET,POST,PUT,PATCH,DELETE,OPTIONS');
       res.setHeader('Access-Control-Allow-Headers',
         req.headers['access-control-request-headers']
-        || 'Content-Type,Authorization,X-Requested-With');
+        || 'Content-Type,Authorization,X-Requested-With,X-CSRF-Token,X-PHC-Api-Key');
       res.setHeader('Access-Control-Max-Age', '600');
       return res.sendStatus(204);
     }

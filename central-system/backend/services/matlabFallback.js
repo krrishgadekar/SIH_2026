@@ -46,15 +46,66 @@ const DEFAULTS = {
   brightFloor: 1,
   maxGrade: 3,
   nvThreshold: 0.6,
-  venousBeadingQuadrants: 0,
-  irmaQuadrants: 0,
 };
 
 function sum(arr) { return arr.reduce((a, b) => a + b, 0); }
 
-function severeCriteriaNote() {
-  return 'Severe-NPDR criteria (b) venous beading and (c) IRMA were NOT '
-    + 'assessed — no detector exists. This grade may be an under-call.';
+/**
+ * quadrantFlags(opts, name) -> { count, assessed }. Mirrors the MATLAB helper
+ * of the same name: a 4-element boolean/0-1 array counts the flagged
+ * quadrants, a non-negative integer is accepted as an already-counted value
+ * (the original interface), and absent/empty means NOT ASSESSED with count 0.
+ *
+ * "Not assessed" and "assessed, found nothing" both score 0 and must stay
+ * distinguishable — only the second one drops the caveat from the evidence.
+ */
+function quadrantFlags(opts, name) {
+  const v = opts[name];
+  if (v === undefined || v === null || (Array.isArray(v) && v.length === 0)) {
+    return { count: 0, assessed: false };
+  }
+  if (Array.isArray(v) && v.length === 4
+      && v.every((q) => q === true || q === false || q === 0 || q === 1)) {
+    return { count: v.filter(Boolean).length, assessed: true };
+  }
+  if (Number.isInteger(v) && v >= 0) return { count: v, assessed: true };
+  throw new Error(`ruleEngineGrade: ${name} must be a 4-element boolean array `
+    + '(one per quadrant) or a quadrant count.');
+}
+
+function joinNotes(parts) {
+  return parts.filter((p) => p).join(' ');
+}
+
+/**
+ * The fovea caveat. Mirrors foveaNote() in ruleEngineGrade.m: segInfer does
+ * NOT fall back to the image axes when the gate fires (Tanuj, 2026-09-20) —
+ * the counts stay keyed to an axis drawn through a fovea already flagged as
+ * untrustworthy, which is why the quadrant-dependent criteria are dropped
+ * rather than recomputed.
+ */
+function foveaNote(cfg) {
+  if (!cfg.foveaUnreliable) return '';
+  return 'Fovea could not be located reliably, so the quadrant assignment '
+    + 'cannot be trusted and the quadrant-dependent criteria (a) '
+    + 'all-four-quadrants and (b) venous beading were not applied.';
+}
+
+/** Names only the criteria actually not assessed, then appends foveaNote. */
+function severeCriteriaNote(cfg) {
+  const missing = [];
+  if (!cfg.vbAssessed) missing.push('(b) venous beading');
+  if (!cfg.irmaAssessed) missing.push('(c) IRMA');
+
+  let note = '';
+  if (missing.length === 2) {
+    note = 'Severe-NPDR criteria (b) venous beading and (c) IRMA were NOT '
+      + 'assessed — no detector exists. This grade may be an under-call.';
+  } else if (missing.length === 1) {
+    note = `Severe-NPDR criterion ${missing[0]} was NOT assessed. This grade `
+      + 'may be an under-call.';
+  }
+  return joinNotes([note, foveaNote(cfg)]);
 }
 function provisionalNote(q) {
   return `The per-quadrant threshold of ${q} is PROVISIONAL: it was fitted `
@@ -73,7 +124,19 @@ function brightFloorNote() {
  * bookkeeping branchesAgree() depends on.
  */
 function ruleEngineGrade(red, bright, nvSuspicionScore, opts = {}) {
-  const cfg = { ...DEFAULTS, ...opts };
+  const vb = quadrantFlags(opts, 'venousBeadingQuadrants');
+  const irma = quadrantFlags(opts, 'irmaQuadrants');
+  const cfg = {
+    ...DEFAULTS,
+    ...opts,
+    venousBeadingQuadrants: vb.count,
+    irmaQuadrants: irma.count,
+    vbAssessed: vb.assessed,
+    irmaAssessed: irma.assessed,
+    // §I: only a real `true` counts. Absent, null and MATLAB's [] all mean
+    // "not reported", which must never read as "the fovea is reliable".
+    foveaUnreliable: opts.foveaUnreliable === true,
+  };
 
   if (!Array.isArray(red) || red.length !== 4 || !Array.isArray(bright) || bright.length !== 4) {
     throw new Error('ruleEngineGrade: red/bright must be 1x4 arrays');
@@ -85,7 +148,10 @@ function ruleEngineGrade(red, bright, nvSuspicionScore, opts = {}) {
   const evidence = {
     criterion: '', redTotal: totalRed, brightTotal: totalBright,
     redByQuadrant: red, brightByQuadrant: bright, nvSuspicionScore,
-    venousBeadingAssessed: false, irmaAssessed: false,
+    venousBeadingAssessed: cfg.vbAssessed, irmaAssessed: cfg.irmaAssessed,
+    venousBeadingQuadrantCount: cfg.venousBeadingQuadrants,
+    irmaQuadrantCount: cfg.irmaQuadrants,
+    foveaUnreliable: cfg.foveaUnreliable,
     redFloor: cfg.redFloor, grade3QuadMin: cfg.grade3QuadMin, limitation: '',
   };
 
@@ -100,40 +166,47 @@ function ruleEngineGrade(red, bright, nvSuspicionScore, opts = {}) {
       + `${cfg.nvThreshold.toFixed(2)} — possible proliferative pattern, urgent review`;
     evidence.limitation = 'NV suspicion is a vessel-irregularity signal, NOT a '
       + 'validated neovascularization detector.';
-  } else if (red.some((v) => v >= cfg.grade3QuadMin) && red.every((v) => v >= cfg.grade3QuadMin)) {
+  } else if (!cfg.foveaUnreliable
+             && red.some((v) => v >= cfg.grade3QuadMin)
+             && red.every((v) => v >= cfg.grade3QuadMin)) {
+    // (a) and (b) below are skipped when the fovea is unreliable: both turn on
+    // WHICH quadrant a lesion sits in, and that mapping is untrustworthy. (c)
+    // asks only "any quadrant", so a scrambled axis does not invalidate it.
     rawGrade = 3;
     evidence.criterion = `Severe NPDR, ETDRS 4-2-1(a) structure: >=${cfg.grade3QuadMin} `
       + `red lesions in all four quadrants [${red.join('  ')}]. The count is a `
       + 'recalibrated segmenter threshold, not the literature 20.';
     evidence.limitation = provisionalNote(cfg.grade3QuadMin);
-  } else if (cfg.venousBeadingQuadrants >= 2) {
+  } else if (!cfg.foveaUnreliable && cfg.venousBeadingQuadrants >= 2) {
     rawGrade = 3;
     evidence.criterion = `ETDRS 4-2-1(b): venous beading in ${cfg.venousBeadingQuadrants} quadrants`;
-    evidence.venousBeadingAssessed = true;
+    evidence.limitation = foveaNote(cfg);
   } else if (cfg.irmaQuadrants >= 1) {
     rawGrade = 3;
     evidence.criterion = `ETDRS 4-2-1(c): prominent IRMA in ${cfg.irmaQuadrants} quadrant(s)`;
-    evidence.irmaAssessed = true;
+    evidence.limitation = joinNotes([
+      'IRMA is a classical vessel-irregularity heuristic, not a validated detector.',
+      foveaNote(cfg)]);
   } else if (redPresent && (brightPresent || totalRed > cfg.moderateRedCount)) {
     rawGrade = 2;
     if (brightPresent) {
       evidence.criterion = `Moderate NPDR: ${totalRed} red lesion(s) with ${totalBright} bright lesion(s)`;
-      evidence.limitation = `${severeCriteriaNote()} ${brightFloorNote()}`;
+      evidence.limitation = `${severeCriteriaNote(cfg)} ${brightFloorNote()}`;
     } else {
       evidence.criterion = `Moderate NPDR: ${totalRed} red lesions (>${cfg.moderateRedCount}), no bright lesions`;
-      evidence.limitation = severeCriteriaNote();
+      evidence.limitation = severeCriteriaNote(cfg);
     }
   } else if (redPresent) {
     rawGrade = 1;
     evidence.criterion = `Mild NPDR: ${totalRed} red lesion(s) only`;
-    evidence.limitation = severeCriteriaNote();
+    evidence.limitation = severeCriteriaNote(cfg);
   } else {
     rawGrade = 0;
     if (totalRed > 0) {
       evidence.criterion = `No DR: ${totalRed} red detection(s), below the noise floor of `
         + `${cfg.redFloor}. Every grade-0 validation image produced 1-2 spurious `
         + 'detections, so counts this low are not evidence of disease.';
-      evidence.limitation = severeCriteriaNote();
+      evidence.limitation = severeCriteriaNote(cfg);
     } else if (brightPresent) {
       evidence.criterion = `No DR by ICDR criteria, but ${totalBright} bright lesion(s) `
         + 'found with no red lesions';
@@ -141,7 +214,7 @@ function ruleEngineGrade(red, bright, nvSuspicionScore, opts = {}) {
         + 'DR grade under ICDR. Likely a false positive or non-DR pathology — worth a human look.';
     } else {
       evidence.criterion = 'No DR: no lesions detected';
-      evidence.limitation = severeCriteriaNote();
+      evidence.limitation = severeCriteriaNote(cfg);
     }
   }
 
@@ -275,7 +348,7 @@ function readFundusImageMetaFallback(imagePath) {
  * absent, so Branch B genuinely runs on real segmentation counts here, not
  * placeholder data.
  */
-function runMatlabFallback({ imagePath, segResult, branchAGrade }) {
+function runMatlabFallback({ imagePath, segResult, branchAGrade, ruleOpts = {} }) {
   const meta = readFundusImageMetaFallback(imagePath);
   const cam = classifyCameraFamily();
 
@@ -291,7 +364,12 @@ function runMatlabFallback({ imagePath, segResult, branchAGrade }) {
     ? segResult.nvSuspicionScore : 0;
 
   if (Array.isArray(redQ) && redQ.length === 4 && Array.isArray(brightQ) && brightQ.length === 4) {
-    const { grade, evidence } = ruleEngineGrade(redQ, brightQ, nvScore);
+    // ruleOpts is caseRuleOpts(segResult) from the orchestrator -- the SAME
+    // opts the MATLAB path gets (§H venous beading / IRMA, §I foveaUnreliable).
+    // Without them this path graded a flagged-fovea case on quadrant criteria
+    // the MATLAB path skips, so the two engines could return different grades
+    // for one image depending only on whether MATLAB happened to be installed.
+    const { grade, evidence } = ruleEngineGrade(redQ, brightQ, nvScore, ruleOpts);
     ruleGrade = grade;
     ruleIsLowerBound = evidence.isLowerBound;
     ruleMaxGrade = evidence.maxGrade;

@@ -53,14 +53,15 @@ const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) => {
 
   const navLinks = isOphth
     ? [
-        { to: '/ophth/queue', label: t('central.header.nav.queue', 'REVIEW QUEUE') },
+        { to: '/ophth/queue', label: t('central.header.nav.queue', 'CASES') },
         { to: '/ophth/timeline', label: t('central.header.nav.timeline', 'PATIENT TIMELINE') },
         { to: '/ophth/health', label: t('central.header.nav.programHealth', 'PROGRAM HEALTH') },
       ]
     : [
         { to: '/admin/dashboard', label: t('central.header.nav.dashboard', 'DASHBOARD') },
         { to: '/admin/referrals', label: t('central.header.nav.referrals', 'REFERRALS') },
-        { to: '/admin/phc-health', label: t('central.header.nav.phcHealth', 'PHC HEALTH') },
+        { to: '/admin/phc-health', label: t('central.header.nav.phcHealth', 'PHC & SYSTEM HEALTH') },
+        { to: '/admin/resources', label: t('central.header.nav.resources', 'RESOURCE PLANNING') },
       ];
 
   const handleOfficerSaveProfile = (e) => {

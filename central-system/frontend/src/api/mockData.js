@@ -14,6 +14,7 @@ export const mockOphthQueue = [
     confidenceScore: 0.81,
     conformalTier: 'C',
     priorityRank: 1,
+    reviewStatus: 'pending',
   },
   {
     caseId: 'b2c3d4e5-f6a7-8901-bcde-f12345678901',
@@ -26,6 +27,7 @@ export const mockOphthQueue = [
     confidenceScore: 0.64,
     conformalTier: 'C',
     priorityRank: 2,
+    reviewStatus: 'pending',
   },
   {
     caseId: 'c3d4e5f6-a7b8-9012-cdef-123456789012',
@@ -38,6 +40,7 @@ export const mockOphthQueue = [
     confidenceScore: 0.93,
     conformalTier: 'B',
     priorityRank: 101,
+    reviewStatus: 'pending',
   },
   {
     caseId: 'd4e5f6a7-b8c9-0123-defa-234567890123',
@@ -50,6 +53,7 @@ export const mockOphthQueue = [
     confidenceScore: 0.72,
     conformalTier: 'C',
     priorityRank: 3,
+    reviewStatus: 'pending',
   },
   {
     caseId: 'e5f6a7b8-c9d0-1234-efab-345678901234',
@@ -62,6 +66,7 @@ export const mockOphthQueue = [
     confidenceScore: 0.97,
     conformalTier: 'B',
     priorityRank: 102,
+    reviewStatus: 'pending',
   },
   {
     caseId: 'f6a7b8c9-d0e1-2345-fabc-456789012345',
@@ -74,6 +79,7 @@ export const mockOphthQueue = [
     confidenceScore: 0.88,
     conformalTier: 'B',
     priorityRank: 103,
+    reviewStatus: 'pending',
   },
 ];
 
@@ -202,29 +208,121 @@ export const mockAdminDashboard = {
 };
 
 export const mockReferrals = [
-  { referralId: 'ref-001', patientReference: 'PT-4821', patientName: 'Krrish', patientAge: 20, status: 'referred', assignedWorker: null, updatedAt: '2026-09-10T09:20:00.000Z', phcName: 'PHC Kharadi', drGrade: 3 },
-  { referralId: 'ref-002', patientReference: 'PT-2056', status: 'contacted', assignedWorker: 'ASHA-112', updatedAt: '2026-09-05T16:30:00.000Z', phcName: 'PHC Lohegaon', drGrade: 4 },
-  { referralId: 'ref-003', patientReference: 'PT-3190', status: 'attended', assignedWorker: 'ASHA-087', updatedAt: '2026-09-04T11:00:00.000Z', phcName: 'PHC Wagholi', drGrade: 3 },
-  { referralId: 'ref-004', patientReference: 'PT-6621', status: 'lost', assignedWorker: 'ASHA-045', updatedAt: '2026-08-28T14:00:00.000Z', phcName: 'PHC Hadapsar', drGrade: 2 },
-  { referralId: 'ref-005', patientReference: 'PT-1102', status: 'referred', assignedWorker: null, updatedAt: '2026-09-06T08:00:00.000Z', phcName: 'PHC Kharadi', drGrade: 4 },
-  { referralId: 'ref-006', patientReference: 'PT-7803', status: 'contacted', assignedWorker: 'ASHA-112', updatedAt: '2026-09-05T10:15:00.000Z', phcName: 'PHC Wagholi', drGrade: 3 },
-  { referralId: 'ref-007', patientReference: 'PT-9941', status: 'referred', assignedWorker: null, updatedAt: '2026-09-06T11:45:00.000Z', phcName: 'PHC Alandi', drGrade: 3 },
-  { referralId: 'ref-008', patientReference: 'PT-5532', status: 'attended', assignedWorker: 'ASHA-094', updatedAt: '2026-09-03T15:20:00.000Z', phcName: 'PHC Lohegaon', drGrade: 4 },
-  { referralId: 'ref-009', patientReference: 'PT-4120', status: 'contacted', assignedWorker: 'ASHA-063', updatedAt: '2026-09-05T14:10:00.000Z', phcName: 'PHC Saswad', drGrade: 2 },
-  { referralId: 'ref-010', patientReference: 'PT-8314', status: 'lost', assignedWorker: 'ASHA-022', updatedAt: '2026-08-25T09:30:00.000Z', phcName: 'PHC Khed', drGrade: 3 },
-  { referralId: 'ref-011', patientReference: 'PT-6288', status: 'referred', assignedWorker: null, updatedAt: '2026-09-06T07:15:00.000Z', phcName: 'PHC Wagholi', drGrade: 4 },
-  { referralId: 'ref-012', patientReference: 'PT-1944', status: 'attended', assignedWorker: 'ASHA-087', updatedAt: '2026-09-02T13:40:00.000Z', phcName: 'PHC Kharadi', drGrade: 3 },
+  { referralId: 'ref-001', patientReference: 'PT-4821', patientName: 'Krrish', patientAge: 20, status: 'manual_follow_up', failureReason: 'SMS gateway timeout (No cell coverage)', assignedWorker: 'ASHA-042', updatedAt: '2026-09-10T09:20:00.000Z', phcName: 'PHC Kharadi', drGrade: 3, phone: '+91 98230 44821' },
+  { referralId: 'ref-002', patientReference: 'PT-2056', status: 'contacted', assignedWorker: 'ASHA-112', updatedAt: '2026-09-05T16:30:00.000Z', phcName: 'PHC Lohegaon', drGrade: 4, phone: '+91 98765 43210' },
+  { referralId: 'ref-003', patientReference: 'PT-3190', status: 'attended', assignedWorker: 'ASHA-087', updatedAt: '2026-09-04T11:00:00.000Z', phcName: 'PHC Wagholi', drGrade: 3, phone: '+91 94220 11223' },
+  { referralId: 'ref-004', patientReference: 'PT-6621', status: 'lost', assignedWorker: 'ASHA-045', updatedAt: '2026-08-28T14:00:00.000Z', phcName: 'PHC Hadapsar', drGrade: 2, phone: '+91 98900 33445' },
+  { referralId: 'ref-005', patientReference: 'PT-1102', status: 'referred', assignedWorker: null, updatedAt: '2026-09-06T08:00:00.000Z', phcName: 'PHC Kharadi', drGrade: 4, phone: '+91 97654 22334' },
+  { referralId: 'ref-006', patientReference: 'PT-7803', status: 'manual_follow_up', failureReason: 'Undelivered (Handset switched off > 24h)', assignedWorker: 'ASHA-112', updatedAt: '2026-09-05T10:15:00.000Z', phcName: 'PHC Wagholi', drGrade: 3, phone: '+91 91234 56789' },
+  { referralId: 'ref-007', patientReference: 'PT-9941', status: 'referred', assignedWorker: null, updatedAt: '2026-09-06T11:45:00.000Z', phcName: 'PHC Alandi', drGrade: 3, phone: '+91 98112 34567' },
+  { referralId: 'ref-008', patientReference: 'PT-5532', status: 'attended', assignedWorker: 'ASHA-094', updatedAt: '2026-09-03T15:20:00.000Z', phcName: 'PHC Lohegaon', drGrade: 4, phone: '+91 94030 99887' },
+  { referralId: 'ref-009', patientReference: 'PT-4120', status: 'contacted', assignedWorker: 'ASHA-063', updatedAt: '2026-09-05T14:10:00.000Z', phcName: 'PHC Saswad', drGrade: 2, phone: '+91 98221 44556' },
+  { referralId: 'ref-010', patientReference: 'PT-8314', status: 'lost', assignedWorker: 'ASHA-022', updatedAt: '2026-08-25T09:30:00.000Z', phcName: 'PHC Khed', drGrade: 3, phone: '+91 98505 11224' },
+  { referralId: 'ref-011', patientReference: 'PT-6288', status: 'referred', assignedWorker: null, updatedAt: '2026-09-06T07:15:00.000Z', phcName: 'PHC Wagholi', drGrade: 4, phone: '+91 99700 88776' },
+  { referralId: 'ref-012', patientReference: 'PT-1944', status: 'attended', assignedWorker: 'ASHA-087', updatedAt: '2026-09-02T13:40:00.000Z', phcName: 'PHC Kharadi', drGrade: 3, phone: '+91 98230 66778' },
 ];
 
 export const mockPhcSyncStatuses = [
-  { phcId: 'PHC001', phcName: 'PHC Kharadi', lastSyncAt: '2026-09-06T09:10:00.000Z', pendingCount: 0, totalScreened: 456, status: 'online' },
-  { phcId: 'PHC002', phcName: 'PHC Wagholi', lastSyncAt: '2026-09-06T08:45:00.000Z', pendingCount: 3, totalScreened: 312, status: 'online' },
-  { phcId: 'PHC003', phcName: 'PHC Hadapsar', lastSyncAt: '2026-09-05T22:00:00.000Z', pendingCount: 12, totalScreened: 189, status: 'offline' },
-  { phcId: 'PHC004', phcName: 'PHC Lohegaon', lastSyncAt: '2026-09-06T07:00:00.000Z', pendingCount: 1, totalScreened: 327, status: 'online' },
-  { phcId: 'PHC005', phcName: 'PHC Alandi', lastSyncAt: '2026-09-06T09:05:00.000Z', pendingCount: 0, totalScreened: 245, status: 'online' },
-  { phcId: 'PHC006', phcName: 'PHC Saswad', lastSyncAt: '2026-09-05T18:30:00.000Z', pendingCount: 8, totalScreened: 164, status: 'offline' },
-  { phcId: 'PHC007', phcName: 'PHC Khed', lastSyncAt: '2026-09-06T08:15:00.000Z', pendingCount: 2, totalScreened: 298, status: 'online' },
+  { phcId: 'PHC001', phcName: 'PHC Kharadi', lastSyncAt: '2026-09-06T09:10:00.000Z', pendingCount: 0, totalScreened: 456, status: 'online', hoursSilent: 0 },
+  { phcId: 'PHC002', phcName: 'PHC Wagholi', lastSyncAt: '2026-09-06T08:45:00.000Z', pendingCount: 3, totalScreened: 312, status: 'online', hoursSilent: 1 },
+  { phcId: 'PHC003', phcName: 'PHC Hadapsar', lastSyncAt: '2026-09-03T22:00:00.000Z', pendingCount: 12, totalScreened: 189, status: 'offline', hoursSilent: 58 },
+  { phcId: 'PHC004', phcName: 'PHC Lohegaon', lastSyncAt: '2026-09-06T07:00:00.000Z', pendingCount: 1, totalScreened: 327, status: 'online', hoursSilent: 2 },
+  { phcId: 'PHC005', phcName: 'PHC Alandi', lastSyncAt: '2026-09-06T09:05:00.000Z', pendingCount: 0, totalScreened: 245, status: 'online', hoursSilent: 0 },
+  { phcId: 'PHC006', phcName: 'PHC Saswad', lastSyncAt: '2026-09-03T18:30:00.000Z', pendingCount: 8, totalScreened: 164, status: 'offline', hoursSilent: 52 },
+  { phcId: 'PHC007', phcName: 'PHC Khed', lastSyncAt: '2026-09-06T08:15:00.000Z', pendingCount: 2, totalScreened: 298, status: 'online', hoursSilent: 1 },
 ];
+
+export const mockResourceRecommendations = {
+  generatedAt: new Date().toISOString(),
+  minOphthalmologistsRoutine: 2,
+  minOphthalmologistsCamp: 4,
+  maxSearched: 12,
+  p95TargetMin: 60,
+  bottleneck: 'ophthalmologist review',
+  recommendation: 'Reviewer pool is the constraint (72% utilised, p95 wait 72 min). Add ophthalmologists: 1 -> 2.',
+  current: {
+    numOphthalmologists: 1,
+    reviewUtilisationPct: 72,
+    reviewWaitP95Min: 72,
+    uploadUtilisationPct: 34,
+    uploadWaitP95Min: 18,
+    casesReviewed: 824,
+    casesAutoCleared: 460,
+  },
+  params: {
+    arrivalRatePerDay: 48,
+    reviewServiceRateMinutes: 12,
+    workingHoursPerDay: 8,
+    campMultiplier: 2.5,
+  },
+  inputsSource: {
+    tierFractions: 'observed: 43 graded cases, last 90 days',
+    reviewServiceTime: 'observed: average 27 seconds (quick triage) to 14 minutes (detailed review)',
+    arrivalPattern: 'modelled defaults: peak 10:00 - 14:00 IST',
+  },
+  model: 'referenceQueueingModel.m (Simulink-Validated)',
+  runSeconds: 2.0,
+};
+
+export const mockSimulinkValidation = {
+  ranAt: '2026-09-20T03:00:00Z',
+  status: 'agree', // "agree" | "diverged" | "error"
+  checks: [
+    { metric: 'Auto-clear share (Tier A)', simEvents: 71.0, reference: 68.4, tolerance: 5.0, unit: '%', agree: true },
+    { metric: 'Reviewer utilisation', simEvents: 74.2, reference: 72.0, tolerance: 5.0, unit: '%', agree: true },
+    { metric: 'Mean review wait time', simEvents: 24.5, reference: 26.1, tolerance: 10.0, unit: 'min', agree: true },
+    { metric: 'Queue buffer p95 depth', simEvents: 8.0, reference: 7.6, tolerance: 2.0, unit: 'cases', agree: true },
+  ],
+  simEvents: {
+    tierAAutoCleared: 460,
+    reviewed: 824,
+    uploadUtilisation: 34.0,
+    reviewerUtilisation: 74.2,
+    reviewWaitMeanSec: 1470,
+  },
+  reference: {
+    casesSimulated: 1284,
+    casesAutoCleared: 460,
+    casesReviewed: 824,
+    uploadUtilisation: 34.0,
+    reviewUtilisation: 72.0,
+    reviewWaitMeanMin: 26.1,
+  },
+  params: { simulationDays: 30, rngSeed: 42 },
+  simSeconds: 31,
+  note: 'All parameters are modelled assumptions, not measured field data.',
+};
+
+export const mockSystemHealth = {
+  silentPhcs: [
+    { phcId: 'PHC003', phcName: 'PHC Hadapsar', lastContactAt: '2026-09-03T22:00:00.000Z', hoursSilent: 58 },
+    { phcId: 'PHC006', phcName: 'PHC Saswad', lastContactAt: '2026-09-03T18:30:00.000Z', hoursSilent: 52 },
+  ],
+  stuckJobs: [
+    { caseId: 'job-9821-sync', stuckSince: '2026-09-21T21:40:00.000Z', minutesStuck: 18, autoRecoveredCount: 1, lastRecoveredAt: '2026-09-21T21:45:00.000Z', autoRecoveryExhausted: false },
+  ],
+  matlabSessionStatus: 'healthy',
+  matlabSession: {
+    status: 'healthy',
+    lastHeartbeatAt: new Date().toISOString(),
+    restartsInWindow: 0,
+    lastError: null,
+    pid: 14092,
+  },
+  unreviewedCases: [
+    { caseId: 'd4e5f6a7-b8c9-0123-defa-234567890123', patientReference: 'PT-2056', tier: 'C', drGrade: 4, createdAt: '2026-09-18T10:00:00.000Z', hoursUnreviewed: 51 },
+  ],
+  alerts: [
+    { kind: 'silent_phc', subject: 'PHC Hadapsar (PHC003)', message: 'No synchronization heartbeat received for 58 hours (threshold: 48h). Send field engineer or check regional power.', firstSeenAt: '2026-09-05T22:00:00Z', occurrences: 1 },
+    { kind: 'unreviewed_sla', subject: 'Case PT-2056 (PDR / Grade 4)', message: 'Referable DR case unreviewed for 51 hours, breaching the 48-hour national clinical SLA.', firstSeenAt: '2026-09-20T10:00:00Z', occurrences: 1 },
+  ],
+  thresholds: {
+    silentPhcHours: 48,
+    stuckJobMinutes: 15,
+    unreviewedCaseHours: 48,
+  },
+  generatedAt: new Date().toISOString(),
+};
 
 export const drGradeLabels = {
   0: 'No DR',

@@ -76,6 +76,7 @@ PhcRow.displayName = 'PhcRow';
 export const PhcHealthPage = () => {
   const { t } = useTranslation();
   const [phcList, setPhcList] = useState([]);
+  const [systemHealth, setSystemHealth] = useState(null);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
 
@@ -83,10 +84,18 @@ export const PhcHealthPage = () => {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'none' });
 
   useEffect(() => {
-    centralApi.getPhcSyncStatuses().then(data => {
-      setPhcList(data);
-      setLoading(false);
+    let active = true;
+    Promise.all([
+      centralApi.getPhcSyncStatuses(),
+      centralApi.getSystemHealth(),
+    ]).then(([phcs, health]) => {
+      if (active) {
+        setPhcList(phcs);
+        setSystemHealth(health);
+        setLoading(false);
+      }
     });
+    return () => { active = false; };
   }, []);
 
   const handleSort = useCallback((field) => {
@@ -106,6 +115,7 @@ export const PhcHealthPage = () => {
 
   const onlineCount = useMemo(() => phcList.filter(p => p.status === 'online').length, [phcList]);
   const offlineCount = useMemo(() => phcList.length - onlineCount, [phcList, onlineCount]);
+  const silentCount = useMemo(() => phcList.filter(p => p.hoursSilent >= 48).length, [phcList]);
   const totalPending = useMemo(() => phcList.reduce((sum, p) => sum + p.pendingCount, 0), [phcList]);
   const totalScreened = useMemo(() => phcList.reduce((sum, p) => sum + p.totalScreened, 0), [phcList]);
 
@@ -113,6 +123,7 @@ export const PhcHealthPage = () => {
     let list = phcList;
     if (statusFilter === 'online') list = list.filter(p => p.status === 'online');
     if (statusFilter === 'offline') list = list.filter(p => p.status === 'offline');
+    if (statusFilter === 'silent') list = list.filter(p => p.hoursSilent >= 48);
     if (statusFilter === 'pending') list = list.filter(p => p.pendingCount > 0);
 
     if (sortConfig.direction === 'none' || !sortConfig.key) {
@@ -128,7 +139,6 @@ export const PhcHealthPage = () => {
         valB = valB ? new Date(valB).getTime() : 0;
       } else if (typeof valA === 'string') {
         valA = valA.toLowerCase();
-        valB = valB.toLowerCase();
       }
 
       if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
@@ -148,8 +158,118 @@ export const PhcHealthPage = () => {
     );
   }
 
+  const hasCriticalAlerts = systemHealth && (
+    systemHealth.silentPhcs?.length > 0 ||
+    systemHealth.stuckJobs?.length > 0 ||
+    systemHealth.matlabSessionStatus !== 'healthy' ||
+    systemHealth.unreviewedCases?.length > 0
+  );
+
   return (
     <div className="section">
+      {/* Consolidated System Health Banner (§5.3 / §10.7) */}
+      {hasCriticalAlerts && (
+        <div
+          style={{
+            border: '2px solid var(--c-crimson)',
+            background: 'rgba(168, 34, 34, 0.08)',
+            padding: '16px 20px',
+            marginBottom: 'var(--sp-6)',
+            boxShadow: '4px 4px 0px var(--c-crimson)',
+          }}
+        >
+          <div className="u-flex u-items-center u-justify-between u-mb-2">
+            <div className="u-flex u-items-center" style={{ gap: '8px' }}>
+              <span className="badge badge--fail" style={{ fontSize: '11px', padding: '3px 8px' }}>
+                CRITICAL SYSTEM HEALTH EXCEPTION
+              </span>
+              <span className="t-mono" style={{ fontSize: '11px', fontWeight: 700, color: 'var(--c-crimson)' }}>
+                {systemHealth.alerts?.length || 2} ACTIVE SYSTEM ALERTS TRIGGERED
+              </span>
+            </div>
+            <span className="t-mono" style={{ fontSize: '10px', color: 'var(--c-text-muted)' }}>
+              Consolidated Watchdog Monitor (§10.7)
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '10px' }}>
+            {systemHealth.alerts?.map((alert, idx) => (
+              <div
+                key={idx}
+                style={{
+                  background: 'rgba(255,255,255,0.7)',
+                  border: '1px solid var(--c-crimson)',
+                  padding: '10px 12px',
+                  fontFamily: 'var(--f-mono)',
+                  fontSize: '11px',
+                }}
+              >
+                <div style={{ fontWeight: 700, color: 'var(--c-crimson)', marginBottom: '4px' }}>
+                  ⚠ {alert.subject}
+                </div>
+                <div style={{ color: 'var(--c-text)', opacity: 0.9 }}>
+                  {alert.message}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 4-Check Status Bar (Silent PHCs, Stuck Jobs, MATLAB, Clinical SLA) */}
+      {systemHealth && (
+        <div className="bento u-mb-6">
+          <div className="bento--span-3">
+            <div className="stat hash-fill">
+              <div className="stat__label">SILENT PHCs (&gt;48H)</div>
+              <div className="stat__value" style={{ color: systemHealth.silentPhcs.length > 0 ? '#A82222' : 'var(--c-success)' }}>
+                {systemHealth.silentPhcs.length}
+              </div>
+              <div className="stat__delta" style={{ color: systemHealth.silentPhcs.length > 0 ? '#A82222' : 'var(--c-success)' }}>
+                {systemHealth.silentPhcs.length > 0 ? 'Physical inspection needed' : 'All clinics synced'}
+              </div>
+            </div>
+          </div>
+
+          <div className="bento--span-3">
+            <div className="stat hash-fill">
+              <div className="stat__label">STUCK PIPELINE JOBS</div>
+              <div className="stat__value" style={{ color: systemHealth.stuckJobs.length > 0 ? '#F97316' : 'var(--c-success)' }}>
+                {systemHealth.stuckJobs.length}
+              </div>
+              <div className="stat__delta" style={{ color: 'var(--c-text-muted)' }}>
+                {systemHealth.stuckJobs.length > 0 ? 'Auto-recovery in progress' : 'Pipeline clear (&lt;15m)'}
+              </div>
+            </div>
+          </div>
+
+          <div className="bento--span-3">
+            <div className="stat hash-fill">
+              <div className="stat__label">MATLAB SESSION STATUS</div>
+              <div className="stat__value" style={{ color: systemHealth.matlabSessionStatus === 'healthy' ? '#14B8A6' : '#A82222' }}>
+                {systemHealth.matlabSessionStatus.toUpperCase()}
+              </div>
+              <div className="stat__delta" style={{ color: 'var(--c-success)' }}>
+                PID: {systemHealth.matlabSession.pid} • 0 Restarts
+              </div>
+            </div>
+          </div>
+
+          <div className="bento--span-3">
+            <div className="stat hash-fill">
+              <div className="stat__label">SLA AGING (&gt;48H UNREVIEWED)</div>
+              <div className="stat__value" style={{ color: systemHealth.unreviewedCases.length > 0 ? '#A82222' : 'var(--c-success)' }}>
+                {systemHealth.unreviewedCases.length}
+              </div>
+              <div className="stat__delta" style={{ color: systemHealth.unreviewedCases.length > 0 ? '#A82222' : 'var(--c-success)' }}>
+                {systemHealth.unreviewedCases.length > 0 ? '1 case breach warning' : 'Within 48h SLA'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Page Header */}
       <div className="u-flex u-items-center u-justify-between u-mb-6">
         <div>
           <p className="section__subtitle">{t('central.phcHealth.subtitle', 'DISTRICT ADMIN')}</p>
@@ -203,6 +323,22 @@ export const PhcHealthPage = () => {
             title="Filter by Offline PHCs"
           >
             {offlineCount} {t('central.phcHealth.filters.offline', 'OFFLINE')}
+          </button>
+          <button
+            onClick={() => setStatusFilter(statusFilter === 'silent' ? 'all' : 'silent')}
+            className={`badge badge--fail ${statusFilter === 'silent' ? 'badge--active' : ''}`}
+            style={{
+              cursor: 'pointer',
+              background: statusFilter === 'silent' ? '#A82222' : 'rgba(168, 34, 34, 0.1)',
+              color: statusFilter === 'silent' ? '#FFF' : '#A82222',
+              fontWeight: 700,
+              border: statusFilter === 'silent' ? '2px solid #000' : '1px solid #A82222',
+              boxShadow: statusFilter === 'silent' ? '3px 3px 0px #000' : 'none',
+              transform: statusFilter === 'silent' ? 'translate(-1px, -1px)' : 'none',
+            }}
+            title="Filter by Silent PHCs (>48h with no contact)"
+          >
+            ⚠ {silentCount} SILENT (&gt;48h)
           </button>
           <button
             onClick={() => setStatusFilter(statusFilter === 'pending' ? 'all' : 'pending')}

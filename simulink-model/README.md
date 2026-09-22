@@ -5,6 +5,62 @@ requirement 5**: model image acquisition rates, bandwidth constraints,
 processing throughput and review capacity, to optimise resource allocation for
 a district program serving **100,000+ patients annually**.
 
+
+## The live model: `netraSetuPipeline.slx`
+
+The whole pipeline, built to be watched and driven while it runs.
+
+```powershell
+matlab -batch "buildFullPipelineModel"      # build it
+matlab -sd "<this folder>" -r "runFullPipelineModel"   # open the desktop and WATCH it
+matlab -batch "runFullPipelineModel('Pace',0,'Show',false)"   # headless, just the numbers
+```
+
+`-batch` has no desktop, so it can never show you the model — it runs
+invisibly and looks like a hang. Use `-r` to watch.
+
+**Speed.** The first run in a MATLAB session spends ~20 s compiling; after
+that the model simulates a full eight-hour clinic day in about 7 seconds,
+roughly 4,000x real time. Pacing deliberately slows it to 200x so a person
+can follow it (one simulated hour ≈ 18 s on screen). If the display
+stutters it is redraw cost, not compute: close the two Dashboard Scopes,
+which redraw continuously, while the counters only change on an event.
+
+| Stage | What it models |
+|---|---|
+| Patient Arrivals | exponential arrivals, tier assigned on generation |
+| Quality Gate | capture plus up to 3 retakes; abandoned if still unusable |
+| Sync Queue | the PHC's offline backlog |
+| Network Upload | the district link, switchable |
+| Grading Server | capacity 2 (the Node queue's concurrency), ~21 s, can fail and retry |
+| Tier Triage | Tier A auto-clears and never reaches a human |
+| Reviewers | two, capacity 1, Tier C preempts Tier B and the case resumes |
+| Referral | referred with an SMS, or cleared |
+
+**Live controls** (they work during a run): patients per hour, review speed,
+network link on/off, grading available on/off.
+
+With the link switched off for a two-hour run, 81 cases sit in the PHC queue
+and nothing reaches grading — captured, not lost, which is the point of
+offline-first. Switch it back on and the backlog drains.
+
+Two modelling compromises, both forced and both visible in the code:
+
+- **Retakes happen inside the capture service time**, not as a loop back to the
+  camera. SimEvents cannot resolve the entity type around a feedback edge
+  ("All input ports ... must have the same entity structure"). Same occupancy,
+  same delay, no backwards arrow to watch.
+- **An outage is modelled as a very long service time**, not an Entity Gate.
+  In this version the gate's control port takes entities, not a signal a
+  dashboard switch can hold. The case already in service is stuck rather than
+  requeued; the queue behind it behaves correctly.
+
+Defaults come from `calibration.json` (`scripts/exportSimCalibration.js`), which
+labels each figure measured or assumed. The tier mix is deliberately the
+design-doc screening split, **not** the 3%/81%/15% this corpus shows — IDRiD is
+enriched for disease and would make every scenario collapse for the wrong
+reason.
+
 ---
 
 ## ⚠️ Status
@@ -12,12 +68,41 @@ a district program serving **100,000+ patients annually**.
 | File | What it is | Runs today |
 |---|---|---|
 | `referenceQueueingModel.m` | Pure-MATLAB discrete-event simulation | ✅ yes |
-| `buildDistrictScreeningModel.m` | Builds the SimEvents `.slx` programmatically | ❌ needs Simulink |
-| `districtScreeningSimEvents.slx` | The Simulink deliverable | ❌ not built yet |
+| `buildDistrictScreeningModel.m` | Builds the SimEvents `.slx` programmatically | ✅ yes |
+| `districtScreeningSimEvents.slx` | The Simulink deliverable | ✅ built 2026-09-08 |
+| `runDistrictScreeningModel.m` | Runs the `.slx` and checks it against the reference model | ✅ yes |
 
-**Simulink and SimEvents are licensed but not installed** on the dev machine
-(`licensed = 1, installed = 0` — see Task 0.0 in the implementation plan). Until
-they are installed, the `.slx` cannot be built or run.
+**Built and validated.** Simulink and SimEvents are installed, and the SimEvents
+model was built by `buildDistrictScreeningModel.m` on 2026-09-08 (commit
+`66638bb`, "Task 3.8: build and validate the SimEvents district model"). On the
+review stage it agrees with the independent reference model (auto-clear 71.0% vs
+68.4%, reviewer utilisation 20.0% vs 22.2%). This table used to say the `.slx`
+was not built; that was stale documentation, not a capability gap.
+
+**How it reaches the product (backend plan §G):** the central backend runs
+`referenceQueueingModel('recommend', params)` on a daily schedule, with the tier
+mix, PHC count and reviewer count observed in its own database, and stores the
+result in the `resource_recommendations` table. `GET
+/api/v1/admin/resource-recommendations` serves the latest row to the admin
+dashboard. The reference model is what runs on the schedule: it takes seconds,
+has no Simulink dependency at request time, and is the oracle the `.slx` was
+validated against. The `.slx` remains the PS-requirement-5 deliverable and the
+validation check -- and that check now runs **weekly, on a schedule**
+(`services/simulinkValidation.js`, `SIMULINK_VALIDATION_CRON`, default Sunday
+03:00) rather than only when somebody types `runDistrictScreeningModel`.
+
+The result goes to `simulink-model/out/last-validation.json` and is served by
+`GET /api/v1/admin/simulink-validation`. If the two models stop agreeing, or
+the run cannot happen at all, it raises a `simulink_model_diverged` alert on
+System Health. That matters because of the direction the dependency runs: the
+dashboard's numbers come from the reference model, and the reference model's
+right to be believed comes entirely from agreeing with this one. A validation
+that ran once, in September, on parameters nobody has touched since is a
+memory of a check, not a check.
+
+Measured: about 49 s per run, of which 31 s is the simulation itself. The
+`.slx` is opened read-only and closed without saving -- a validation run never
+modifies the deliverable.
 
 > [!IMPORTANT]
 > **`referenceQueueingModel.m` is NOT the Simulink deliverable and must never be

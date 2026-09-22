@@ -102,9 +102,20 @@ check('preflight echoes the requested headers',
 check('preflight advertises the methods the API uses',
   (r.headers['Access-Control-Allow-Methods'] || '').includes('POST'));
 
-check('credentials are NOT enabled',
-  r.headers['Access-Control-Allow-Credentials'] === undefined,
-  'nothing here uses cookies; enabling it would also forbid the wildcard');
+// Credentials are ON since login moved the session into a cookie (backend plan
+// §A). Safe only because the origin is echoed individually from an allow-list,
+// never `*` -- so the two assertions that matter are: an allowed origin gets
+// credentials with its OWN origin echoed, and a disallowed one gets neither.
+check('allowed origin gets Allow-Credentials: true (session cookie)',
+  r.headers['Access-Control-Allow-Credentials'] === 'true');
+check('credentials are never paired with a wildcard Allow-Origin',
+  r.headers['Access-Control-Allow-Origin'] === okOrigin);
+check('preflight allows the CSRF and PHC-key headers by default',
+  /X-CSRF-Token/.test(run({ origin: okOrigin }, 'OPTIONS').headers['Access-Control-Allow-Headers'] || '') &&
+  /X-PHC-Api-Key/.test(run({ origin: okOrigin }, 'OPTIONS').headers['Access-Control-Allow-Headers'] || ''));
+check('a disallowed origin gets NO Allow-Credentials either',
+  run({ origin: 'https://evil.example.com' }).headers['Access-Control-Allow-Credentials'] === undefined,
+  'credentials to an unlisted origin would let any site read patient data as the logged-in user');
 
 r = run({ origin: 'http://localhost:9999' }, 'GET', { origins: ['http://localhost:9999'] });
 check('an explicit origins option overrides the env defaults',

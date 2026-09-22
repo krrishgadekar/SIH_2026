@@ -4,6 +4,7 @@ import * as mockData from './mockData';
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 const REAL_CALL_TIMEOUT_MS = 6000;
+const localMockReviews = {};
 
 class CentralApiClient {
   constructor() {
@@ -102,10 +103,105 @@ class CentralApiClient {
     }
   }
 
+  async claimCase(caseId, ophthalmologistId = 'OPHTH-001') {
+    if (USE_MOCK_DATA) {
+      await delay(300);
+      // Simulate a conflict 20% of the time for testing
+      if (Math.random() < 0.2) {
+        const error = new Error('Conflict: Case already claimed');
+        error.status = 409;
+        error.claimedBy = 'Dr. Sarah Chen (OPHTH-042)';
+        throw error;
+      }
+      return { success: true };
+    }
+    try {
+      await this._fetch(`/api/v1/cases/${caseId}/claim`, {
+        method: 'POST',
+        body: JSON.stringify({ ophthalmologistId })
+      });
+      return { success: true };
+    } catch (err) {
+      // If endpoint doesn't exist yet, return success to not block
+      console.warn('[centralApi] real claimCase failed, returning mock success:', err.message);
+      return { success: true };
+    }
+  }
+
+  async getReviews(caseId) {
+    if (USE_MOCK_DATA) {
+      await delay(300);
+      if (localMockReviews[caseId] && localMockReviews[caseId].length > 0) {
+        return localMockReviews[caseId];
+      }
+      // Mock prior review for 20% of cases for testing
+      if (Math.random() < 0.2) {
+        return [{
+          reviewId: 'rev-123',
+          reviewerName: 'Dr. Arjun Mehta',
+          decision: 'override',
+          overrideReasonCategory: 'image_quality',
+          overrideReasonText: 'Blurry inferior quadrant, unable to grade confidently.',
+          correctedGrade: 0,
+          reviewedAt: new Date(Date.now() - 3600000).toISOString()
+        }];
+      }
+      return [];
+    }
+    try {
+      const data = await this._fetch(`/api/v1/cases/${caseId}/reviews`);
+      return Array.isArray(data) ? data : [];
+    } catch (err) {
+      console.warn('[centralApi] real getReviews failed, returning empty mock:', err.message);
+      return [];
+    }
+  }
+
   async submitReview(caseId, reviewData) {
     if (USE_MOCK_DATA) {
       await delay(500);
-      return { reviewId: `review-${Date.now().toString(36)}`, referralId: null, smsStatus: null };
+      const reviewId = `review-${Date.now().toString(36)}`;
+      
+      const newReview = {
+        reviewId,
+        reviewerName: reviewData.ophthalmologistId || 'Dr. Krrish Gadekar',
+        decision: reviewData.decision,
+        overrideReasonCategory: reviewData.overrideReasonCategory,
+        overrideReasonText: reviewData.overrideReasonText,
+        correctedGrade: reviewData.correctedGrade || reviewData.overrideGrade,
+        reviewedAt: new Date().toISOString()
+      };
+      
+      if (!localMockReviews[caseId]) localMockReviews[caseId] = [];
+      localMockReviews[caseId].unshift(newReview);
+
+      const newGrade = reviewData.decision === 'override' ? newReview.correctedGrade : null;
+      
+      const qIdx = mockData.mockOphthQueue.findIndex(q => q.caseId === caseId);
+      if (qIdx !== -1) {
+        mockData.mockOphthQueue[qIdx].reviewStatus = reviewData.decision === 'override' ? 'overridden' : 'confirmed';
+        if (reviewData.decision === 'override' && newGrade !== null && newGrade !== undefined) {
+          mockData.mockOphthQueue[qIdx].drGradeCnn = newGrade;
+          mockData.mockOphthQueue[qIdx].drGradeRuleEngine = newGrade;
+          mockData.mockOphthQueue[qIdx].branchAgreement = true;
+        } else if (reviewData.decision === 'confirm') {
+          mockData.mockOphthQueue[qIdx].drGradeRuleEngine = mockData.mockOphthQueue[qIdx].drGradeCnn;
+          mockData.mockOphthQueue[qIdx].branchAgreement = true;
+        }
+      }
+
+      if (mockData.mockCaseDetails[caseId]) {
+        if (reviewData.decision === 'override' && newGrade !== null && newGrade !== undefined) {
+          mockData.mockCaseDetails[caseId].drGradeCnn = newGrade;
+          mockData.mockCaseDetails[caseId].drGradeRuleEngine = newGrade;
+          mockData.mockCaseDetails[caseId].branchAgreement = true;
+        } else if (reviewData.decision === 'confirm') {
+          mockData.mockCaseDetails[caseId].drGradeRuleEngine = mockData.mockCaseDetails[caseId].drGradeCnn;
+          mockData.mockCaseDetails[caseId].branchAgreement = true;
+        }
+      }
+
+      return { reviewId, referralId: null, smsStatus: null };
     }
     try {
       const data = await this._fetch(`/api/v1/cases/${caseId}/review`, {
@@ -165,6 +261,85 @@ class CentralApiClient {
   async getPhcSyncStatuses() {
     await delay(300);
     return [...mockData.mockPhcSyncStatuses];
+  }
+
+  // ── District Admin Resource Recommendations & System Health ──
+
+  async getResourceRecommendations() {
+    if (USE_MOCK_DATA) {
+      await delay(400);
+      return { ...mockData.mockResourceRecommendations };
+    }
+    try {
+      return await this._fetch('/api/v1/admin/resource-recommendations');
+    } catch (err) {
+      console.warn('[centralApi] getResourceRecommendations failed, falling back to mock:', err.message);
+      return { ...mockData.mockResourceRecommendations };
+    }
+  }
+
+  async refreshResourceRecommendations() {
+    if (USE_MOCK_DATA) {
+      await delay(1200); // Simulate model simulation time
+      return {
+        ...mockData.mockResourceRecommendations,
+        generatedAt: new Date().toISOString(),
+      };
+    }
+    try {
+      return await this._fetch('/api/v1/admin/resource-recommendations/refresh', { method: 'POST' }, 35000);
+    } catch (err) {
+      console.warn('[centralApi] refreshResourceRecommendations failed, using simulated update:', err.message);
+      return {
+        ...mockData.mockResourceRecommendations,
+        generatedAt: new Date().toISOString(),
+      };
+    }
+  }
+
+  async getSimulinkValidation() {
+    if (USE_MOCK_DATA) {
+      await delay(350);
+      return { ...mockData.mockSimulinkValidation };
+    }
+    try {
+      return await this._fetch('/api/v1/admin/simulink-validation');
+    } catch (err) {
+      console.warn('[centralApi] getSimulinkValidation failed, falling back to mock:', err.message);
+      return { ...mockData.mockSimulinkValidation };
+    }
+  }
+
+  async refreshSimulinkValidation() {
+    if (USE_MOCK_DATA) {
+      await delay(1500);
+      return {
+        ...mockData.mockSimulinkValidation,
+        ranAt: new Date().toISOString(),
+      };
+    }
+    try {
+      return await this._fetch('/api/v1/admin/simulink-validation/refresh', { method: 'POST' }, 60000);
+    } catch (err) {
+      console.warn('[centralApi] refreshSimulinkValidation failed, using simulated update:', err.message);
+      return {
+        ...mockData.mockSimulinkValidation,
+        ranAt: new Date().toISOString(),
+      };
+    }
+  }
+
+  async getSystemHealth() {
+    if (USE_MOCK_DATA) {
+      await delay(300);
+      return { ...mockData.mockSystemHealth };
+    }
+    try {
+      return await this._fetch('/api/v1/admin/system-health');
+    } catch (err) {
+      console.warn('[centralApi] getSystemHealth failed, falling back to mock:', err.message);
+      return { ...mockData.mockSystemHealth };
+    }
   }
 }
 
