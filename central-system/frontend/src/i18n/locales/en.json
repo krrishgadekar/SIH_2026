@@ -9,7 +9,7 @@
         "ophthalmologist": {
           "title": "OPHTHALMOLOGIST",
           "subtitle": "Case Review & Diagnosis",
-          "desc": "Review AI-graded retinal scans, confirm or override diagnoses, and manage the review queue.",
+          "desc": "Review AI-graded retinal scans, confirm or override diagnoses, and manage the cases.",
           "stats": "cases pending"
         },
         "admin": {
@@ -36,7 +36,7 @@
         "dashboard": "DASHBOARD",
         "referrals": "REFERRALS",
         "phcHealth": "PHC HEALTH",
-        "queue": "REVIEW QUEUE",
+        "queue": "CASES",
         "timeline": "TIMELINE",
         "programHealth": "PROGRAM HEALTH"
       },
@@ -47,16 +47,17 @@
     },
     "queue": {
       "subtitle": "OPHTHALMOLOGIST INTERFACE",
-      "title": "REVIEW QUEUE",
+      "title": "CASES",
       "stats": {
         "total": "TOTAL",
-        "tierC": "TIER C",
-        "tierB": "TIER B",
-        "mismatch": "MISMATCH"
+        "confirmed": "CONFIRMED",
+        "overridden": "OVERRIDDEN"
       },
-      "banner": {
-        "title": "QUEUE PRIORITIZATION",
-        "text": "Cases are automatically sorted by urgency. Tier C cases and branch disagreements are floated to the top, followed by lowest confidence scores. Spot-check Tier B cases appear last."
+      "modal": {
+        "title": "CLINICAL GUIDANCE",
+        "severity": "Severity indicates clinical urgency. High (Red) for PDR and Severe NPDR. Mid (Yellow) for Mild/Moderate NPDR. Low (Green) for No DR.",
+        "confidence": "The confidence score shows the model's certainty. Lower scores should be scrutinized closely.",
+        "agreement": "A mismatch means the holistic CNN and explicit rule engine produced different grades. You must resolve this manually."
       },
       "search": {
         "placeholder": "🔍 Search Patient Ref, Case ID, or PHC...",
@@ -67,15 +68,15 @@
       },
       "filters": {
         "all": "ALL CASES",
-        "tierC": "TIER C — FULL REVIEW",
-        "tierB": "TIER B — SPOT CHECK",
-        "mismatch": "⚠ BRANCH MISMATCH"
+        "confirmed": "CONFIRMED CASES",
+        "overridden": "OVERRIDDEN CASES",
+        "pending": "PENDING CASES"
       },
       "table": {
         "colPriority": "#",
         "colPatientRef": "PATIENT REF",
         "colPhc": "PHC",
-        "colTier": "TIER",
+        "colSeverity": "SEVERITY",
         "colCnnGrade": "CNN GRADE",
         "colRuleEngine": "RULE ENGINE",
         "colAgreement": "AGREEMENT",

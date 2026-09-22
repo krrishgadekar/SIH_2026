@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { drGradeLabels, overrideReasonCategories } from '../../api/mockData';
 
-export const DecisionControls = ({ caseData, onSubmit, submitted }) => {
+export const DecisionControls = ({ caseData, onSubmit, submitted, claimedBy, priorReview }) => {
   const [decision, setDecision] = useState(null); // 'confirm' | 'override'
   const [overrideGrade, setOverrideGrade] = useState('');
   const [overrideCategory, setOverrideCategory] = useState('');
@@ -22,6 +22,7 @@ export const DecisionControls = ({ caseData, onSubmit, submitted }) => {
   useEffect(() => {
     if (submitted) return;
     const handleKeyDown = (e) => {
+      if (claimedBy) return;
       const tag = document.activeElement?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
         if (e.key === 'Enter' && e.ctrlKey) {
@@ -102,12 +103,26 @@ export const DecisionControls = ({ caseData, onSubmit, submitted }) => {
       </div>
 
       <div style={{ padding: 'var(--sp-6)' }}>
+        {claimedBy && (
+          <div style={{ marginBottom: 'var(--sp-4)', padding: '12px', background: 'var(--c-crimson)', color: '#fff', fontSize: 'var(--fs-small)' }}>
+            <strong>⚠ CASE CLAIMED:</strong> This case is currently being reviewed by {claimedBy}. Decision controls are disabled.
+          </div>
+        )}
+
+        {priorReview && (
+          <div style={{ marginBottom: 'var(--sp-4)', padding: '12px', border: '1px solid var(--c-warning)', background: 'rgba(255, 170, 0, 0.1)', color: 'var(--c-warning)', fontSize: 'var(--fs-small)' }}>
+            <strong>⚠ PRIOR REVIEW EXISTS:</strong> This case was already reviewed by {priorReview.reviewerName} on {new Date(priorReview.reviewedAt).toLocaleString()}.<br/>
+            Decision: {priorReview.decision.toUpperCase()} {priorReview.decision === 'override' ? `(Grade ${priorReview.correctedGrade}, Reason: ${priorReview.overrideReasonCategory})` : ''}.<br/>
+            Any new submission will be recorded as a correction.
+          </div>
+        )}
+
         {/* Decision Buttons */}
         <div className="u-flex u-gap-4" style={{ marginBottom: 'var(--sp-6)' }}>
           <button
             className={`decision-btn decision-btn--confirm ${decision === 'confirm' ? 'decision-btn--active' : ''}`}
             onClick={() => setDecision('confirm')}
-            disabled={submitted || submitting}
+            disabled={submitted || submitting || !!claimedBy || caseData.branchAgreement === false}
           >
             <span className="decision-btn__icon">✓</span>
             <span className="decision-btn__label">CONFIRM</span>
@@ -120,7 +135,7 @@ export const DecisionControls = ({ caseData, onSubmit, submitted }) => {
           <button
             className={`decision-btn decision-btn--override ${decision === 'override' ? 'decision-btn--active' : ''}`}
             onClick={() => setDecision('override')}
-            disabled={submitted || submitting}
+            disabled={submitted || submitting || !!claimedBy}
           >
             <span className="decision-btn__icon">✕</span>
             <span className="decision-btn__label">OVERRIDE</span>
@@ -190,7 +205,11 @@ export const DecisionControls = ({ caseData, onSubmit, submitted }) => {
               ✓ CLINICAL DECISION AUDITED &amp; SIGNED
             </div>
             <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--text-h)' }}>
-              Review completed in <strong>{elapsedSeconds} seconds</strong> (Target: &lt; 30s SLA). Audit log recorded by Dr. Krrish Gadekar. Returning to queue...
+              <strong>DECISION:</strong> {decision === 'confirm' 
+                ? `Confirmed AI Grade ${caseData.drGradeCnn}.` 
+                : `Overridden to Grade ${overrideGrade} (Reason: ${overrideReasonCategories.find(c => c.value === overrideCategory)?.label}).`}
+              <br/>
+              Review completed in <strong>{elapsedSeconds} seconds</strong> (Target: &lt; 30s SLA). Audit log recorded by {priorReview?.reviewerName || 'Dr. Krrish Gadekar'}. Returning to queue...
             </div>
           </div>
         ) : decision && (
@@ -201,7 +220,7 @@ export const DecisionControls = ({ caseData, onSubmit, submitted }) => {
             style={{ justifyContent: 'center', marginTop: 'var(--sp-2)' }}
           >
             <span>
-              {submitting ? 'SUBMITTING CLINICAL AUDIT...' : `SUBMIT ${decision.toUpperCase()} (PRESS ENTER)`}
+              {submitting ? 'SUBMITTING CLINICAL AUDIT...' : `SUBMIT ${priorReview ? 'CORRECTION' : decision.toUpperCase()} (PRESS ENTER)`}
             </span>
           </button>
         )}

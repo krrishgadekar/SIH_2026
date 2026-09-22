@@ -38,6 +38,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 MODEL_VERSIONS = {
     "branchA_v1":  {"npy_prefix": "branchA_v1", "dir": os.path.join(HERE, "models", "Model1")},
     "branchA_v2a": {"npy_prefix": "branchA_v2a", "dir": os.path.join(HERE, "models", "Model1", "v2a")},
+    "branchA_v2b": {"npy_prefix": "branchA_v2b", "dir": os.path.join(HERE, "models", "Model1", "v2b")},
+    "branchA_v2c": {"npy_prefix": "branchA_v2c", "dir": os.path.join(HERE, "models", "Model1", "v2c")},
 }
 
 

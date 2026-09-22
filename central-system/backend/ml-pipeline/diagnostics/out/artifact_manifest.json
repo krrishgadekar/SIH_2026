@@ -121,6 +121,64 @@
       }
     },
     {
+      "name": "branchA_v2b",
+      "role": "classifier (M1 v2b), 5-class head only -- binary referable head dropped at export",
+      "input_size_declared_by_checkpoint": "1x3x512x512 (H=512, W=512, C=3)",
+      "note": "appended by the v2b integration task; v1's and v2a's entries above are unmodified",
+      "files": {
+        "onnx": {
+          "filename": "branchA_v2b.onnx",
+          "relative_path": "models/Model1/branchA_v2b.onnx",
+          "size_bytes": 16038705,
+          "sha256": "2631aa01deef8663e097e395734a2642935a5d3cc31a4eff862a0f3cf6b27409"
+        },
+        "mat": {
+          "filename": "branchA_v2b.mat",
+          "relative_path": "models/branchA_v2b.mat",
+          "size_bytes": 15008021,
+          "sha256": "f638e7ceed3d1c9942c8f831a32547c5d48d0ee34c9d576966228faf8a42c9f8"
+        }
+      },
+      "parityCheck": {
+        "script": "training/parityCheckV2b.m",
+        "report": "diagnostics/out/parity_v2b_report.txt",
+        "nImages": 10,
+        "threshold": 0.01,
+        "maxDiff": 1.0E-6,
+        "argmaxAgreement": "10/10",
+        "pass": true
+      }
+    },
+    {
+      "name": "branchA_v2c",
+      "role": "classifier (M1 v2c), 5-class head only -- binary referable head dropped at export",
+      "input_size_declared_by_checkpoint": "1x3x512x512 (H=512, W=512, C=3)",
+      "note": "appended by the v2c integration task; v1's, v2a's and v2b's entries above are unmodified",
+      "files": {
+        "onnx": {
+          "filename": "branchA_v2c.onnx",
+          "relative_path": "models/Model1/branchA_v2c.onnx",
+          "size_bytes": 16038705,
+          "sha256": "db5cd8f89854092e720397dff3db6207f047be988fb80a50858f208d0eafe0dc"
+        },
+        "mat": {
+          "filename": "branchA_v2c.mat",
+          "relative_path": "models/branchA_v2c.mat",
+          "size_bytes": 15006999,
+          "sha256": "8b3991ea117344dd595c60f60e81e7bc9981ef402cc311e7cb854ea62ed64c9e"
+        }
+      },
+      "parityCheck": {
+        "script": "training/parityCheckV2c.m",
+        "report": "diagnostics/out/parity_v2c_report.txt",
+        "nImages": 10,
+        "threshold": 0.01,
+        "maxDiff": 1.0E-6,
+        "argmaxAgreement": "10/10",
+        "pass": true
+      }
+    },
+    {
       "name": "red_lesion_unet_v2",
       "role": "red-lesion segmenter (M5 phase 2), 3-class (background/MA/HE)",
       "input_size_declared_by_checkpoint": "1x3x512x512 (H=512, W=512, C=3)",

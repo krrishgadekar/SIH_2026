@@ -1,0 +1,193 @@
+{
+  "run_tag": "v2b",
+  "use_eyepacs": true,
+  "smoke": false,
+  "test_pooled": {
+    "qwk": 0.8848884772709732,
+    "macro_f1": 0.6345227178132704,
+    "ref_sens": 0.8492647058823529,
+    "ref_spec": 0.9466292134831461,
+    "grade4_recall": 0.46296296296296297,
+    "grade4_n": 54,
+    "grade1_recall": 0.6333333333333333,
+    "grade1_n": 60,
+    "mean_signed_error": -0.03980891719745223,
+    "live_path_sens": 0.8492647058823529,
+    "live_path_spec": 0.9466292134831461,
+    "binary_head_sens": 0.8823529411764706,
+    "binary_head_spec": 0.9325842696629213,
+    "confusion_matrix": [
+      [
+        285,
+        8,
+        3,
+        0,
+        0
+      ],
+      [
+        6,
+        38,
+        15,
+        0,
+        1
+      ],
+      [
+        3,
+        33,
+        107,
+        27,
+        5
+      ],
+      [
+        0,
+        1,
+        9,
+        26,
+        7
+      ],
+      [
+        0,
+        4,
+        8,
+        17,
+        25
+      ]
+    ],
+    "n": 628
+  },
+  "test_idrid_only": {
+    "qwk": 0.8370322221190454,
+    "macro_f1": 0.5524886877828055,
+    "ref_sens": 0.8571428571428571,
+    "ref_spec": 0.8620689655172413,
+    "grade4_recall": 0.2,
+    "grade4_n": 10,
+    "grade1_recall": 0.5,
+    "grade1_n": 4,
+    "mean_signed_error": -0.11538461538461539,
+    "live_path_sens": 0.8571428571428571,
+    "live_path_spec": 0.8620689655172413,
+    "binary_head_sens": 0.8775510204081632,
+    "binary_head_spec": 0.9655172413793104,
+    "confusion_matrix": [
+      [
+        20,
+        2,
+        3,
+        0,
+        0
+      ],
+      [
+        1,
+        2,
+        1,
+        0,
+        0
+      ],
+      [
+        2,
+        5,
+        16,
+        2,
+        0
+      ],
+      [
+        0,
+        0,
+        2,
+        11,
+        1
+      ],
+      [
+        0,
+        0,
+        1,
+        7,
+        2
+      ]
+    ],
+    "n": 78
+  },
+  "test_aptos_only": {
+    "qwk": 0.8892969810260406,
+    "macro_f1": 0.6332166682629453,
+    "ref_sens": 0.8475336322869955,
+    "ref_spec": 0.9541284403669725,
+    "grade4_recall": 0.5227272727272727,
+    "grade4_n": 44,
+    "grade1_recall": 0.6428571428571429,
+    "grade1_n": 56,
+    "mean_signed_error": -0.02909090909090909,
+    "live_path_sens": 0.8475336322869955,
+    "live_path_spec": 0.9541284403669725,
+    "binary_head_sens": 0.8834080717488789,
+    "binary_head_spec": 0.9296636085626911,
+    "confusion_matrix": [
+      [
+        265,
+        6,
+        0,
+        0,
+        0
+      ],
+      [
+        5,
+        36,
+        14,
+        0,
+        1
+      ],
+      [
+        1,
+        28,
+        91,
+        25,
+        5
+      ],
+      [
+        0,
+        1,
+        7,
+        15,
+        6
+      ],
+      [
+        0,
+        4,
+        7,
+        10,
+        23
+      ]
+    ],
+    "n": 550
+  },
+  "val_at_lock": {
+    "sensitivity": 0.9134199134199135,
+    "specificity": 0.9370860927152318
+  },
+  "v1_reference_pooled": {
+    "qwk": 0.8688,
+    "ref_sens": 0.8603,
+    "ref_spec": 0.9382
+  },
+  "v1_reference_idrid_only": {
+    "qwk": 0.8242,
+    "ref_sens": 0.8776,
+    "ref_spec": 0.8966,
+    "grade4_recall": 0.3,
+    "grade1_recall": 0.0
+  },
+  "v1_reference_aptos_only": {
+    "qwk": 0.8727,
+    "ref_sens": 0.8565,
+    "ref_spec": 0.9419,
+    "grade4_recall": 0.4773,
+    "grade1_recall": 0.625
+  },
+  "img_size": 512,
+  "grade4_weight_boost": 2.0,
+  "best_epoch": 17,
+  "n_train": 8932,
+  "n_val": 533,
+  "n_test": 628
+}

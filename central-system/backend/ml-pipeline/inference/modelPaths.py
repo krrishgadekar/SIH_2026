@@ -59,6 +59,8 @@ MODELS_DIR = os.path.join(ML_ROOT, "models")
 CHECKPOINTS = {
     "classifier":     "branchA_v1.pt",
     "classifier_v2a": "branchA_v2a.pt",   # BRANCH_A_MODEL_VERSION=branchA_v2a -- see branchAInfer.py
+    "classifier_v2b": "branchA_v2b.pt",   # BRANCH_A_MODEL_VERSION=branchA_v2b -- see branchAInfer.py
+    "classifier_v2c": "branchA_v2c.pt",   # BRANCH_A_MODEL_VERSION=branchA_v2c -- see branchAInfer.py
     "vessel":         "vessel_unet_v1.pt",
     "localization":   "localization_v1.pt",
     "hard_exudate":   "bright_lesion_unet_v1.pt",   # GATE 4: role renamed, filename (artifact) unchanged

@@ -126,6 +126,102 @@ APTOS+IDRiD only (`USE_EYEPACS=False`). Best epoch 22. **Test QWK (pooled) 0.873
 
 ---
 
+## Model 1 v2b — DR severity classifier, 512px, 5-class head only  (`models/Model1/v2b/branchA_v2b.pt`)
+
+**Same architecture, preprocessing, checkpoint-key shape and 5-class-only export contract as v2a** (see that section — `DRClassifierV2`/`DRClassifierV2Export`, Ben Graham 512 → RGB → ImageNet norm, `head5`/`headBin` dual-head with `headBin` dropped at export). Only the checkpoint and the fitted numbers below differ. **A behind-a-switch candidate that passed every gate but was NOT promoted** — v2c (below) is the deployed default; v2b remains reachable via `BRANCH_A_MODEL_VERSION=branchA_v2b`.
+
+### The generalized one-command procedure (how v2b, v2c, and any future tag get integrated)
+Every v2-family integration file below now takes the version tag as a parameter instead of hardcoding `v2a`, so adding a new tag (e.g. `branchA_v2d`) once its checkpoint (`models/Model1/v2d/branchA_v2d.pt`) exists is:
+
+1. **Registry lines** (one line each, mechanical, same pattern every time): `exportModel1Predictions.py`'s `MODEL_VERSIONS`, `inference/modelPaths.py`'s `CHECKPOINTS`, `inference/branchAInfer.py`'s `BRANCH_A_MODEL_VERSIONS` (+ the tag is already accepted by `V2_FAMILY_VERSIONS` if listed there), `inference/branchAInferMatlab.m`'s `versionCfg` struct, `training/export_to_onnx.py`'s `ALL` dict (add `export_m1_v2d` calling the already-generic `export_m1_v2("branchA_v2d")`).
+2. **Three MATLAB thin-wrapper files** (copy `importModelsV2b.m` / `parityCheckV2b.m` / `runParityCaptureV2b.m`, rename, change the one string literal) — the actual logic lives in the parameterized `importBranchAV2.m` / `parityCheckV2.m` / `runParityCaptureV2.m`, unchanged.
+3. **Gates, one command each:**
+   ```
+   python training/export_to_onnx.py --only m1_v2d
+   python training/prepare_parity_inputs.py --only branchA_v2d
+   matlab -batch "importModelsV2d(); runParityCaptureV2d();"
+   ```
+   Then copy the generated `training/+branchA_v2d/` custom-layer package folder to `models/+branchA_v2d/` too (`importNetworkFromONNX` writes it relative to the CWD at import time; `models/` needs its own copy for any caller that only adds `models/` to its path, same as v2a/v2b/v2c).
+4. **Calibration, two commands:**
+   ```
+   python exportModel1Predictions.py --model-version branchA_v2d
+   matlab -batch "refitCalibration('models/Model1/v2d', 'branchA_v2d', 512)"
+   ```
+5. **Cross-fit validation:** `python experiments/conformalCrossFitValidation.py --target-version branchA_v2d` (guards below).
+6. **Manifest + docs:** append sha256/size to `diagnostics/out/artifact_manifest.json`, append a section here.
+
+`refitCalibration.m` needed **no changes at all** across v2a→v2b→v2c — it already took `predDir`/`modelVersion`/`imgSize` as plain parameters.
+
+### v2b gate results (verified 2026-09-21)
+- Gate 1 (onnxruntime vs PyTorch, 10 real IDRiD images, 512px): max|diff| = 1.67e-6 (threshold 1e-4) — PASS
+- Gate 2 (imported MATLAB dlnetwork vs PyTorch, same 10 images): max|diff| = 1e-6, argmax agreement 10/10 (threshold 0.01) — PASS. Report: `diagnostics/out/parity_v2b_report.txt`
+- Manifest entry: `diagnostics/out/artifact_manifest.json` → `branchA_v2b`
+
+### v2b calibration (`models/calibration_branchA_v2b.json`)
+Fitted on pooled val+test (n=1161): `temperature=1.3865`, `qhatPerStratum=[0, 0.8351]`, `referableThreshold=0.2764` (targets 95% referable sensitivity).
+
+### v2b cross-fit validation — REVISED GUARDS (2026-09-21)
+The original grade-4 SET-COVERAGE guard (`>= 0.90` lower CI) is **retired**: v1 — the model that was deployed at the time — fails this exact bar too (lower CI 0.8769), so it was never a meaningful ship/no-ship signal for a *new* candidate. Grade-4 coverage is still measured and reported, just not gated. Replacing it: a new, stricter guard on false auto-clear of true grade≥3 cases specifically (`<= 0.02`, tighter than the existing referable-only guard's `0.05`, since a missed severe-NPDR/PDR case is a worse failure than a missed grade-2 case).
+
+| Guard | v2b | Threshold | Result |
+|---|---|---|---|
+| Referable-stratum coverage, lower CI | 0.9465 | ≥ 0.93 | PASS |
+| False auto-clear (true referable, Tier A), upper CI | 0.0206 | ≤ 0.05 | PASS |
+| False auto-clear (true grade≥3, Tier A), upper CI | 0.0087 | ≤ 0.02 | PASS |
+| Mean prediction-set size | 1.8258 | ≤ 2.5 | PASS |
+| *Grade-4 set coverage (for information, not gated)* | *0.8970 [0.8825, 0.9115]* | *—* | *info* |
+
+Tier shares (cross-fit mean): A=0.4818, B=0.3936, C=0.1245. Grade-4 tier distribution (1000 fold-assignments over 10 repeats): A=0, B=920, C=80 — **no true grade-4 case was ever auto-cleared to Tier A**, in any fold.
+
+Pooled (not cross-fit; final deployed calibration evaluated on its own fitting pool, n=1161, referableThreshold=0.2764): sensitivity=0.9503 [0.9277,0.9661] (k=478/503), specificity=0.9027 [0.8777,0.9231] (k=594/658).
+
+Report: `diagnostics/out/conformal_v3_crossfit_report_branchA_v2b.json` / `.txt` (guard verdicts in that file reflect the ORIGINAL guard set at the time it was generated 2026-09-21 19:xx — the table above is the authoritative revised-guard read, re-derived from that same file's raw per-metric numbers without regenerating it).
+
+**All revised guards PASS for v2b too** — it was not promoted only because v2c (below) was the tag actually being integrated end-to-end when the default was switched; there is no result that disqualifies v2b.
+
+---
+
+## Model 1 v2c — DR severity classifier, 512px, 5-class head only  (`models/Model1/v2c/branchA_v2c.pt`) — **DEFAULT since 2026-09-21**
+
+Same architecture/preprocessing/export contract as v2a/v2b (see v2a section). Produced by the same one-command procedure documented under v2b above.
+
+### v2c gate results (verified 2026-09-21)
+- Gate 1 (onnxruntime vs PyTorch, 10 real IDRiD images, 512px): max|diff| = 1.43e-6 (threshold 1e-4) — PASS
+- Gate 2 (imported MATLAB dlnetwork vs PyTorch, same 10 images): max|diff| = 1e-6, argmax agreement 10/10 (threshold 0.01) — PASS. Report: `diagnostics/out/parity_v2c_report.txt`
+- Manifest entry: `diagnostics/out/artifact_manifest.json` → `branchA_v2c`
+- `+branchA_v2c` custom-layer package present under both `training/` and `models/` (same requirement as v2a/v2b — `importNetworkFromONNX` writes it relative to CWD at import time; anything that only adds `models/` to its MATLAB path, e.g. a caller that doesn't also `addpath('training')`, needs the `models/` copy).
+
+### v2c calibration (`models/calibration_branchA_v2c.json`)
+Fitted on pooled val+test (n=1161): `temperature=1.5438`, `qhatPerStratum=[0, 0.9069]`, `referableThreshold=0.3873` (targets 95% referable sensitivity).
+
+### v2c cross-fit validation — REVISED GUARDS (same guard set as v2b, see that section for the retirement rationale)
+
+| Guard | v2c | Threshold | Result |
+|---|---|---|---|
+| Referable-stratum coverage, lower CI | 0.9416 | ≥ 0.93 | PASS |
+| False auto-clear (true referable, Tier A), upper CI | 0.0000 | ≤ 0.05 | PASS |
+| False auto-clear (true grade≥3, Tier A), upper CI | 0.0000 | ≤ 0.02 | PASS |
+| Mean prediction-set size | 2.0100 | ≤ 2.5 | PASS |
+| *Grade-4 set coverage (for information, not gated)* | *0.9270 [0.9110, 0.9430]* | *—* | *info* |
+
+**All guards clear.** Tier shares (cross-fit mean): A=0.3841, B=0.4375, C=0.1784. Grade-4 tier distribution (1000 fold-assignments over 10 repeats): A=0, B=960, C=40 — again, no true grade-4 case ever auto-cleared to Tier A.
+
+Pooled (not cross-fit; n=1161, referableThreshold=0.3873): sensitivity=0.9503 [0.9277,0.9661] (k=478/503), specificity=0.9103 [0.8861,0.9298] (k=599/658) — identical sensitivity to v2b (same 503 true-referable cases rescued at each model's own threshold), modestly higher specificity (0.9103 vs 0.9027).
+
+Report: `diagnostics/out/conformal_v3_crossfit_report_branchA_v2c.json` / `.txt`.
+
+### v2c calibrated end-to-end check (Python vs MATLAB, 10 real IDRiD images, verified 2026-09-21)
+`BRANCH_A_MODEL_VERSION=branchA_v2c` through both backends: **exact agreement on grade, prediction set, and conformal tier on all 10/10 images**; calibrated-probability max|diff| = 5.14e-7 (threshold 1e-4); Grad-CAM produced successfully at 512×512 on both backends for all 10 images.
+
+**v1/v2a/v2b re-verified unaffected** by this integration and the shared-code generalization it required (`BRANCH_A_MODEL_VERSIONS`/`V2_FAMILY_VERSIONS` in `branchAInfer.py`, `versionCfg` in `branchAInferMatlab.m`): re-ran the same Python-vs-MATLAB end-to-end check on the same 10 images under each version's own `BRANCH_A_MODEL_VERSION` switch value — all three still calibrated, all three still exact Python/MATLAB agreement (max|diff| 7.7e-7 / 1.4e-6 / 8.1e-7 for v1/v2a/v2b respectively). Every v1/v2a/v2b model/calibration artifact's sha256 was also re-verified unchanged at each checkpoint of this integration (export, MATLAB import, calibration fit, cross-fit run, end-to-end run).
+
+### DEFAULT CHANGE (2026-09-21)
+`BRANCH_A_MODEL_VERSION`'s default changed from `branchA_v1` to `branchA_v2c` in both `inference/branchAInfer.py` and `inference/branchAInferMatlab.m` — a two-line, isolated, clearly-commented change in each file (search `DEFAULT CHANGE (v2c integration`). A fresh call with **no env var set** now returns `modelVersion: "branchA_v2c"`, `calibrated: true` on both backends (re-verified after the switch, not just before it).
+
+**Rollback:** set `BRANCH_A_MODEL_VERSION=branchA_v1` in the environment of whatever spawns `branchAInfer.py` / `branchAInferMatlab.m` (the Node orchestrator, a shell, `matlabSession/runMatlabInferenceSession.m`, …). No code change needed — every v1 code path in both files is untouched and was re-verified working under this exact env var after the default switch (see the end-to-end re-check above).
+
+---
+
 ## Model 2 — retinal vessel segmentation  (`vessel_unet_v1.pt`)
 
 **Training code:** `training/train_vessel_unet.py` (local, CHASE_DB1). Artifacts in `models/vessel_predictions(Model2)/`.

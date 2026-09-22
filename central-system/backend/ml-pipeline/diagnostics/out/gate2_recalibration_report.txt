@@ -1,0 +1,99 @@
+==============================================================================
+GATE 2: rule-threshold recalibration on IDRiD GRADING (v1 vs v2 counts)
+==============================================================================
+
+train n=251 (official split has 413; see the data-gap note in this file's docstring)   test n=103 (complete, 103/103)
+train grade counts: {0: 108, 1: 17, 2: 66, 3: 42, 4: 18}
+test  grade counts: {0: 34, 1: 5, 2: 32, 3: 19, 4: 13}
+
+==============================================================================
+VERSION v1 (red_q_v1)
+==============================================================================
+
+Fitted on TRAIN (n=251), Youden's J:
+  redFloor        =  8   J=0.660  sens=0.734  spec=0.926  (tp=105 fn=38 tn=100 fp=8)
+  grade3QuadMin   =  2   J=0.763  sens=0.883  spec=0.880  (tp=53 fn=7 tn=168 fp=23)
+  brightFloor     =  5   J=0.607  sens=0.727  spec=0.880  (tp=104 fn=39 tn=95 fp=13)
+    caveat: secondary/less-rigorous: fit as a standalone grade0-vs-rest noise floor on sum(bright), not jointly with redFloor the way the rule actually uses it (conditional on red already present)
+
+-- TRAIN (n=251) --
+  OLD constants  (redFloor=3, grade3QuadMin=3, brightFloor=1):
+    exact:   147/251 = 0.586  95% CI [0.524,0.645]
+    within1: 202/251 = 0.805  95% CI [0.751,0.849]
+  NEW recalibrated (redFloor=8, grade3QuadMin=2, brightFloor=5):
+    exact:   160/251 = 0.637  95% CI [0.576,0.694]
+    within1: 216/251 = 0.861  95% CI [0.812,0.898]
+    n per grade: {0: 108, 1: 17, 2: 66, 3: 42, 4: 18}
+    confusion matrix (rows=GT 0-4, cols=pred 0-3; pred can never be 4, RULE_MAX_GRADE=3):
+      GT=0: [100, 0, 7, 1]
+      GT=1: [15, 0, 2, 0]
+      GT=2: [23, 0, 21, 22]
+      GT=3: [0, 0, 3, 39]
+      GT=4: [0, 0, 4, 14]
+
+-- TEST (n=103) --
+  OLD constants  (redFloor=3, grade3QuadMin=3, brightFloor=1):
+    exact:   60/103 = 0.583  95% CI [0.486,0.673]
+    within1: 79/103 = 0.767  95% CI [0.677,0.838]
+  NEW recalibrated (redFloor=8, grade3QuadMin=2, brightFloor=5):
+    exact:   59/103 = 0.573  95% CI [0.476,0.664]
+    within1: 80/103 = 0.777  95% CI [0.687,0.846]
+    n per grade: {0: 34, 1: 5, 2: 32, 3: 19, 4: 13}
+    confusion matrix (rows=GT 0-4, cols=pred 0-3; pred can never be 4, RULE_MAX_GRADE=3):
+      GT=0: [30, 0, 3, 1]
+      GT=1: [4, 0, 1, 0]
+      GT=2: [10, 0, 14, 8]
+      GT=3: [2, 0, 2, 15]
+      GT=4: [1, 0, 6, 6]
+
+==============================================================================
+VERSION v2 (red_q_v2)
+==============================================================================
+
+Fitted on TRAIN (n=251), Youden's J:
+  redFloor        = 12   J=0.774  sens=0.783  spec=0.991  (tp=112 fn=31 tn=107 fp=1)
+  grade3QuadMin   =  4   J=0.737  sens=0.883  spec=0.853  (tp=53 fn=7 tn=163 fp=28)
+  brightFloor     =  5   J=0.607  sens=0.727  spec=0.880  (tp=104 fn=39 tn=95 fp=13)
+    caveat: secondary/less-rigorous: fit as a standalone grade0-vs-rest noise floor on sum(bright), not jointly with redFloor the way the rule actually uses it (conditional on red already present)
+
+-- TRAIN (n=251) --
+  OLD constants  (redFloor=3, grade3QuadMin=3, brightFloor=1):
+    exact:   115/251 = 0.458  95% CI [0.398,0.520]
+    within1: 187/251 = 0.745  95% CI [0.688,0.795]
+  NEW recalibrated (redFloor=12, grade3QuadMin=4, brightFloor=5):
+    exact:   169/251 = 0.673  95% CI [0.613,0.728]
+    within1: 229/251 = 0.912  95% CI [0.871,0.941]
+    n per grade: {0: 108, 1: 17, 2: 66, 3: 42, 4: 18}
+    confusion matrix (rows=GT 0-4, cols=pred 0-3; pred can never be 4, RULE_MAX_GRADE=3):
+      GT=0: [107, 0, 1, 0]
+      GT=1: [15, 0, 2, 0]
+      GT=2: [16, 0, 22, 28]
+      GT=3: [0, 0, 2, 40]
+      GT=4: [0, 0, 5, 13]
+
+-- TEST (n=103) --
+  OLD constants  (redFloor=3, grade3QuadMin=3, brightFloor=1):
+    exact:   37/103 = 0.359  95% CI [0.273,0.455]
+    within1: 73/103 = 0.709  95% CI [0.615,0.788]
+  NEW recalibrated (redFloor=12, grade3QuadMin=4, brightFloor=5):
+    exact:   62/103 = 0.602  95% CI [0.505,0.691]
+    within1: 84/103 = 0.816  95% CI [0.730,0.879]
+    n per grade: {0: 34, 1: 5, 2: 32, 3: 19, 4: 13}
+    confusion matrix (rows=GT 0-4, cols=pred 0-3; pred can never be 4, RULE_MAX_GRADE=3):
+      GT=0: [30, 0, 4, 0]
+      GT=1: [4, 0, 1, 0]
+      GT=2: [8, 0, 17, 7]
+      GT=3: [2, 0, 2, 15]
+      GT=4: [1, 0, 4, 8]
+
+==============================================================================
+IS THE EARLIER 71.4%-ON-14-IMAGES FIGURE SUPERSEDED?
+==============================================================================
+Old figure: rule_v2 vs ground truth, n=14, exact agreement 10/14 = 71.4%.
+This run, v1 counts, recalibrated thresholds, TEST (n=103): 57.3%  95% CI [47.6%,66.4%].
+SUPERSEDED: 71.4% falls OUTSIDE the 95% CI of the same-style (v1 counts) figure on 103 held-out test images. The n=14 figure should not be quoted as the current operating point.
+
+Wrote C:\Users\Tanuj\Desktop\Projects\DR_SCREENING\SIH_2026\central-system\backend\ml-pipeline\models\rule_thresholds_red_v2.json
+Saad must change (grading/ruleEngineGrade.m, NOT edited by this script):
+  - grading/ruleEngineGrade.m lines ~122-126: replace the getdef(...) DEFAULT VALUES for redFloor / grade3QuadMin / brightFloor with the values under this file's 'v1' key (if still running RED_LESION_MODEL_VERSION=v1) or 'v2' key (once v2 is the live red-lesion model) -- e.g. redFloor = getdef(opts, 'redFloor', <thresholds.v1.redFloor or v2.redFloor>).
+  - The docstring comments at lines ~49-69 (the 'measured on 14 validation images' justification) should be updated to cite this file's n and method instead, since the 14-image figure is superseded (see this report's own superseded_check section) -- but that text edit is Saad's call, not made here.

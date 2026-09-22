@@ -1,0 +1,87 @@
+==============================================================================
+conformalCrossFitValidation.py -- policy v3 cross-fit validation
+==============================================================================
+
+v2a pool: n=1161  grade counts={np.int64(0): np.int64(548), np.int64(1): np.int64(110), np.int64(2): np.int64(323), np.int64(3): np.int64(80), np.int64(4): np.int64(100)}
+v1  pool: n=1254  grade counts={np.int64(0): np.int64(592), np.int64(1): np.int64(119), np.int64(2): np.int64(350), np.int64(3): np.int64(86), np.int64(4): np.int64(107)}
+
+Running 10x5 cross-fit for branchA_v2a (the ship candidate) ...
+
+-- branchA_v2a: 50 folds --
+  mean_set_size                = 1.8871 [1.8658,1.9083]
+  frac_size1                   = 0.5171 [0.5082,0.5259]
+  frac_size2                   = 0.1296 [0.1237,0.1356]
+  frac_size_ge3                = 0.3533 [0.3429,0.3637]
+  tierA_share                  = 0.4564 [0.4523,0.4605]
+  tierB_share                  = 0.4160 [0.4115,0.4206]
+  tierC_share                  = 0.1276 [0.1216,0.1335]
+  coverage_marginal            = 0.9242 [0.9195,0.9289]
+  coverage per stratum:
+    non_referable   coverage=0.9035 [0.8977,0.9093]  mean_n_k=131.6  total_n_k=6580
+    referable       coverage=0.9513 [0.9438,0.9589]  mean_n_k=100.6  total_n_k=5030
+  coverage per grade:
+    grade 0  coverage=0.9489 [0.9443,0.9535]  mean_n_k=109.6  total_n_k=5480
+    grade 1  coverage=0.6773 [0.6487,0.7059]  mean_n_k=22.0  total_n_k=1100
+    grade 2  coverage=0.9685 [0.9619,0.9750]  mean_n_k=64.6  total_n_k=3230
+    grade 3  coverage=0.9337 [0.9168,0.9507]  mean_n_k=16.0  total_n_k=800
+    grade 4  coverage=0.9100 [0.8933,0.9267]  mean_n_k=20.0  total_n_k=1000
+  false auto-clear (on the conformal SET, before Tier/override logic):
+    true referable  = 0.0064 [0.0041,0.0086]
+    true grade>=3   = 0.0000 [0.0000,0.0000]
+  false auto-clear (on the FINAL Tier A label -- includes the referableThreshold gate):
+    true referable  = 0.0064 [0.0041,0.0086]
+    true grade>=3   = 0.0000 [0.0000,0.0000]
+  referable sens/spec at fold-fitted referableThreshold: sens=0.9477 [0.9410,0.9544]  spec=0.9011 [0.8965,0.9056]
+
+Running 10x5 cross-fit for branchA_v1 (comparison) ...
+
+-- branchA_v1: 50 folds --
+  mean_set_size                = 1.9698 [1.9576,1.9820]
+  frac_size1                   = 0.4870 [0.4818,0.4922]
+  frac_size2                   = 0.1181 [0.1134,0.1228]
+  frac_size_ge3                = 0.3949 [0.3883,0.4015]
+  tierA_share                  = 0.4454 [0.4411,0.4496]
+  tierB_share                  = 0.4019 [0.3971,0.4067]
+  tierC_share                  = 0.1527 [0.1476,0.1578]
+  coverage_marginal            = 0.9371 [0.9322,0.9419]
+  coverage per stratum:
+    non_referable   coverage=0.9258 [0.9193,0.9322]  mean_n_k=142.2  total_n_k=7110
+    referable       coverage=0.9519 [0.9464,0.9575]  mean_n_k=108.6  total_n_k=5430
+  coverage per grade:
+    grade 0  coverage=0.9713 [0.9665,0.9761]  mean_n_k=118.4  total_n_k=5920
+    grade 1  coverage=0.6990 [0.6727,0.7253]  mean_n_k=23.8  total_n_k=1190
+    grade 2  coverage=0.9729 [0.9680,0.9777]  mean_n_k=70.0  total_n_k=3500
+    grade 3  coverage=0.9395 [0.9270,0.9521]  mean_n_k=17.2  total_n_k=860
+    grade 4  coverage=0.8932 [0.8769,0.9096]  mean_n_k=21.4  total_n_k=1070
+  false auto-clear (on the conformal SET, before Tier/override logic):
+    true referable  = 0.0129 [0.0097,0.0161]
+    true grade>=3   = 0.0052 [0.0022,0.0082]
+  false auto-clear (on the FINAL Tier A label -- includes the referableThreshold gate):
+    true referable  = 0.0129 [0.0097,0.0161]
+    true grade>=3   = 0.0052 [0.0022,0.0082]
+  referable sens/spec at fold-fitted referableThreshold: sens=0.9497 [0.9429,0.9566]  spec=0.8757 [0.8680,0.8834]
+
+==============================================================================
+GRADE-4 TIER DISTRIBUTION (v2a, cross-fit: aggregated over all folds)
+==============================================================================
+grade-4 (n=100 total across the pool, each case appears in exactly 1 of the 10 repeats' folds -> 1000 tier assignments over 10 repeats):
+  {'A': 0, 'B': 940, 'C': 60}
+
+==============================================================================
+FOUR NAMED TRUE-PDR CASES THE ARGMAX RULE MISSED (final deployed calibration)
+==============================================================================
+  aptos_aptos__4bd941611343_512: true_grade=4  argmax_grade=1  P(g>=2)=0.1262  tier=C  set=[1, 2, 3, 4]  referableThreshold=0.3246  RESCUED (not Tier A)
+  aptos_aptos__bfdee9be1f1d_512: true_grade=4  argmax_grade=0  P(g>=2)=0.2992  tier=C  set=[0, 1, 2, 3, 4]  referableThreshold=0.3246  RESCUED (not Tier A)
+  aptos_aptos__eaa0dfbd5024_512: true_grade=4  argmax_grade=1  P(g>=2)=0.3246  tier=C  set=[1, 2]  referableThreshold=0.3246  RESCUED (not Tier A)
+  aptos_aptos__fce93caa4758_512: true_grade=4  argmax_grade=1  P(g>=2)=0.4093  tier=C  set=[1, 2]  referableThreshold=0.3246  RESCUED (not Tier A)
+
+==============================================================================
+GUARD CHECK (branchA_v2a cross-fit numbers)
+==============================================================================
+referable-stratum coverage lower CI: 0.9438  (guard: >= 0.93)
+grade-4 coverage lower CI:           0.8933  (guard: >= 0.9)
+false auto-clear (referable) upper CI (Tier A): 0.0086  (guard: <= 0.05)
+mean set size:                       1.8871  (guard: <= 2.5)
+
+*** GUARD TRIPPED -- REPORTING INSTEAD OF FINISHING ***
+  - grade-4 coverage lower CI (0.8933) < 0.9

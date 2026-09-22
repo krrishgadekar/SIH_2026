@@ -1,0 +1,90 @@
+==============================================================================
+MESSIDOR-2 EXTERNAL-SHIFT STRESS TEST OF THE v2c PIPELINE
+parts run: ['B', 'D']
+==============================================================================
+Messidor-2: n=1744, 874 patients   in-domain: val n=533, test n=628
+
+==============================================================================
+PART B (v2c): PRODUCTION-INSTALLED POLICY UNDER SHIFT
+==============================================================================
+Shipped calibration: C:\Users\Tanuj\Desktop\Projects\DR_SCREENING\SIH_2026\central-system\backend\ml-pipeline\models\calibration_branchA_v2c.json
+  method=ordinal_mode_interval_stratified_v3  modelVersion=branchA_v2c  temperature=1.5438  qhatPerStratum=[0, 0.9069146184928477]  alphaPerStratum=[0.3, 0.05]  referableThreshold=0.3873
+  fittedOn='pooled val+test, n=1161 (val=533, test=628)'  fittedAt='2026-09-21T14:33:48Z'
+
+Patient split: SELECTION (even patient_id) = 872 images / 437 patients; REPORT (odd patient_id) = 872 images / 437 patients
+
+--- SELECTION half (n=872) -- PRODUCTION-INSTALLED policy, exactly as shipped ---
+  mean set size        : 2.2856  (size1=0.3911 size2=0.0241 size>=3=0.5849)
+  Tier A/B/C shares    : 0.3647 / 0.2500 / 0.3853
+  coverage (marginal)  : 0.8521
+  false auto-clear (on FINAL Tier A label, denom=true count):
+    true referable (>=2): 9/239 = 0.0377
+    true grade>=3        : 0/65 = 0.0000
+  referable sens/spec at SHIPPED referableThreshold (0.3873): sens=0.7615  spec=0.9131  AUC=0.9164
+  95% CI (patient-level bootstrap, n_boot=2000):
+    tierA_share                  [0.3276, 0.4025]
+    tierB_share                  [0.2138, 0.2870]
+    tierC_share                  [0.3506, 0.4209]
+    coverage_marginal            [0.8270, 0.8770]
+    false_autoclear_tierA_ref_rate [0.0146, 0.0631]
+    false_autoclear_tierA_ge3_rate [0.0000, 0.0000]
+    referableThreshold_sens      [0.6983, 0.8207]
+    referableThreshold_spec      [0.8896, 0.9353]
+
+--- REPORT half (n=872) -- PRODUCTION-INSTALLED policy, exactly as shipped ---
+  mean set size        : 2.3005  (size1=0.3865 size2=0.0252 size>=3=0.5883)
+  Tier A/B/C shares    : 0.3647 / 0.2202 / 0.4151
+  coverage (marginal)  : 0.8704
+  false auto-clear (on FINAL Tier A label, denom=true count):
+    true referable (>=2): 5/218 = 0.0229
+    true grade>=3        : 0/45 = 0.0000
+  referable sens/spec at SHIPPED referableThreshold (0.3873): sens=0.7523  spec=0.9388  AUC=0.9237
+  95% CI (patient-level bootstrap, n_boot=2000):
+    tierA_share                  [0.3242, 0.4067]
+    tierB_share                  [0.1844, 0.2552]
+    tierC_share                  [0.3750, 0.4541]
+    coverage_marginal            [0.8458, 0.8935]
+    false_autoclear_tierA_ref_rate [0.0047, 0.0441]
+    false_autoclear_tierA_ge3_rate [0.0000, 0.0000]
+    referableThreshold_sens      [0.6861, 0.8143]
+    referableThreshold_spec      [0.9181, 0.9579]
+
+SIDE BY SIDE: in-domain cross-fit (conformal_v3_crossfit_report_branchA_v2c.json) vs Messidor-2 (single shipped fit applied to each half):
+  metric                            in-domain (cross-fit)   Messidor-2 SELECTION    Messidor-2 REPORT
+  mean_set_size                                    2.0100                 2.2856               2.3005
+  tierA_share                                      0.3841                 0.3647               0.3647
+  tierB_share                                      0.4375                 0.2500               0.2202
+  tierC_share                                      0.1784                 0.3853               0.4151
+  coverage_marginal                                0.9236                 0.8521               0.8704
+  false_autoclear_tierA_ref_rate                   0.0000                 0.0377               0.0229
+  false_autoclear_tierA_ge3_rate                   0.0000                 0.0000               0.0000
+  referableThreshold_sens                          0.9458                 0.7615               0.7523
+  referableThreshold_spec                          0.9131                 0.9131               0.9388
+
+==============================================================================
+PART D: SITE-CALIBRATION EXPERIMENT -- ADAPTATION, NOT GENERALIZATION
+(Messidor-2 labels ARE used to fit a threshold in this part, on purpose)
+==============================================================================
+Half A (even patient_id): 872 images, 437 patients
+Half B (odd patient_id): 872 images, 437 patients
+
+A -> B (lock threshold on A's own labels, apply UNCHANGED to B):
+  A->B: threshold=0.0352  cal_sens=0.9540  cal_spec=0.4976
+    eval sens=0.9725 (95% CI [0.9500,0.9912])  spec=0.4969 (95% CI [0.4497,0.5472])  AUC(cal half)=0.9158  AUC(eval half)=0.9235
+
+B -> A (lock threshold on B's own labels, apply UNCHANGED to A):
+  B->A: threshold=0.0515  cal_sens=0.9541  cal_spec=0.5872
+    eval sens=0.9372 (95% CI [0.9067,0.9672])  spec=0.5877 (95% CI [0.5435,0.6310])  AUC(cal half)=0.9235  AUC(eval half)=0.9158
+
+Subsampling random subsets of A's patients at n in {50,100,200,400} (20 repeats each), always evaluated on the FULL half B:
+  n_patients=  50 (valid repeats=20/20): sens mean=0.9436 std=0.0493 [0.7844,0.9862]   spec mean=0.5612 std=0.1566 [0.3838,0.9174]
+  n_patients= 100 (valid repeats=20/20): sens mean=0.9532 std=0.0287 [0.8853,0.9817]   spec mean=0.5476 std=0.1064 [0.4373,0.7936]
+  n_patients= 200 (valid repeats=20/20): sens mean=0.9555 std=0.0228 [0.9128,0.9771]   spec mean=0.5447 std=0.0763 [0.4648,0.7202]
+  n_patients= 400 (valid repeats=20/20): sens mean=0.9644 std=0.0074 [0.9541,0.9725]   spec mean=0.5131 std=0.0176 [0.4954,0.5505]
+
+==============================================================================
+CLOSING STATEMENTS
+==============================================================================
+(closing statements require parts A, B, and D - skipped since not all were run)
+
+Wrote C:\Users\Tanuj\Desktop\Projects\DR_SCREENING\SIH_2026\central-system\backend\ml-pipeline\diagnostics\out\messidor2_shift_stress_test_v2c.json

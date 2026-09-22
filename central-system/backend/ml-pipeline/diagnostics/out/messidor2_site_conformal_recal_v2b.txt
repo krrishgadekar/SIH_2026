@@ -1,0 +1,52 @@
+==============================================================================
+PART E (v2b): SITE CONFORMAL RECALIBRATION -- ADAPTATION EXPERIMENT
+(Messidor-2 labels ARE used to refit the production calibration in this part, on purpose)
+==============================================================================
+Half A (even patient_id, SELECTION): 872 images, 437 patients
+Half B (odd patient_id, REPORT): 872 images, 437 patients
+assign_tier_fast verified against inference/branchAInfer.assign_tier (200 random rows, shipped calibration) -- safe to use for the repeats below.
+
+Subsampling calibration subsets of half A's patients at n in [50, 100, 200, 400] (20 repeats each, sampled without replacement). Production calibration (temperature + stratified qhat + referableThreshold, calibrateBranchA.m's own fitting procedure, via its already-validated Python port) is refit on the SITE subset alone and applied to the FULL, fixed half B via assign_tier_fast:
+  n_patients=  50 (repeats=20/20, mean referableThreshold=0.1141, referableThreshold saturated 0/20):
+    coverage marginal   mean=0.9238 std=0.0416
+    mean set size       mean=2.5860 std=0.6713
+    Tier A/B/C shares   A: mean=0.3338 std=0.1899  B: mean=0.1611 std=0.0077  C: mean=0.5051 std=0.1890
+    false auto-clear (final Tier A)  true referable: mean=0.0401 std=0.0379  true grade>=3: mean=0.0000 std=0.0000
+    referable sens/spec at refit threshold  sens: mean=0.9328 std=0.0468  spec: mean=0.6034 std=0.1598
+  n_patients= 100 (repeats=20/20, mean referableThreshold=0.0998, referableThreshold saturated 0/20):
+    coverage marginal   mean=0.9360 std=0.0254
+    mean set size       mean=2.5935 std=0.3965
+    Tier A/B/C shares   A: mean=0.3031 std=0.1382  B: mean=0.1610 std=0.0080  C: mean=0.5359 std=0.1391
+    false auto-clear (final Tier A)  true referable: mean=0.0284 std=0.0225  true grade>=3: mean=0.0000 std=0.0000
+    referable sens/spec at refit threshold  sens: mean=0.9530 std=0.0246  spec: mean=0.5138 std=0.1543
+  n_patients= 200 (repeats=20/20, mean referableThreshold=0.1003, referableThreshold saturated 0/20):
+    coverage marginal   mean=0.9179 std=0.0194
+    mean set size       mean=2.3088 std=0.2095
+    Tier A/B/C shares   A: mean=0.4029 std=0.0830  B: mean=0.1628 std=0.0000  C: mean=0.4342 std=0.0830
+    false auto-clear (final Tier A)  true referable: mean=0.0447 std=0.0168  true grade>=3: mean=0.0000 std=0.0000
+    referable sens/spec at refit threshold  sens: mean=0.9466 std=0.0160  spec: mean=0.5754 std=0.0863
+  n_patients= 400 (repeats=20/20, mean referableThreshold=0.0951, referableThreshold saturated 0/20):
+    coverage marginal   mean=0.9194 std=0.0058
+    mean set size       mean=2.3209 std=0.0688
+    Tier A/B/C shares   A: mean=0.3962 std=0.0266  B: mean=0.1628 std=0.0000  C: mean=0.4410 std=0.0266
+    false auto-clear (final Tier A)  true referable: mean=0.0443 std=0.0046  true grade>=3: mean=0.0000 std=0.0000
+    referable sens/spec at refit threshold  sens: mean=0.9525 std=0.0022  spec: mean=0.5381 std=0.0210
+
+Full 437-patient swap (production calibration refit on the FULL half, applied to the OTHER full half; both directions):
+  full A(437) -> full B(437): T=1.7791  qhatPerStratum=[0.0, 0.9085]  referableThreshold=0.0915  (n_cal=872, n_cal_referable=239)
+    coverage marginal=0.9174  mean_set_size=2.2947  Tier A/B/C=0.4060/0.1628/0.4312
+    coverage per stratum: non-referable=0.9052  referable=0.9541
+    false auto-clear (final Tier A): true referable=0.0459 (10/218)  true grade>=3=0.0000 (0/45)
+    referable sens/spec at refit threshold: sens=0.9541  spec=0.5260
+  full B(437) -> full A(437): T=1.7370  qhatPerStratum=[0.0, 0.9144]  referableThreshold=0.0886  (n_cal=872, n_cal_referable=218)
+    coverage marginal=0.9128  mean_set_size=2.3268  Tier A/B/C=0.3807/0.1927/0.4266
+    coverage per stratum: non-referable=0.8957  referable=0.9582
+    false auto-clear (final Tier A): true referable=0.0418 (10/239)  true grade>=3=0.0154 (1/65)
+    referable sens/spec at refit threshold: sens=0.9498  spec=0.5276
+
+'Unvalidated camera rule' (the 0-labelled-site-patients anchor point): apply the SHIPPED production calibration UNCHANGED to the REPORT half, but refuse Tier A outright -- every would-be Tier A case is demoted to Tier B:
+  shipped policy REPORT half: Tier A/B/C = 0.6594/0.1628/0.1778  false-auto-clear true referable=0.1284 (28/218)
+  camera-rule REPORT half:    Tier A/B/C = 0.0000/0.8222/0.1778  false-auto-clear true referable=0.0000 (0/218) (no auto-clear happens at all, so nothing can be falsely auto-cleared)
+  workload cost: 575/872 = 0.6594 of cases move from auto-clear to assisted review -- exactly the shipped policy's own Tier A share/count on this half.
+
+Wrote C:\Users\Tanuj\Desktop\Projects\DR_SCREENING\SIH_2026\central-system\backend\ml-pipeline\diagnostics\out\messidor2_site_conformal_recal_v2b.json

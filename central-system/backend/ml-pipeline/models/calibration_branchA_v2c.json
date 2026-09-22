@@ -1,0 +1,32 @@
+{
+  "method": "ordinal_mode_interval_stratified_v3",
+  "modelVersion": "branchA_v2c",
+  "trainedImgSize": 512,
+  "temperature": 1.5437778038856966,
+  "stratumOf": [
+    0,
+    0,
+    1,
+    1,
+    1
+  ],
+  "qhatPerStratum": [
+    0,
+    0.90691461849284771
+  ],
+  "alphaPerStratum": [
+    0.3,
+    0.05
+  ],
+  "nCalPerStratum": [
+    658,
+    503
+  ],
+  "referableThreshold": 0.38729477683890751,
+  "referableTargetSensitivity": 0.05,
+  "referableFrom": 2,
+  "fittedOn": "pooled val+test, n=1161 (val=533, test=628)",
+  "fittedAt": "2026-09-21T14:33:48Z",
+  "calibrationProtocol": "pooled val+test; validated by cross-fitting",
+  "note": "fitted by calibrateBranchA.m (score v3, referable-stratified Mondrian). Do not hand-edit: temperature, qhatPerStratum and referableThreshold come from one fit on one pool and are only jointly meaningful. Replaces the v2 per-class schema (ordinal_mode_interval_mondrian_v2, qhatPerClass) -- both loaders (branchAInfer.py, branchAInferMatlab.m) refuse a file whose method differs, including v2 and the archived marginal-LAC schema."
+}
