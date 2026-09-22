@@ -25,8 +25,31 @@ Reuses, unmodified:
     are read as the in-domain reference, not recomputed here.
 
 Usage:
-    python experiments/messidor2ShiftStressTest.py               # all parts
-    python experiments/messidor2ShiftStressTest.py --parts A,C   # subset
+    python experiments/messidor2ShiftStressTest.py                        # all parts, v2a (unchanged)
+    python experiments/messidor2ShiftStressTest.py --parts A,C            # subset, v2a
+    python experiments/messidor2ShiftStressTest.py --tag v2b              # parts B,D for v2b (A/C not
+                                                                            # generalized -- see --tag below)
+
+── --tag (GENERALIZE) ───────────────────────────────────────────────────────
+--tag TAG selects which branchA_v2* checkpoint's Messidor-2 predictions are
+evaluated (default 'v2a', which is BYTE-IDENTICAL to this script's original,
+unparameterised behaviour -- same cache file, same Part B algorithm, same
+default parts A,B,C,D). For any other tag, the default parts become B,D
+(Parts A/C are not generalized -- they lean on v2a-specific IDRiD-raw-file
+inspection this task did not ask to extend; requesting A or C for a non-v2a
+tag is a hard error, not a silent v2a fallback).
+
+For tag != v2a, Part B is NOT the C5v3-sweep replica v2a's Part B is (that
+replica is explicitly NOT the current production policy -- see
+evalMessidor2Candidate.py's own docstring). It is the PRODUCTION-INSTALLED
+policy instead: models/calibration_branchA_<tag>.json, exactly as shipped
+(fitted by calibrateBranchA.m on that model's own pooled in-domain
+val+test), applied through inference/branchAInfer.assign_tier() -- the real
+production tiering function -- using that file's own shipped
+referableThreshold. It is reported on the SELECTION half and the REPORT
+half SEPARATELY (evalMessidor2Candidate.py's peek-proof patient-parity
+split), not pooled, so a number that already influenced candidate selection
+is never silently blended into the one the submission may quote.
 """
 import os
 import sys
@@ -48,9 +71,15 @@ sys.path.insert(0, str(HERE))
 import evalMessidor2V2a as ev            # noqa: E402  (ben_graham_preprocess, path resolution, softmax)
 import evalV2aPostHoc as posthoc         # noqa: E402  (VAL-lock logic)
 import conformalPolicySweep2 as cps      # noqa: E402  (C5v3 policy fit/eval)
+import conformalCrossFitValidation as ccv  # noqa: E402  (fold_metrics/evaluate_fold -- same field names as the
+                                            # in-domain cross-fit report, for a same-keys side-by-side)
 
 PIPELINE_DIR = HERE.parent
-V2A_DIR = PIPELINE_DIR / "models" / "Model1" / "v2a"
+sys.path.insert(0, str(PIPELINE_DIR / "inference"))
+from branchAInfer import assign_tier, EXPECTED_CALIB_METHOD  # noqa: E402  (production tiering, exactly as shipped)
+
+MODEL1_DIR = PIPELINE_DIR / "models" / "Model1"
+V2A_DIR = MODEL1_DIR / "v2a"
 MESSIDOR_ROOT = ev.MESSIDOR_ROOT
 MANIFEST_CSV = ev.MANIFEST_CSV
 OUT_DIR = PIPELINE_DIR / "diagnostics" / "out"
@@ -77,23 +106,45 @@ def softmax(x):
 # ===========================================================================
 # SHARED: load everything once
 # ===========================================================================
-def load_messidor():
+def load_messidor(tag="v2a"):
+    """tag='v2a' (default) is BYTE-IDENTICAL to this function's original,
+    unparameterised behaviour: same cache file (messidor2_v2a_logits.npy,
+    the dict-shaped cache evalMessidor2V2a.py itself writes), same assert.
+
+    Any other tag reads the cache convention evalMessidor2Candidate.py
+    writes instead (messidor2_<tag>_logits5.npy + messidor2_<tag>_ids.npy --
+    plain arrays, no dict) -- that script is what produced those caches for
+    v2b/v2c, and this one does not reimplement that inference path."""
     manifest = pd.read_csv(MANIFEST_CSV)
     assert manifest["gradable"].eq(1).all()
-    cached = np.load(LOGITS_CACHE, allow_pickle=True).item()
-    assert list(cached["image_path"]) == list(manifest["image_path"]), \
-        "cached logits do not align with the current manifest order - rerun evalMessidor2V2a.py"
-    logits5 = cached["logits5"].astype(np.float64)
+    if tag == "v2a":
+        cached = np.load(LOGITS_CACHE, allow_pickle=True).item()
+        assert list(cached["image_path"]) == list(manifest["image_path"]), \
+            "cached logits do not align with the current manifest order - rerun evalMessidor2V2a.py"
+        logits5 = cached["logits5"].astype(np.float64)
+    else:
+        ids_path = OUT_DIR / f"messidor2_{tag}_ids.npy"
+        logits5_path = OUT_DIR / f"messidor2_{tag}_logits5.npy"
+        if not (ids_path.is_file() and logits5_path.is_file()):
+            raise FileNotFoundError(
+                f"No Messidor-2 logits cache for tag={tag!r} ({logits5_path} / {ids_path}) -- "
+                f"run experiments/evalMessidor2Candidate.py --checkpoint models/Model1/{tag}/branchA_{tag}.pt "
+                f"--tag {tag} first (this script does not run inference itself for a non-v2a tag).")
+        cached_ids = np.load(ids_path, allow_pickle=True).tolist()
+        assert cached_ids == list(manifest["image_path"]), \
+            f"cached logits for tag={tag!r} do not align with the current manifest order"
+        logits5 = np.load(logits5_path).astype(np.float64)
     return manifest.reset_index(drop=True), logits5
 
 
-def load_indomain_val_test():
-    val_ids = np.load(V2A_DIR / "branchA_v2a_val_ids.npy", allow_pickle=True)
-    val_labels = np.load(V2A_DIR / "branchA_v2a_val_labels.npy").astype(int)
-    val_logits5 = np.load(V2A_DIR / "branchA_v2a_val_logits.npy").astype(np.float64)
-    test_ids = np.load(V2A_DIR / "branchA_v2a_test_ids.npy", allow_pickle=True)
-    test_labels = np.load(V2A_DIR / "branchA_v2a_test_labels.npy").astype(int)
-    test_logits5 = np.load(V2A_DIR / "branchA_v2a_test_logits.npy").astype(np.float64)
+def load_indomain_val_test(tag="v2a"):
+    d = MODEL1_DIR / tag
+    val_ids = np.load(d / f"branchA_{tag}_val_ids.npy", allow_pickle=True)
+    val_labels = np.load(d / f"branchA_{tag}_val_labels.npy").astype(int)
+    val_logits5 = np.load(d / f"branchA_{tag}_val_logits.npy").astype(np.float64)
+    test_ids = np.load(d / f"branchA_{tag}_test_ids.npy", allow_pickle=True)
+    test_labels = np.load(d / f"branchA_{tag}_test_labels.npy").astype(int)
+    test_logits5 = np.load(d / f"branchA_{tag}_test_logits.npy").astype(np.float64)
     return {"val_ids": val_ids, "val_labels": val_labels, "val_logits5": val_logits5,
            "test_ids": test_ids, "test_labels": test_labels, "test_logits5": test_logits5}
 
@@ -564,6 +615,232 @@ def run_part_b(manifest, logits5, indomain):
 
 
 # ===========================================================================
+# PART B (tag != v2a): PRODUCTION-INSTALLED POLICY UNDER SHIFT
+#
+# Unlike run_part_b above (v2a, unchanged -- the C5v3-sweep replica from
+# conformalPolicySweep2.py), this evaluates the ACTUAL shipped artefact:
+# models/calibration_branchA_<tag>.json (fitted by calibrateBranchA.m on
+# that model's own pooled in-domain val+test, exactly as shipped) applied
+# through inference/branchAInfer.assign_tier() -- the real production
+# tiering function, not a parallel reimplementation -- using that file's
+# own shipped referableThreshold. Reported on the SELECTION half and the
+# REPORT half SEPARATELY (evalMessidor2Candidate.py's peek-proof patient-
+# parity split: even patient_id = SELECTION, odd = REPORT), because the
+# report half is the one the submission may quote and the selection half
+# is the one already used for candidate selection -- conflating them would
+# quietly leak the report half into a number that influenced picking the
+# model.
+# ===========================================================================
+def load_shipped_calibration(tag):
+    """Reads models/calibration_branchA_<tag>.json DIRECTLY (not via
+    branchAInfer.load_calibration, which is locked to whatever
+    BRANCH_A_MODEL_VERSION the process's env var says at IMPORT time --
+    this script may report on a tag that differs from that default).
+    Replicates load_calibration's own hard-refusal guards so a wrong-method,
+    wrong-version, or malformed file is caught here too, not silently
+    misapplied."""
+    path = PIPELINE_DIR / "models" / f"calibration_branchA_{tag}.json"
+    if not path.is_file():
+        raise FileNotFoundError(f"No shipped calibration for tag={tag!r} at {path}")
+    with open(path) as f:
+        c = json.load(f)
+    if c.get("method") != EXPECTED_CALIB_METHOD:
+        raise ValueError(f"{path.name} has method={c.get('method')!r}, expected {EXPECTED_CALIB_METHOD!r} "
+                         "-- refusing to apply it as 'the production policy'.")
+    if c.get("modelVersion") != f"branchA_{tag}":
+        raise ValueError(f"{path.name} has modelVersion={c.get('modelVersion')!r}, expected 'branchA_{tag}'.")
+    if not isinstance(c.get("qhatPerStratum"), list) or len(c["qhatPerStratum"]) != 2:
+        raise ValueError(f"{path.name}: qhatPerStratum missing or malformed.")
+    if not isinstance(c.get("stratumOf"), list) or len(c["stratumOf"]) != NUM_CLASSES:
+        raise ValueError(f"{path.name}: stratumOf missing or malformed.")
+    if not isinstance(c.get("referableThreshold"), (int, float)):
+        raise ValueError(f"{path.name}: referableThreshold missing.")
+    c["calibrated"] = True
+    return c, path
+
+
+def assign_tier_fast(probs, qhat_per_stratum, stratum_of, referable_threshold, eps=1e-9):
+    """Vectorised equivalent of branchAInfer.assign_tier for method
+    ordinal_mode_interval_stratified_v3 -- same score formula as
+    evalMessidor2Candidate.evaluate_ordinal_fast, different membership
+    (per-STRATUM qhat, not per-class) and an added referable-threshold
+    safety gate (Tier A -> B demotion). Used ONLY inside the 2000x
+    bootstrap; the headline point estimates below call assign_tier()
+    itself, per row. Correctness verified once against assign_tier() before
+    first use (see verify_production_tier_fast)."""
+    n = probs.shape[0]
+    max_val = probs.max(axis=1, keepdims=True)
+    is_max = probs == max_val
+    mode = NUM_CLASSES - 1 - is_max[:, ::-1].argmax(axis=1)  # ties -> higher grade
+    cdf = np.hstack([np.zeros((n, 1)), np.cumsum(probs, axis=1)])
+    rows = np.arange(n)
+
+    scores = np.zeros((n, NUM_CLASSES))
+    for k in range(NUM_CLASSES):
+        lo_k = np.minimum(mode, k)
+        hi_k = np.maximum(mode, k)
+        interval = cdf[rows, hi_k + 1] - cdf[rows, lo_k]
+        scores[:, k] = interval - probs[:, k]
+    scores[rows, mode] = 0.0
+
+    qhat_per_class = np.array([qhat_per_stratum[stratum_of[k]] for k in range(NUM_CLASSES)])
+    in_set = scores <= (qhat_per_class[None, :] + eps)
+    in_set[rows, mode] = True
+    cols = np.arange(NUM_CLASSES)
+    lo = np.where(in_set, cols, NUM_CLASSES).min(axis=1)
+    hi = np.where(in_set, cols, -1).max(axis=1)
+
+    p_ref = probs[:, 2] + probs[:, 3] + probs[:, 4]
+    auto_clearable = hi < REFERABLE_FROM
+    gated = p_ref >= (referable_threshold - eps)
+    tier = np.where(auto_clearable & gated, "B",
+           np.where(auto_clearable & ~gated, "A",
+           np.where(lo >= REFERABLE_FROM, "B", "C")))
+    return {"tier": tier, "low": lo, "high": hi, "set_size": hi - lo + 1, "p_referable": p_ref}
+
+
+def verify_production_tier_fast(probs, calib, n_check=200, seed=0):
+    idx = np.random.default_rng(seed).choice(len(probs), size=min(n_check, len(probs)), replace=False)
+    qhat = [float(v) for v in calib["qhatPerStratum"]]
+    stratum_of = [int(v) for v in calib["stratumOf"]]
+    thr = float(calib["referableThreshold"])
+    fast = assign_tier_fast(probs[idx], qhat, stratum_of, thr)
+    for j, i in enumerate(idx):
+        tier, _pred_set, _reason, lo, hi, _c = assign_tier(list(probs[i]), calib)
+        if tier != fast["tier"][j] or lo != fast["low"][j] or hi != fast["high"][j]:
+            raise RuntimeError("assign_tier_fast does NOT match branchAInfer.assign_tier -- do not use "
+                               "it for the bootstrap until this is fixed.")
+    return True
+
+
+def production_policy_half_report(label, y_true, probs, patient_ids, calib, n_boot=N_BOOT, seed=SEED):
+    qhat = [float(v) for v in calib["qhatPerStratum"]]
+    stratum_of = [int(v) for v in calib["stratumOf"]]
+    thr = float(calib["referableThreshold"])
+
+    # ---- point estimate: the literal production function, looped per row ----
+    n = len(y_true)
+    eval_out = {"set_size": np.zeros(n, dtype=int), "tier": np.empty(n, dtype="<U1"),
+               "low": np.zeros(n, dtype=int), "high": np.zeros(n, dtype=int)}
+    for i in range(n):
+        tier, pred_set, _reason, lo, hi, _c = assign_tier(list(probs[i]), calib)
+        eval_out["tier"][i] = tier
+        eval_out["low"][i] = lo
+        eval_out["high"][i] = hi
+        eval_out["set_size"][i] = len(pred_set)
+    metrics = ccv.fold_metrics(eval_out, y_true)  # same field names as the in-domain cross-fit report
+
+    p_ref = probs[:, 2] + probs[:, 3] + probs[:, 4]
+    ref_true = y_true >= REFERABLE_FROM
+    thr_sens, thr_spec, thr_auc = sens_spec_auc(ref_true, p_ref >= thr, p_ref)
+
+    out(f"\n--- {label} (n={n}) -- PRODUCTION-INSTALLED policy, exactly as shipped ---")
+    out(f"  mean set size        : {metrics['mean_set_size']:.4f}  "
+       f"(size1={metrics['frac_size1']:.4f} size2={metrics['frac_size2']:.4f} size>=3={metrics['frac_size_ge3']:.4f})")
+    out(f"  Tier A/B/C shares    : {metrics['tierA_share']:.4f} / {metrics['tierB_share']:.4f} / {metrics['tierC_share']:.4f}")
+    out(f"  coverage (marginal)  : {metrics['coverage_marginal']:.4f}")
+    out(f"  false auto-clear (on FINAL Tier A label, denom=true count):")
+    out(f"    true referable (>=2): {metrics['false_autoclear_tierA_ref_k']}/{metrics['false_autoclear_tierA_ref_n']} "
+       f"= {metrics['false_autoclear_tierA_ref_rate']:.4f}")
+    out(f"    true grade>=3        : {metrics['false_autoclear_tierA_ge3_k']}/{metrics['false_autoclear_tierA_ge3_n']} "
+       f"= {metrics['false_autoclear_tierA_ge3_rate']:.4f}")
+    out(f"  referable sens/spec at SHIPPED referableThreshold ({thr:.4f}): "
+       f"sens={thr_sens:.4f}  spec={thr_spec:.4f}  AUC={thr_auc:.4f}")
+
+    # ---- patient-level bootstrap CIs (fast vectorised replica, verified above) ----
+    def metric_fn(idx):
+        sub_labels, sub_probs = y_true[idx], probs[idx]
+        ev = assign_tier_fast(sub_probs, qhat, stratum_of, thr)
+        sub_ref, sub_ge3 = sub_labels >= REFERABLE_FROM, sub_labels >= 3
+        is_A = ev["tier"] == "A"
+        n_ref, n_ge3 = int(sub_ref.sum()), int(sub_ge3.sum())
+        covered = (ev["low"] <= sub_labels) & (sub_labels <= ev["high"])
+        s, sp, _ = sens_spec_auc(sub_ref, ev["p_referable"] >= thr, None)
+        return {"tierA_share": float((ev["tier"] == "A").mean()),
+               "tierB_share": float((ev["tier"] == "B").mean()),
+               "tierC_share": float((ev["tier"] == "C").mean()),
+               "coverage_marginal": float(covered.mean()),
+               "false_autoclear_tierA_ref_rate": (float((sub_ref & is_A).sum()) / n_ref) if n_ref else float("nan"),
+               "false_autoclear_tierA_ge3_rate": (float((sub_ge3 & is_A).sum()) / n_ge3) if n_ge3 else float("nan"),
+               "referableThreshold_sens": s, "referableThreshold_spec": sp}
+
+    ci = patient_bootstrap(metric_fn, patient_ids, n_boot=n_boot, seed=seed)
+    out(f"  95% CI (patient-level bootstrap, n_boot={n_boot}):")
+    for k, v in ci.items():
+        out(f"    {k:28s} [{v[0]:.4f}, {v[1]:.4f}]")
+
+    return {"n": n, **metrics,
+           "referableThreshold": thr, "referableThreshold_sens": thr_sens,
+           "referableThreshold_spec": thr_spec, "referableThreshold_auc": thr_auc,
+           "patient_bootstrap_ci95": {k: list(v) for k, v in ci.items()}}
+
+
+def run_part_b_production(tag, manifest, logits5):
+    out("\n" + "=" * 78)
+    out(f"PART B ({tag}): PRODUCTION-INSTALLED POLICY UNDER SHIFT")
+    out("=" * 78)
+
+    calib, calib_path = load_shipped_calibration(tag)
+    out(f"Shipped calibration: {calib_path}")
+    out(f"  method={calib['method']}  modelVersion={calib['modelVersion']}  "
+       f"temperature={calib['temperature']:.4f}  qhatPerStratum={calib['qhatPerStratum']}  "
+       f"alphaPerStratum={calib.get('alphaPerStratum')}  referableThreshold={calib['referableThreshold']:.4f}")
+    out(f"  fittedOn={calib.get('fittedOn')!r}  fittedAt={calib.get('fittedAt')!r}")
+
+    T = float(calib["temperature"])
+    probs = softmax(logits5 / T)
+    verify_production_tier_fast(probs, calib)
+
+    y_true = manifest["dr_grade"].values.astype(int)
+    patient_ids = manifest["patient_id"].values
+    selection_mask = (patient_ids % 2 == 0)
+    report_mask = ~selection_mask
+    out(f"\nPatient split: SELECTION (even patient_id) = {selection_mask.sum()} images / "
+       f"{len(np.unique(patient_ids[selection_mask]))} patients; "
+       f"REPORT (odd patient_id) = {report_mask.sum()} images / "
+       f"{len(np.unique(patient_ids[report_mask]))} patients")
+
+    sel_result = production_policy_half_report(
+        "SELECTION half", y_true[selection_mask], probs[selection_mask],
+        patient_ids[selection_mask], calib)
+    rep_result = production_policy_half_report(
+        "REPORT half", y_true[report_mask], probs[report_mask],
+        patient_ids[report_mask], calib)
+
+    # ---- side-by-side with the in-domain cross-fit reference, if on record ----
+    crossfit_path = OUT_DIR / f"conformal_v3_crossfit_report_branchA_{tag}.json"
+    indomain_ref = None
+    if crossfit_path.is_file():
+        with open(crossfit_path) as f:
+            indomain_ref = json.load(f)[f"crossfit_branchA_{tag}"]
+        out(f"\nSIDE BY SIDE: in-domain cross-fit ({crossfit_path.name}) vs Messidor-2 "
+           "(single shipped fit applied to each half):")
+        out(f"  {'metric':30s} {'in-domain (cross-fit)':>24s} {'Messidor-2 SELECTION':>22s} {'Messidor-2 REPORT':>20s}")
+        pairs = [("mean_set_size", "mean_set_size"), ("tierA_share", "tierA_share"),
+                ("tierB_share", "tierB_share"), ("tierC_share", "tierC_share"),
+                ("coverage_marginal", "coverage_marginal"),
+                ("false_autoclear_tierA_ref_rate", "false_autoclear_tierA_ref_rate"),
+                ("false_autoclear_tierA_ge3_rate", "false_autoclear_tierA_ge3_rate")]
+        for id_key, m2_key in pairs:
+            id_val = indomain_ref[id_key]["mean"]
+            out(f"  {id_key:30s} {id_val:24.4f} {sel_result[m2_key]:22.4f} {rep_result[m2_key]:20.4f}")
+        id_sens = indomain_ref["referable_sensitivity"]["mean"]
+        id_spec = indomain_ref["referable_specificity"]["mean"]
+        out(f"  {'referableThreshold_sens':30s} {id_sens:24.4f} {sel_result['referableThreshold_sens']:22.4f} "
+           f"{rep_result['referableThreshold_sens']:20.4f}")
+        out(f"  {'referableThreshold_spec':30s} {id_spec:24.4f} {sel_result['referableThreshold_spec']:22.4f} "
+           f"{rep_result['referableThreshold_spec']:20.4f}")
+    else:
+        out(f"\n(no in-domain cross-fit report on record at {crossfit_path} -- run "
+           f"experiments/conformalCrossFitValidation.py --target-version branchA_{tag} first for that reference)")
+
+    return {"tag": tag, "calibration": {k: v for k, v in calib.items() if k != "note"},
+           "calibration_path": str(calib_path),
+           "selection_half": sel_result, "report_half": rep_result,
+           "indomain_cross_fit_reference": indomain_ref}
+
+
+# ===========================================================================
 # PART C: SHIFT DETECTORS (defined before looking at Messidor labels)
 # ===========================================================================
 def _logsumexp(x, axis=1):
@@ -891,28 +1168,48 @@ def run_part_d(manifest, logits5):
 def main():
     t0 = time.time()
     parts_arg = None
-    for a in sys.argv[1:]:
+    tag = "v2a"
+    args = sys.argv[1:]
+    i = 0
+    while i < len(args):
+        a = args[i]
         if a.startswith("--parts"):
-            parts_arg = a.split("=", 1)[1] if "=" in a else sys.argv[sys.argv.index(a) + 1]
-    parts = set(parts_arg.split(",")) if parts_arg else {"A", "B", "C", "D"}
+            if "=" in a:
+                parts_arg = a.split("=", 1)[1]
+            else:
+                parts_arg = args[i + 1]; i += 1
+        elif a.startswith("--tag"):
+            if "=" in a:
+                tag = a.split("=", 1)[1]
+            else:
+                tag = args[i + 1]; i += 1
+        i += 1
+
+    parts = set(parts_arg.split(",")) if parts_arg else ({"A", "B", "C", "D"} if tag == "v2a" else {"B", "D"})
+    if tag != "v2a" and (parts & {"A", "C"}):
+        raise SystemExit(f"Parts A/C are not generalized beyond tag='v2a' (requested parts={sorted(parts)} "
+                         f"for tag={tag!r}). Pass --parts B,D (or omit --parts) for a non-v2a tag.")
 
     out("=" * 78)
-    out("MESSIDOR-2 EXTERNAL-SHIFT STRESS TEST OF THE v2a PIPELINE")
+    out(f"MESSIDOR-2 EXTERNAL-SHIFT STRESS TEST OF THE {tag} PIPELINE")
     out(f"parts run: {sorted(parts)}")
     out("=" * 78)
 
-    manifest, logits5 = load_messidor()
-    indomain = load_indomain_val_test()
+    manifest, logits5 = load_messidor(tag)
+    indomain = load_indomain_val_test(tag)
     out(f"Messidor-2: n={len(manifest)}, {manifest['patient_id'].nunique()} patients   "
        f"in-domain: val n={len(indomain['val_labels'])}, test n={len(indomain['test_labels'])}")
 
-    report = {}
+    report = {"tag": tag}
     b_result = None
     if "A" in parts:
         report["part_a"] = run_part_a(manifest, logits5, indomain)
     if "B" in parts:
-        b_result = run_part_b(manifest, logits5, indomain)
-        report["part_b"] = {k: v for k, v in b_result.items() if not k.startswith("_")}
+        if tag == "v2a":
+            b_result = run_part_b(manifest, logits5, indomain)
+            report["part_b"] = {k: v for k, v in b_result.items() if not k.startswith("_")}
+        else:
+            report["part_b"] = run_part_b_production(tag, manifest, logits5)
     if "C" in parts:
         if b_result is None:
             b_result = run_part_b(manifest, logits5, indomain)
@@ -959,13 +1256,19 @@ def main():
     report["closing_statements"] = closing
 
     report["wall_time_seconds"] = time.time() - t0
-    with open(REPORT_JSON, "w") as f:
+    # GENERALIZE (--tag): v2a keeps its ORIGINAL, unsuffixed report filenames
+    # (byte-identical path to before this generalization); any other tag gets
+    # its own suffixed report so it never overwrites v2a's own record.
+    suffix = "" if tag == "v2a" else f"_{tag}"
+    report_json = OUT_DIR / f"messidor2_shift_stress_test{suffix}.json"
+    report_txt = OUT_DIR / f"messidor2_shift_stress_test{suffix}.txt"
+    with open(report_json, "w") as f:
         json.dump(report, f, indent=2, default=lambda o: o.item() if isinstance(o, np.generic)
                   else o.tolist() if isinstance(o, np.ndarray) else str(o))
-    out(f"\nWrote {REPORT_JSON}")
-    with open(OUT_DIR / "messidor2_shift_stress_test.txt", "w", encoding="utf-8") as f:
+    out(f"\nWrote {report_json}")
+    with open(report_txt, "w", encoding="utf-8") as f:
         f.write("\n".join(OUT_LINES) + "\n")
-    out(f"Wrote {OUT_DIR / 'messidor2_shift_stress_test.txt'}")
+    out(f"Wrote {report_txt}")
     out(f"\nTotal wall time: {(time.time() - t0) / 60:.1f} min")
 
 

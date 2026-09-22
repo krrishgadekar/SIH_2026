@@ -1,0 +1,119 @@
+==============================================================================
+conformalPolicySweep.py -- v2a conformal policy sweep
+==============================================================================
+
+==============================================================================
+VALIDATION GATE: replica vs production (branchA_v1, calibration_v1.json)
+==============================================================================
+temperature: replica=1.531089  production=1.531089  diff=1.48e-08
+nCalPerClass: replica=[296, 59, 175, 43, 53]  production=[296, 59, 175, 43, 53]
+qhatPerClass: replica=[0.9865, 0.963499, 0.963746, 0.957709, 0.985576]
+              production=[0.9865003837332065, 0.9634988036206047, 0.9637463462486839, 0.9577086978021305, 0.9855758418994597]
+
+T match (<1e-3): True   nCalPerClass exact match: True   qhatPerClass match (<1e-4): True
+
+VALIDATION GATE PASSED. Proceeding with v2a.
+
+pooled val+test: n=1161  grade counts={np.int64(0): np.int64(548), np.int64(1): np.int64(110), np.int64(2): np.int64(323), np.int64(3): np.int64(80), np.int64(4): np.int64(100)}
+
+==============================================================================
+CROSS-FIT PROTOCOL: 10 repeats x 5-fold, stratified
+==============================================================================
+
+ran 50 folds (10 repeats x 5 folds).
+
+==============================================================================
+OLD PROTOCOL (for comparison only): fit on VAL, evaluate on TEST
+==============================================================================
+temperature (val-fit): 1.0864
+
+==============================================================================
+RESULTS TABLE (cross-fit: mean [95% CI]; old protocol: point estimate)
+==============================================================================
+ cfg            setSz     sz1     sz2   sz>=3    TierA    TierB    TierC   covMarg   FAC_ref   FAC_ge3 TierA_refRate
+  C0            1.353   0.672   0.303   0.025    0.520    0.348    0.132     0.905     0.044     0.028         0.036
+  C1            3.094   0.333   0.155   0.512    0.428    0.072    0.501     0.977     0.014     0.000         0.015
+  C2            2.953   0.430   0.079   0.491    0.438    0.087    0.475     0.969     0.018     0.001         0.018
+  C3            3.055   0.339   0.169   0.492    0.443    0.073    0.483     0.974     0.020     0.000         0.020
+  C4            3.574   0.209   0.087   0.704    0.265    0.059    0.676     0.988     0.002     0.000         0.003
+  C5            3.239   0.305   0.090   0.605    0.348    0.078    0.574     0.979     0.007     0.000         0.009
+
+-- cross-fit 95% CIs on the headline safety/workload metrics (mean over 50 folds) --
+  C0: mean_set_size=1.3529 [1.3414,1.3643]  tierC_share=0.1321 [0.1258,0.1384]
+       false_auto_clear_ref=0.0435 [0.0381,0.0489] (219/5030 pooled)  false_auto_clear_ge3=0.0278 [0.0218,0.0337] (50/1800 pooled)
+       tierA_referable_rate=0.0360 [0.0317,0.0403] (219/6041 pooled)  coverage_marginal=0.9050 [0.9001,0.9099]
+  C1: mean_set_size=3.0944 [3.0729,3.1159]  tierC_share=0.5008 [0.4949,0.5066]
+       false_auto_clear_ref=0.0145 [0.0114,0.0176] (73/5030 pooled)  false_auto_clear_ge3=0.0000 [0.0000,0.0000] (0/1800 pooled)
+       tierA_referable_rate=0.0147 [0.0116,0.0178] (73/4964 pooled)  coverage_marginal=0.9771 [0.9747,0.9795]
+  C2: mean_set_size=2.9528 [2.9326,2.9730]  tierC_share=0.4747 [0.4683,0.4811]
+       false_auto_clear_ref=0.0183 [0.0148,0.0218] (92/5030 pooled)  false_auto_clear_ge3=0.0011 [-0.0005,0.0027] (2/1800 pooled)
+       tierA_referable_rate=0.0180 [0.0146,0.0213] (92/5085 pooled)  coverage_marginal=0.9690 [0.9659,0.9721]
+  C3: mean_set_size=3.0554 [3.0357,3.0751]  tierC_share=0.4834 [0.4775,0.4893]
+       false_auto_clear_ref=0.0201 [0.0166,0.0236] (101/5030 pooled)  false_auto_clear_ge3=0.0000 [0.0000,0.0000] (0/1800 pooled)
+       tierA_referable_rate=0.0195 [0.0162,0.0229] (101/5148 pooled)  coverage_marginal=0.9742 [0.9717,0.9768]
+  C4: mean_set_size=3.5741 [3.5508,3.5973]  tierC_share=0.6759 [0.6680,0.6837]
+       false_auto_clear_ref=0.0020 [0.0008,0.0031] (10/5030 pooled)  false_auto_clear_ge3=0.0000 [0.0000,0.0000] (0/1800 pooled)
+       tierA_referable_rate=0.0033 [0.0014,0.0052] (10/3074 pooled)  coverage_marginal=0.9883 [0.9866,0.9900]
+  C5: mean_set_size=3.2387 [3.2176,3.2597]  tierC_share=0.5743 [0.5670,0.5816]
+       false_auto_clear_ref=0.0073 [0.0049,0.0097] (37/5030 pooled)  false_auto_clear_ge3=0.0000 [0.0000,0.0000] (0/1800 pooled)
+       tierA_referable_rate=0.0090 [0.0061,0.0119] (37/4040 pooled)  coverage_marginal=0.9786 [0.9760,0.9811]
+
+-- old protocol (val-fit / test-eval), for comparison --
+ cfg            setSz     sz1     sz2   sz>=3    TierA    TierB    TierC   covMarg   FAC_ref   FAC_ge3 TierA_refRate
+  C0            1.303   0.712   0.274   0.014    0.521    0.365    0.115     0.892     0.044     0.031         0.037
+  C1            3.162   0.314   0.143   0.543    0.398    0.070    0.532     0.986     0.004     0.000         0.004
+  C2            2.970   0.433   0.073   0.494    0.438    0.086    0.476     0.976     0.007     0.000         0.007
+  C3            3.080   0.357   0.143   0.500    0.435    0.073    0.492     0.986     0.004     0.000         0.004
+  C4            3.619   0.197   0.091   0.712    0.255    0.056    0.689     0.994     0.000     0.000         0.000
+  C5            3.315   0.290   0.084   0.626    0.330    0.073    0.597     0.987     0.000     0.000         0.000
+
+-- grade-4 (54 cases in TEST) Tier distribution, old protocol only (the only protocol with a fixed, well-defined TEST cohort) --
+  C0: {'A': 1, 'B': 49, 'C': 4}
+  C1: {'A': 0, 'B': 25, 'C': 29}
+  C2: {'A': 0, 'B': 27, 'C': 27}
+  C3: {'A': 0, 'B': 26, 'C': 28}
+  C4: {'A': 0, 'B': 21, 'C': 33}
+  C5: {'A': 0, 'B': 25, 'C': 29}
+
+Note: Tier conditions NOT evaluable here (unavailable inputs): branch disagreement override (no Branch B run), quality-forced override (no quality-gate worker flag), and the MC-Dropout uncertainty withhold on Tier A (would need a fresh forward pass per case with dropout enabled, which these saved arrays do not support). All three are left at their production defaults (None/False), matching the normal case where Branch B has not run.
+
+Note on C0's coverage/safety numbers: C0's prediction set can be non-contiguous or EMPTY (the pre-ordinal-method behaviour). Coverage and the 'set entirely within {0,1}' safety check both use the raw set's [low,high] envelope (an empty set is never counted as covering, never counted as Tier A auto-clear). Cross-fit fraction of empty C0 sets: 0.0000 [0.0000,0.0000]. This is C0-specific and does not apply to C1-C5, which are never empty by construction (mode is always a member).
+
+==============================================================================
+DECISION RULE (pre-declared, applied to CROSS-FIT results, C1-C5 only)
+eligible = false_auto_clear_ref<=5% AND false_auto_clear_ge3<=2% AND mean_set_size<=2.5
+==============================================================================
+  C1: fac_ref=0.0145 (<=0.05? True)  fac_ge3=0.0000 (<=0.02? True)  mean_set_size=3.0944 (<=2.5? False)  -> eligible=False
+  C2: fac_ref=0.0183 (<=0.05? True)  fac_ge3=0.0011 (<=0.02? True)  mean_set_size=2.9528 (<=2.5? False)  -> eligible=False
+  C3: fac_ref=0.0201 (<=0.05? True)  fac_ge3=0.0000 (<=0.02? True)  mean_set_size=3.0554 (<=2.5? False)  -> eligible=False
+  C4: fac_ref=0.0020 (<=0.05? True)  fac_ge3=0.0000 (<=0.02? True)  mean_set_size=3.5741 (<=2.5? False)  -> eligible=False
+  C5: fac_ref=0.0073 (<=0.05? True)  fac_ge3=0.0000 (<=0.02? True)  mean_set_size=3.2387 (<=2.5? False)  -> eligible=False
+
+No config is eligible under the pre-declared rule. Ranking by false auto-clear (referable) instead, ascending:
+  C4: fac_ref=0.0020  (fac_ge3=0.0000, mean_set_size=3.5741, TierC share=0.6759)
+  C5: fac_ref=0.0073  (fac_ge3=0.0000, mean_set_size=3.2387, TierC share=0.5743)
+  C1: fac_ref=0.0145  (fac_ge3=0.0000, mean_set_size=3.0944, TierC share=0.5008)
+  C2: fac_ref=0.0183  (fac_ge3=0.0011, mean_set_size=2.9528, TierC share=0.4747)
+  C3: fac_ref=0.0201  (fac_ge3=0.0000, mean_set_size=3.0554, TierC share=0.4834)
+
+No winner is installed in code. Top-ranked by this rule: C4 (informational only).
+
+==============================================================================
+PER-CLASS qhat / n_k: C1 and top-ranked (C4)
+==============================================================================
+
+-- C1 (cross-fit mean over 50 folds) --
+  mean qhatPerClass:      [0.9979, 0.9861, 0.9721, 0.9751, 0.9965]
+  mean nCalPerClass:      [438.4, 88.0, 258.4, 64.0, 80.0]
+  old-protocol qhatPerClass: [0.9978, 0.9895, 0.9812, 0.97, 0.9979]
+  old-protocol nCalPerClass: [252, 50, 148, 37, 46]
+  old-protocol group labels: ['true_grade=0', 'true_grade=1', 'true_grade=2', 'true_grade=3', 'true_grade=4']
+  old-protocol saturated:    [False, False, False, False, False]
+
+-- C4 (cross-fit mean over 50 folds) --
+  mean qhatPerClass:      [0.9959, 0.9959, 0.9959, 0.9959, 0.9959]
+  mean nCalPerClass:      [928.8, 928.8, 928.8, 928.8, 928.8]
+  old-protocol qhatPerClass: [0.9964, 0.9964, 0.9964, 0.9964, 0.9964]
+  old-protocol nCalPerClass: [533, 533, 533, 533, 533]
+  old-protocol group labels: ['marginal_all', 'marginal_all', 'marginal_all', 'marginal_all', 'marginal_all']
+  old-protocol saturated:    [False, False, False, False, False]

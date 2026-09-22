@@ -1,0 +1,34 @@
+=====================================================================
+parityCheckRedLesionV2: PyTorch vs imported MATLAB dlnetwork (M5v2)
+10 real images, SOFTMAX applied on both sides (3 mutually-exclusive classes)
+=====================================================================
+
+floors: MA >= 5 px, HE >= 10 px (both at 512, from C:\Users\Tanuj\Desktop\Projects\DR_SCREENING\SIH_2026\central-system\backend\ml-pipeline\training\..\models\red_lesion_v2_config.json)
+
+-- 1. full-frame max|softmax diff| per image --
+  IDRiD_163   max|diff| = 0.000008
+  IDRiD_164   max|diff| = 0.000014
+  IDRiD_165   max|diff| = 0.000009
+  IDRiD_166   max|diff| = 0.000008
+  IDRiD_167   max|diff| = 0.000010
+  IDRiD_168   max|diff| = 0.000007
+  IDRiD_169   max|diff| = 0.000009
+  IDRiD_170   max|diff| = 0.000006
+  IDRiD_171   max|diff| = 0.000009
+  IDRiD_172   max|diff| = 0.000007
+  PASS  overall max|diff| = 0.000014  (threshold 0.01)
+
+-- 2. per-class connected-component count agreement --
+  IDRiD_163   MA: matlab=  5 torch=  5 OK   HE: matlab=  3 torch=  3 OK
+  IDRiD_164   MA: matlab=  5 torch=  5 OK   HE: matlab=  2 torch=  2 OK
+  IDRiD_165   MA: matlab=  1 torch=  1 OK   HE: matlab=  1 torch=  1 OK
+  IDRiD_166   MA: matlab=  7 torch=  7 OK   HE: matlab=  2 torch=  2 OK
+  IDRiD_167   MA: matlab=  5 torch=  5 OK   HE: matlab=  1 torch=  1 OK
+  IDRiD_168   MA: matlab=  3 torch=  3 OK   HE: matlab=  3 torch=  3 OK
+  IDRiD_169   MA: matlab=  1 torch=  1 OK   HE: matlab=  0 torch=  0 OK
+  IDRiD_170   MA: matlab=  4 torch=  4 OK   HE: matlab=  0 torch=  0 OK
+  IDRiD_171   MA: matlab=  2 torch=  2 OK   HE: matlab=  0 torch=  0 OK
+  IDRiD_172   MA: matlab=  3 torch=  3 OK   HE: matlab=  1 torch=  1 OK
+  PASS  every image: MA and HE component counts agree exactly
+
+===== OVERALL: PASS =====

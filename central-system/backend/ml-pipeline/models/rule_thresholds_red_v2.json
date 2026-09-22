@@ -1,0 +1,22 @@
+{
+  "_comment": "Fitted by diagnostics/recalibrateRuleGate2.py on the IDRiD GRADING dataset (train-fit / test-report; see that script's docstring for the known train-split data gap: 251/413 official train images available locally, test split complete at 103/103). NOT read by any production code yet -- see 'saadMustChange' below for exactly what Saad needs to wire up in ruleEngineGrade.m to use these instead of its current hardcoded defaults.",
+  "fittedAt": "2026-09-20T17:03:57Z",
+  "fittedOn": "IDRiD grading TRAIN split, n=251 (251/413 available -- see _comment)",
+  "reportedOn": "IDRiD grading TEST split, n=103 (complete, untouched)",
+  "v1": {
+    "redFloor": 8,
+    "grade3QuadMin": 2,
+    "brightFloor": 5
+  },
+  "v2": {
+    "redFloor": 12,
+    "grade3QuadMin": 4,
+    "brightFloor": 5
+  },
+  "ruleMaxGrade": 3,
+  "note": "ruleMaxGrade is NOT a fitted quantity -- it is the safety cap described in ruleEngineGrade.m's header (grade 4 = NV suspicion / Branch A only) and is carried through unchanged, not recalibrated.",
+  "saadMustChange": [
+    "grading/ruleEngineGrade.m lines ~122-126: replace the getdef(...) DEFAULT VALUES for redFloor / grade3QuadMin / brightFloor with the values under this file's 'v1' key (if still running RED_LESION_MODEL_VERSION=v1) or 'v2' key (once v2 is the live red-lesion model) -- e.g. redFloor = getdef(opts, 'redFloor', <thresholds.v1.redFloor or v2.redFloor>).",
+    "The docstring comments at lines ~49-69 (the 'measured on 14 validation images' justification) should be updated to cite this file's n and method instead, since the 14-image figure is superseded (see this report's own superseded_check section) -- but that text edit is Saad's call, not made here."
+  ]
+}

@@ -13,13 +13,13 @@
         "onnx": {
           "filename": "branchA_v1.onnx",
           "relative_path": "training/onnx_out/branchA_v1.onnx",
-          "size_bytes": 16038705,
+          "size_bytes": 1.6038705E+7,
           "sha256": "861a79568a28473ec660508ecc14124211739deb4c26b76c8aae77dd6e0d0a4e"
         },
         "mat": {
           "filename": "branchA_v1.mat",
           "relative_path": "models/branchA_v1.mat",
-          "size_bytes": 15008528,
+          "size_bytes": 1.5008528E+7,
           "sha256": "21738c44b96273257189fac0337376e5c966fe18bdb0ee26daf6bbda4616dea6"
         }
       }
@@ -32,13 +32,13 @@
         "onnx": {
           "filename": "vessel_unet_v1.onnx",
           "relative_path": "training/onnx_out/vessel_unet_v1.onnx",
-          "size_bytes": 97719242,
+          "size_bytes": 9.7719242E+7,
           "sha256": "5cf46fd46cc31ccdbd13bec93f345b6f9ee896084e842a22f0d0c82a8e23ff19"
         },
         "mat": {
           "filename": "vessel_unet_v1.mat",
           "relative_path": "models/vessel_unet_v1.mat",
-          "size_bytes": 90954651,
+          "size_bytes": 9.0954651E+7,
           "sha256": "a90ca8aa332a966016b19c95eb204b91a0d8ba2935b119413df241b2092c6f21"
         }
       }
@@ -51,13 +51,13 @@
         "onnx": {
           "filename": "localization_v1.onnx",
           "relative_path": "training/onnx_out/localization_v1.onnx",
-          "size_bytes": 57318368,
+          "size_bytes": 5.7318368E+7,
           "sha256": "bde261e4d31c197f4203cdf9541d29e0bdc9debbd05a52aacb6ff554e84b8f45"
         },
         "mat": {
           "filename": "localization_v1.mat",
           "relative_path": "models/localization_v1.mat",
-          "size_bytes": 53338371,
+          "size_bytes": 5.3338371E+7,
           "sha256": "3e00597a4c127b604aa34bfe3643755b6bb2d50ee34c667b7f721c02fa6e3534"
         }
       }
@@ -70,13 +70,13 @@
         "onnx": {
           "filename": "bright_lesion_unet_v1.onnx",
           "relative_path": "training/onnx_out/bright_lesion_unet_v1.onnx",
-          "size_bytes": 97744332,
+          "size_bytes": 9.7744332E+7,
           "sha256": "77a843e8798b1915e280e4d5ca8956125cd8adff22ba14522937e95a610f29ac"
         },
         "mat": {
           "filename": "bright_lesion_unet_v1.mat",
           "relative_path": "models/bright_lesion_unet_v1.mat",
-          "size_bytes": 91003465,
+          "size_bytes": 9.1003465E+7,
           "sha256": "c96a37a9357f94ab18fa05a1c6678c05b67147a9b9061cf0fc734042fdeb386f"
         }
       }
@@ -89,13 +89,13 @@
         "onnx": {
           "filename": "red_lesion_unet_v1.onnx",
           "relative_path": "training/onnx_out/red_lesion_unet_v1.onnx",
-          "size_bytes": 97744332,
+          "size_bytes": 9.7744332E+7,
           "sha256": "822c921ff83c2966720f4000fc120221b5fa559bee3c8779459563d5a4686ec8"
         },
         "mat": {
           "filename": "red_lesion_unet_v1.mat",
           "relative_path": "models/red_lesion_unet_v1.mat",
-          "size_bytes": 91077264,
+          "size_bytes": 9.1077264E+7,
           "sha256": "dee4971c82e9054e3fa02f9a3289d6c5c818fbdb1e7d0d874a7843b6b505a738"
         }
       }
@@ -109,15 +109,104 @@
         "onnx": {
           "filename": "branchA_v2a.onnx",
           "relative_path": "models/Model1/branchA_v2a.onnx",
-          "size_bytes": 16038705,
+          "size_bytes": 1.6038705E+7,
           "sha256": "a008f8d3cfd012df65aa77fc005dd7940f37bf710077d6d8aee2881bbc5c270f"
         },
         "mat": {
           "filename": "branchA_v2a.mat",
           "relative_path": "models/branchA_v2a.mat",
-          "size_bytes": 15008364,
+          "size_bytes": 1.5008364E+7,
           "sha256": "37e421027227bb733212f2fb4215964169a874376919dbe1ee09245fa3f59806"
         }
+      }
+    },
+    {
+      "name": "branchA_v2b",
+      "role": "classifier (M1 v2b), 5-class head only -- binary referable head dropped at export",
+      "input_size_declared_by_checkpoint": "1x3x512x512 (H=512, W=512, C=3)",
+      "note": "appended by the v2b integration task; v1's and v2a's entries above are unmodified",
+      "files": {
+        "onnx": {
+          "filename": "branchA_v2b.onnx",
+          "relative_path": "models/Model1/branchA_v2b.onnx",
+          "size_bytes": 16038705,
+          "sha256": "2631aa01deef8663e097e395734a2642935a5d3cc31a4eff862a0f3cf6b27409"
+        },
+        "mat": {
+          "filename": "branchA_v2b.mat",
+          "relative_path": "models/branchA_v2b.mat",
+          "size_bytes": 15008021,
+          "sha256": "f638e7ceed3d1c9942c8f831a32547c5d48d0ee34c9d576966228faf8a42c9f8"
+        }
+      },
+      "parityCheck": {
+        "script": "training/parityCheckV2b.m",
+        "report": "diagnostics/out/parity_v2b_report.txt",
+        "nImages": 10,
+        "threshold": 0.01,
+        "maxDiff": 1.0E-6,
+        "argmaxAgreement": "10/10",
+        "pass": true
+      }
+    },
+    {
+      "name": "branchA_v2c",
+      "role": "classifier (M1 v2c), 5-class head only -- binary referable head dropped at export",
+      "input_size_declared_by_checkpoint": "1x3x512x512 (H=512, W=512, C=3)",
+      "note": "appended by the v2c integration task; v1's, v2a's and v2b's entries above are unmodified",
+      "files": {
+        "onnx": {
+          "filename": "branchA_v2c.onnx",
+          "relative_path": "models/Model1/branchA_v2c.onnx",
+          "size_bytes": 16038705,
+          "sha256": "db5cd8f89854092e720397dff3db6207f047be988fb80a50858f208d0eafe0dc"
+        },
+        "mat": {
+          "filename": "branchA_v2c.mat",
+          "relative_path": "models/branchA_v2c.mat",
+          "size_bytes": 15006999,
+          "sha256": "8b3991ea117344dd595c60f60e81e7bc9981ef402cc311e7cb854ea62ed64c9e"
+        }
+      },
+      "parityCheck": {
+        "script": "training/parityCheckV2c.m",
+        "report": "diagnostics/out/parity_v2c_report.txt",
+        "nImages": 10,
+        "threshold": 0.01,
+        "maxDiff": 1.0E-6,
+        "argmaxAgreement": "10/10",
+        "pass": true
+      }
+    },
+    {
+      "name": "red_lesion_unet_v2",
+      "role": "red-lesion segmenter (M5 phase 2), 3-class (background/MA/HE)",
+      "input_size_declared_by_checkpoint": "1x3x512x512 (H=512, W=512, C=3)",
+      "note": "appended by parityCheckRedLesionV2.m (Gate 3); NOT wired into any live inference path",
+      "files": {
+        "onnx": {
+          "filename": "red_lesion_unet_v2.onnx",
+          "relative_path": "training/onnx_out/red_lesion_unet_v2.onnx",
+          "size_bytes": 9.7745492E+7,
+          "sha256": "dea5714d41ac1b66688457f0a90136789f41db7a2de969fcc4f1e7e6f5fc95c1"
+        },
+        "mat": {
+          "filename": "red_lesion_unet_v2.mat",
+          "relative_path": "models/red_lesion_unet_v2.mat",
+          "size_bytes": 9.1028224E+7,
+          "sha256": "27465dbb549a27a25232aa54a456609585930402e47b9388880ac4c37225cfda"
+        }
+      },
+      "parityCheck": {
+        "script": "training/parityCheckRedLesionV2.m",
+        "report": "diagnostics/out/parity_red_v2_report.txt",
+        "nImages": 10,
+        "threshold": 0.01,
+        "fullFrameMaxDiff": 1.4375864987759002E-5,
+        "fullFramePass": true,
+        "componentCountMismatches": 0,
+        "componentCountPass": true,
+        "overallPass": true
       }
     }
   ]

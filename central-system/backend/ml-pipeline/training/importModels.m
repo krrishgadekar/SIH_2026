@@ -65,42 +65,16 @@ save(fullfile(modelsDir, 'branchA_v1.mat'), 'net');
 fprintf('  SAVED %s\n', fullfile(modelsDir, 'branchA_v1.mat'));
 
 %% M1 v2a -- branchA_v2a (classifier, 512px, 5-class head only)
-% Exact v1 pattern (disconnect before the Gemm, insert dropout, append
-% softmax): export_to_onnx.py's DRClassifierV2Export uses the SAME module
-% names (backbone/drop/head) v1's DRClassifier does specifically so this
-% graph has the SAME node names ('x_backbone_global__2', 'x_head_Gemm') --
-% nothing below needed to change except the file paths and the input size
-% (512, from the checkpoint's own img_size, not v1's 384).
-%
-% NOT saved to branchA_v1.mat / onnx_out -- source is
-% models/Model1/branchA_v2a.onnx (this export's own output path, not
-% training/onnx_out/, per the v2a integration brief) and the saved net is
-% models/branchA_v2a.mat, alongside (not replacing) branchA_v1.mat.
-fprintf('\n-- M1 v2a branchA_v2a --\n');
-v2aOnnxPath = fullfile(thisDir, '..', 'models', 'Model1', 'branchA_v2a.onnx');
-V2A_SIZE = 512;
-net = importNetworkFromONNX(v2aOnnxPath, 'InputDataFormats', {'BCSS'});
-
-net = disconnectLayers(net, 'x_backbone_global__2', 'x_head_Gemm');
-net = addLayers(net, dropoutLayer(0.3, 'Name', 'dropout_dr'));
-net = connectLayers(net, 'x_backbone_global__2', 'dropout_dr');
-net = connectLayers(net, 'dropout_dr', 'x_head_Gemm');
-net = addLayers(net, softmaxLayer('Name', 'softmax_dr'));
-net = connectLayers(net, 'x_head_Gemm', 'softmax_dr');
-net.OutputNames = {'softmax_dr'};
-net = initialize(net, dlarray(single(zeros(V2A_SIZE, V2A_SIZE, 3, 1)), 'SSCB'));
-
-hasDropout = any(arrayfun(@(L) isa(L, 'nnet.cnn.layer.DropoutLayer'), net.Layers));
-assertCheck('v2a: dropout layer present', hasDropout);
-
-probs = gatherRow(predict(net, dlarray(single(zeros(V2A_SIZE, V2A_SIZE, 3, 1)), 'SSCB')));
-assertCheck('v2a: output has 5 columns', numel(probs) == 5);
-assertCheck('v2a: output sums to 1 (softmax present)', abs(sum(probs) - 1) < 1e-4);
-fprintf('  INFO  column order = grade index + 1 by construction, same as v1 -- see\n');
-fprintf('        training/parityCheckV2a.m for the empirical check on real images\n');
-
-save(fullfile(modelsDir, 'branchA_v2a.mat'), 'net');
-fprintf('  SAVED %s\n', fullfile(modelsDir, 'branchA_v2a.mat'));
+% GENERALIZE (v2b integration): the import logic that used to be inline here
+% now lives in the shared, version-parameterized importBranchAV2.m (exact
+% same code, just extracted), so importModelsV2b.m (and any future
+% importModelsV2<tag>.m) can reuse it for later tags without duplicating
+% this block. Calling it here for 'branchA_v2a' is byte-identical to the old
+% inline code -- same node names (export_to_onnx.py's DRClassifierV2Export
+% uses the SAME module names v1's DRClassifier does), same dropout/softmax
+% surgery, same output path (models/branchA_v2a.mat, alongside -- not
+% replacing -- branchA_v1.mat).
+importBranchAV2('branchA_v2a');
 
 %% M2 -- vessel_unet_v1 (binary segmentation, 1-channel input)
 fprintf('\n-- M2 vessel_unet_v1 --\n');
@@ -150,7 +124,26 @@ assertCheck('output is 512x512x1', isequal(size(y), [512 512 1 1]));
 save(fullfile(modelsDir, 'red_lesion_unet_v1.mat'), 'net');
 fprintf('  SAVED %s\n', fullfile(modelsDir, 'red_lesion_unet_v1.mat'));
 
-fprintf('\nAll 5 v1 models + branchA_v2a imported and saved.\n');
+%% M5 v2 -- red_lesion_unet_v2 (M5 phase 2, Gate 3: 3-class segmentation)
+% Same import pattern as M5 v1 (raw logits out, no post-processing here --
+% caller applies SOFTMAX over the 3 channels, NOT sigmoid, since the classes
+% are mutually exclusive: background/microaneurysm/haemorrhage). NOT wired
+% into any live inference path -- this only proves the export/import round
+% trip; see parityCheckRedLesionV2.m for the numeric check and
+% inference/segInfer.py's RED_LESION_MODEL_VERSION switch for the (Python-
+% only, MATLAB-untouched) live v1/v2 selection.
+fprintf('\n-- M5v2 red_lesion_unet_v2 --\n');
+net = importNetworkFromONNX(fullfile(onnxDir, 'red_lesion_unet_v2.onnx'), ...
+                             'InputDataFormats', {'BCSS'});
+if ~net.Initialized
+    net = initialize(net, dlarray(single(zeros(512, 512, 3, 1)), 'SSCB'));
+end
+y = predict(net, dlarray(single(zeros(512, 512, 3, 1)), 'SSCB'));
+assertCheck('output is 512x512x3 (ch1=bg,ch2=MA,ch3=HE)', isequal(size(y), [512 512 3 1]));
+save(fullfile(modelsDir, 'red_lesion_unet_v2.mat'), 'net');
+fprintf('  SAVED %s\n', fullfile(modelsDir, 'red_lesion_unet_v2.mat'));
+
+fprintf('\nAll 5 v1 models + branchA_v2a + red_lesion_unet_v2 imported and saved.\n');
 end
 
 function assertCheck(label, ok)

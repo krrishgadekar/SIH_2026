@@ -129,8 +129,16 @@ end
 
 brightTotal = sum(bright);
 if brightTotal > 0
+    % GATE 4 (M5 phase 2): "hardExudates" -> "hard exudate(s)" in the
+    % generated text, the clinically-accurate term -- was "brightLesions"
+    % ("bright lesion(s)"). inputs.brightByQuadrant (the argument name) and
+    % the "brightLesions" humanLabel case are left as-is: renaming a
+    % function's own input-struct field name risks a caller that still
+    % passes the old field name silently reading as "no counts supplied"
+    % rather than erroring, so that field name is treated the same as a
+    % contract key here, not renamed.
     parts{end+1} = sprintf('%d %s %s', brightTotal, ...
-        humanLabel("brightLesions", brightTotal), quadrantBreakdown(bright, QUADRANTS));
+        humanLabel("hardExudates", brightTotal), quadrantBreakdown(bright, QUADRANTS));
 end
 
 if isempty(parts)
