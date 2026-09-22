@@ -191,3 +191,13 @@ central-system/backend/ml-pipeline/training/*.mat
 # images plus their labels -- the same handling rule as media/, and the one
 # directory in this repo whose whole purpose is to collect them in one place.
 exports/
+
+# Compiled MATLAB Compiler output (exe + CTF, ~250 MB). The SOURCE lives in
+# deploy/*.m; rebuild with deploy/buildCaseChain.m.
+central-system/backend/ml-pipeline/deploy/dist/
+
+# One-off dumps from code-survey tooling, not part of the project.
+all_code.txt
+extract_info.js
+extract_info.txt
+tree.txt
