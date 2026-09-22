@@ -274,15 +274,30 @@ function plural(word, n) { return n === 1 ? word : `${word}s`; }
 function capitalise(s) { return s.length ? s[0].toUpperCase() + s.slice(1) : s; }
 
 /**
- * evidenceSummaryText({redByQuadrant, brightByQuadrant, nvSuspicionScore})
+ * evidenceSummaryText({redByQuadrant, brightByQuadrant, nvSuspicionScore}, ruleOpts)
  *
  * Same three-sentence template as generateEvidenceReport.m: findings, the
  * criterion that fired (Branch B's own words), then its limitation caveat.
  * When counts are absent, returns the exact "segmentation has not been run"
  * sentence the contract documents — matching the real MATLAB path's
  * behaviour when Tasks 4.2/4.3 have not produced counts.
+ *
+ * ── ruleOpts IS NOT OPTIONAL IN PRACTICE, AND OMITTING IT WAS A BUG ────────
+ * This re-runs the rule engine to obtain the criterion and limitation text.
+ * Run WITHOUT ruleOpts it is a different rule engine from the one that graded
+ * the case: on a fovea-unreliable case the grade deliberately skips criteria
+ * (a) all-four-quadrants and (b) venous beading, but this call would apply
+ * them and print "Severe NPDR, ETDRS 4-2-1(a) structure: >=3 red lesions in
+ * all four quadrants" — citing quadrant reasoning the system had just
+ * declared untrustworthy, to justify a grade that never used it.
+ *
+ * generateEvidenceReport.m has always forwarded ruleOpts to its own
+ * ruleEngineGrade call (runCasePipeline.m passes it explicitly). This side
+ * did not, so the two paths produced different evidence prose for the same
+ * image. verify_fallback_parity.js compared the rule engine's OUTPUT fields
+ * and not this text, which is why 720 matching cases never surfaced it.
  */
-function evidenceSummaryText(inputs) {
+function evidenceSummaryText(inputs, ruleOpts = {}) {
   const red = inputs?.redByQuadrant;
   const bright = inputs?.brightByQuadrant;
   const nvScoreRaw = inputs?.nvSuspicionScore;
@@ -298,7 +313,7 @@ function evidenceSummaryText(inputs) {
   }
 
   const nvScore = Number.isFinite(nvScoreRaw) ? nvScoreRaw : 0;
-  const { evidence } = ruleEngineGrade(red, bright, nvScore);
+  const { evidence } = ruleEngineGrade(red, bright, nvScore, ruleOpts);
 
   const parts = [];
   const redTotal = sum(red);
@@ -360,8 +375,18 @@ function runMatlabFallback({ imagePath, segResult, branchAGrade, ruleOpts = {} }
 
   const redQ = segResult && segResult.redPerQuadrant;
   const brightQ = segResult && segResult.brightPerQuadrant;
-  const nvScore = Number.isFinite(segResult && segResult.nvSuspicionScore)
-    ? segResult.nvSuspicionScore : 0;
+  // ── NV SUSPICION IS REPORTED, NEVER GRADED ON ──────────────────────────
+  // Held at 0 for the rule engine, mirroring runCasePipeline.m -- read the
+  // long note there for the validation result that retired this signal
+  // (AUC 0.286 / 0.379, at or below chance on both test sets).
+  //
+  // It matters that BOTH sides do this. The measured score is what the MATLAB
+  // path once passed; if this path kept passing it, one image could get two
+  // different grades depending only on whether MATLAB was installed -- the
+  // exact divergence verify_fallback_parity.js exists to catch.
+  const nvScoreMeasured = Number.isFinite(segResult && segResult.nvSuspicionScore)
+    ? segResult.nvSuspicionScore : null;
+  const nvScore = 0;
 
   if (Array.isArray(redQ) && redQ.length === 4 && Array.isArray(brightQ) && brightQ.length === 4) {
     // ruleOpts is caseRuleOpts(segResult) from the orchestrator -- the SAME
@@ -378,7 +403,9 @@ function runMatlabFallback({ imagePath, segResult, branchAGrade, ruleOpts = {} }
   }
 
   return {
-    evidenceSummaryText: evidenceSummaryText(evidenceInputs),
+    // ruleOpts, so the prose describes the SAME rule engine that produced the
+    // grade above -- see evidenceSummaryText's header.
+    evidenceSummaryText: evidenceSummaryText(evidenceInputs, ruleOpts),
     sourceFormat: meta.sourceFormat,
     dicomDeviceModel: meta.dicomDeviceModel,
     imageLaterality: meta.imageLaterality,
@@ -386,7 +413,11 @@ function runMatlabFallback({ imagePath, segResult, branchAGrade, ruleOpts = {} }
     cameraMismatch: cam.cameraMismatch,
     ruleEngineGrade: ruleGrade,
     branchAgreement,
-    nvSuspicionScore: nvScore,
+    // The MEASURED score (null when it could not run), not the 0 the rule
+    // engine was given. Mirrors runCasePipeline.m's out.nvSuspicionScore: the
+    // signal stays visible and auditable, it just decides nothing. Reporting
+    // the gated 0 here would store a fabricated measurement.
+    nvSuspicionScore: nvScoreMeasured,
     ruleIsLowerBound,
     ruleMaxGrade,
     lesionAttentionConsistency: null,
