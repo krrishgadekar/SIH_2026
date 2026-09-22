@@ -41,6 +41,10 @@ function [score, detail] = neovascularizationSuspicion(vesselMask, opticDiscCoor
 %                             from opts.newScoreWeights (default equal
 %                             [0.25 0.25 0.25 0.25]). NOT wired into `score`,
 %                             ruleEngineGrade.m, or any live path.
+%                             VALIDATION FAILED (2026-09-21, fitAndValidateNVScore.py):
+%                             AUC 0.27-0.47 on both IDRiD test and Messidor-2 --
+%                             below chance (0.5) on every split tried. Do not wire
+%                             this into any decision path; keep it detail-only.
 %       .newScoreWeights    - the 4 weights actually used (echoed back so a
 %                             caller/log can see what produced newScore
 %                             without re-deriving it from opts).
@@ -87,6 +91,15 @@ function [score, detail] = neovascularizationSuspicion(vesselMask, opticDiscCoor
 %                     see below - not part of the live `score`)
 %     branchDensity - branch points per skeleton pixel (already computed
 %                     pre-existing; likewise detail-only for the live score)
+%
+%   ── detail.newScore: VALIDATION FAILED ─────────────────────────────────────
+%   The four-component candidate score in `detail` (fractalDim + branchDensity
+%   added to density + tortuosity, see .newScore below) was fit and validated
+%   against IDRiD test and Messidor-2 (fitAndValidateNVScore.py, 2026-09-21).
+%   Result: AUC 0.27-0.47 on both -- below chance (0.5) on every split tried.
+%   It must not be used for any decision, live or advisory. It stays in
+%   `detail` only, unwired from `score`, ruleEngineGrade.m, and every live
+%   caller, exactly as it was added.
 
 if nargin < 3, opts = struct(); end
 
