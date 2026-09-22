@@ -1,6 +1,6 @@
 # Backend plan: status against `implementation-plan-backend-saad (1).md`
 
-Status as of 2026-09-20. Every item below was verified by running it, not by reading code. The test scripts named in the table can be re-run.
+Status as of 2026-09-23. Sections marked "Since 2026-09-22" and the "Waiting on other people" list are the current ones; earlier sections are kept as the record of when each thing was verified. Every item below was verified by running it, not by reading code. The test scripts named in the table can be re-run.
 
 ## Where each section stands
 
@@ -27,7 +27,7 @@ Status as of 2026-09-20. Every item below was verified by running it, not by rea
 | O | Clinical-rationale PDF, `GET /cases/:id/report`. Rendered by `generateReport.m` with **MATLAB Report Generator** (`mlreportgen.dom`), as the plan specifies; `generateReportFigures.m` is a core-MATLAB fallback for a machine without that toolbox. | Done | real case rendered and served |
 | P | DICOM through `readFundusImage`; the DICOM eye tag is recorded and a mismatch with the technician's choice is flagged | Done | `testReadFundusDicom.m` (8), on a synthetic DICOM |
 | Q | One `fromMatlabDeep` boundary for `[]`→null, plus `jsonencodeAscii`, which fixes em dashes being silently dropped from MATLAB output on Windows | Done | live runs |
-| R | Rename to `hard_exudate` / `hardExudates` in the JS layer | **Waiting on Tanuj's rename** | none |
+| R | Rename to `hard_exudate` / `hardExudates` in the JS layer | **Done — no work was needed** | `verify_demo_dryrun.js`, `verify_task33.js` |
 | S | M2/M3/M4 served from the MATLAB session (`SEG_INFERENCE_BACKEND`, PyTorch fallback, M5 excluded) | Done | `diagnostics/checkSegBackendParity.py`: rule grade 20/20, lesion counts 20/20 |
 
 ## Full audit, 2026-09-20: what it found
@@ -145,14 +145,77 @@ The plan's own corrected guidance: self-hosted Postgres has no built-in transpar
 
   Not fixed yet on purpose: the shape change is breaking for the frontend, and doing it once — with §R and the M5 wiring — costs the frontend one migration instead of two. If M5 slips, shipping the correct keys early with `microaneurysms`/`hemorrhages` null is the better trade; that is a call for the plan owner.
 
+## Since 2026-09-20
+
+| What | State |
+|---|---|
+| `lesionCounts` returns the contract keys (`microaneurysms`, `hemorrhages`, `hardExudates`, `softExudates`) | Done. Mapped at the API boundary by `services/lesionCounts.js`; nothing changed in the database |
+| Failure reasons on a case (`failure_code`, `failure_reason`, `failed_at`, migration 0014) | Done. `GET /admin/system-health` groups failures by cause; case detail now returns `status`, which it never did |
+| Review labels for retraining (`dataset_labels`, migration 0013) + `scripts/exportTrainingSet.js` | Done. Written inside the review transaction; export enforces consent, dedupe and the newest label per case |
+| Tanuj's conformal v3 + referable-safety gate | Merged and re-verified. Both inference paths already implement it; nothing needed wiring |
+| M5 v2 (3-class red lesions) | Merged behind `RED_LESION_MODEL_VERSION`, still **v1**. The orchestrator stores the MA/HE split when it appears; the API mapper already reads it |
+| 512 px classifier (v2a) | Merged, **not** the default. Tanuj has not finalised v2a vs v2b/v2c |
+| Tier floors (A -> B) | **Now tested.** `decideTier` extracted as a pure function; 18 checks in `verify_backend_pipeline.js` |
+| Parallel Computing Toolbox | 4 uses shipped (`sweepDistrictScenarios`, `monteCarloQueueing`, `calibrateQualityThresholds`, `batchGenerateReports`); `runTask92` measured and left serial on purpose |
+| Live SimEvents model `netraSetuPipeline.slx` | Done. Whole pipeline, live sliders and outage switches, calibrated by `scripts/exportSimCalibration.js` |
+
+**Not wired, waiting on a decision:** `models/rule_thresholds_red_v2.json`. It recalibrates `redFloor`/`grade3QuadMin`/`brightFloor` for BOTH model versions -- v1 moves from 3/3/1 to 8/2/5 -- so it changes grading today, switch or no switch. Measured on the 52-case held-out split: 15 of 52 grades change (14 down, 13 of them 2 -> 0), exact agreement with ground truth moves 28/52 -> 29/52, and branch disagreements fall from 23 to 17, i.e. six fewer cases escalated to a human. Accuracy-neutral, materially different behaviour.
+
+## Since 2026-09-22
+
+| What | State |
+|---|---|
+| Tanuj's `origin/tanuj` merged again (`45b58a3`) -- classifier v2b/v2c evaluation, NV negative result, district-admin features | Done. `origin/main` already contained all of it via PR #19 |
+| Branch A "corrupt model" | **Not corrupt.** The ONNX converter support package was absent from the path of any cold MATLAB, so `load()` substituted placeholder layers and succeeded, failing later with an internal name. Guard moved next to the load in `branchAInferMatlab.m`; Tanuj's existing `ensureOnnxSupportOnPath.m` reused rather than duplicated |
+| MATLAB Compiler trial build (`deploy/`) | Done. Two targets: the case chain (1.3 MB) and the networks. Compiled Branch A matches MATLAB and Python exactly (grade 3, conf 0.821636) |
+| Triage urgency score (`grading/calculateUrgencyScore.m`) | Done, Statistics & ML Toolbox (TreeBagger). Synthetic training data, exact Shapley attribution, 17/17 selftest. **Not wired into any decision path** -- it is a prioritisation aid, trained on an invented formula |
+| NV suspicion score | **Gated off.** It failed validation (AUC 0.286 IDRiD / 0.379 Messidor-2, at or below chance). `runCasePipeline.m` and `matlabFallback.js` now both pass 0 to the rule engine; the measured value is still stored and reported, it just decides nothing |
+| `unvalidated_camera` Tier A floor (`config/validatedCameras.json`, `services/validatedCameras.js`) | Done. Tanuj asked twice; this is that control. Fails closed on a missing/malformed config, and a blank `cameraDeviceId` no longer auto-clears. Distinct from camera probation, which only fires on a family MISMATCH -- an unfamiliar camera reporting itself honestly used to reach Tier A unimpeded |
+| `tier_reason` persisted (migration 0015) | Done. `decideTier` always returned a reason; it was used for one log line and discarded. Five different situations produce a "B" and a reviewer could not tell which. Not backfilled -- NULL means "not recorded", never "no reason" |
+| Evidence prose ignored `ruleOpts` (JS fallback) | **Fixed.** `evidenceSummaryText` re-ran the rule engine without the opts, so a fovea-unreliable case was graded Moderate NPDR while the text under it said "Severe NPDR, ETDRS 4-2-1(a)". The 720-case parity never saw it because it compares the rule engine's output fields, not the prose. 2880 evidence-text checks added |
+| `vesselSegmentationUnet.m` | **Fixed, four defects.** It was still written for the MATLAB-trained 3-channel U-Net; the file is now the ONNX import of Tanuj's 1-channel PyTorch model. Missing `models/` on the path (this was his `verifyPhase4.m` crash), RGB instead of green, no `[-1,1]` normalisation, no sigmoid, and `imresize` antialiasing on. Now matches `segInfer.py` to four decimals (0.0564 both) |
+| Rule-threshold optimiser (`grading/optimizeRuleThresholds.m`) | Done. Optimization-Toolbox brief plus Statistics & ML (`perfcurve` Youden's J, `cvpartition` stratified folds, `bootci`). Refuses to run unless its fast evaluator matches `ruleEngineGrade` exactly. 18/18 selftest |
+| M5 v2 binaries | **Arrived 2026-09-23** (manually, not via git -- they are gitignored). `red_lesion_unet_v2.mat` loads, `[512 512 3]`, and the full contract verified end to end: `maPerQuadrant` + `hePerQuadrant` sum to `redPerQuadrant`. Still **v1** by default |
+| Classifier v2a/v2b/v2c binaries | **Still absent.** Calibration JSONs, layer packages and parity fixtures are all present; the weight files are not. `docs/flip_default_v2c.patch` stays unapplied |
+
+### The M5 v2 threshold question, now measured
+
+`RED_LESION_MODEL_VERSION=v2` detects far more red lesions than v1 (81 vs 31 on one image; 2.6x). Every threshold in `ruleEngineGrade.m` was fitted against v1 counts, so they do not transfer.
+
+Measured properly for the first time: `diagnostics/collectLesionCounts.py` ran segInfer with v2 over IDRiD's official grading split (251 train on disk of 413, test complete at 103/103), then `optimizeRuleThresholds` fitted on train and reported on the untouched test split.
+
+| on the 103-image TEST split | current 3/3/5/1 | refit 9/8/11/7 |
+|---|---|---|
+| QWK | 0.457 | 0.692 |
+| referable sensitivity | 0.984 | 0.859 |
+| referable specificity | **0.231** | 0.872 |
+
+Specificity 0.231 is 30 of the 39 non-referable eyes in that split flagged as referable. **Do not confuse this with the classifier specificity in Tanuj's reports** (0.939, Branch A on Messidor-2) -- different model, different dataset, different question.
+
+The refit costs sensitivity: 0.984 -> 0.859, which is **below the 0.90 problem-statement target**. That is a clinical operating-point choice, not a technical one. A sensitivity-constrained fit (>= 0.90 hard constraint) is the alternative.
+
+Cross-check, independent method: Youden's J via `perfcurve` reproduced **Tanuj's published v2 numbers exactly** (`redFloor` 12, `grade3QuadMin` 4) from our data. The joint search disagrees (9 and 8) because it optimises whole-rule-engine agreement rather than each threshold's own binary question. That gap is unresolved and should be before anything ships.
+
+Caveat: 5-fold CV said QWK 0.863, the held-out test said 0.692. Trust the held-out number. The likely cause is the known train-split data gap (251 of 413 images).
+
 ## Waiting on other people
 
-- **Tanuj:** (contracts below agreed 2026-09-20; none of the code has landed on `main` or `origin/tanuj` yet)
-  - The §R rename.
-  - **The M5 3-class retrain.** Agreed shape: two NEW fields, `maPerQuadrant` and `hePerQuadrant`; `redPerQuadrant` **stays** and remains their sum, so the rule engine's existing input does not change shape. `redFloor` and `grade3QuadMin` are recalibrated with it — the thresholds and the counts must land together, because each is only meaningful against the other. **Explicitly to stay unwired until Tanuj says otherwise.**
-  - `foveaUnreliable` — see the §I.3 note above; contract settled, code not delivered.
-  - `venousBeadingQuadrants` and `irmaQuadrants`. The backend reads all three as top-level keys of the segmentation JSON.
-  - **The 512 px classifier**, behind a config switch defaulting to v1. Tanuj will say before anything flips. What flips with it, on this side: `preprocessBranchATensor.py` emits a 384 tensor, `branchAInferMatlab.m` initialises at 384, and the MATLAB session's warm-up tensor is 384. Those three fail loudly against a 512 network, which is the good case. The one to watch is naming, not geometry: `lesion384`/`roi384` are written at Branch A's input size, and Task 7.1 rescales the CAM to the mask, so the attention score stays correct across a size change while the file names quietly stop being true.
+- **Tanuj** — updated 2026-09-23. Most of the 2026-09-20 list has now landed or been closed; what is left is short:
+  1. **`models/branchA_v2c.mat`** (and the `.pt`/`.onnx` for the Python path). This is the ONE missing file blocking the classifier flip. Everything around it is already here: `calibration_branchA_v2c.json`, `models/+branchA_v2c/`, and the parity fixtures. `branchAInferMatlab.m:139` looks for that exact filename, and `docs/flip_default_v2c.patch` cannot be applied without it. His own commit 2762f3f says the same thing from his side.
+  2. **Go-ahead to flip `RED_LESION_MODEL_VERSION=v2`.** The binaries arrived and work; our side is wired and verified end to end. His instruction was "not until I say so", so it stays at v1.
+  3. **Which `grade3QuadMin` is right for v2 counts** — his Youden fit says 4, our joint search says 8, on the same data. See the threshold section above. This needs his view before anything ships.
+  4. **Confirmation that `unvalidated_camera` satisfies his request** — he asked twice and has it logged as unconfirmed; it is built and tested now, so he can close it.
+
+  **Closed since 2026-09-20, no longer waiting:**
+  - §R rename — done; he deliberately kept the wire keys (`brightLesions`/`brightPerQuadrant`) and renamed only internal model identifiers, so the JS layer needed no change.
+  - M5 3-class retrain — delivered, contract verified exactly.
+  - `foveaUnreliable` — delivered and merged; consumed end to end.
+  - `venousBeadingQuadrants` / `irmaQuadrants` — **cut by Tanuj, permanently for this round.** No annotated data exists to validate either detector. Our side is built and passes them through when present; the rule engine's "criteria (b) and (c) were NOT assessed" caveat is now the permanent state, not a temporary one. Branch B can therefore under-call severe NPDR by design, and that disclosure must travel with the grade.
+
+- **Also worth telling him** (not blocking us):
+  - `verifyPhase4.m`'s crash is diagnosed and fixed — it was `models/` missing from the path, not a corrupt model. Three further defects in the same function are fixed with it.
+  - His reports describe v2c as "deployed"; the code default is `branchA_v1`, and will stay so until the binary above arrives. Nothing in a slide should say v2c yet.
+  - `docs/implementation-plan-backend-saad (1).md` and `implementation-plan-ml-tanuj (1).md` are browser-download duplicates he committed; the second one REPLACED the original by rename, so it should be renamed back rather than deleted.
 - **Frontend team:**
   - The login screen: `credentials: 'include'` plus the `X-CSRF-Token` header.
   - The claim flow and the disagreement rule (Confirm unavailable on disagreement cases).
