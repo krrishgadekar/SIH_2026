@@ -1,0 +1,539 @@
+{
+  "tag": "v2c",
+  "part_b": {
+    "tag": "v2c",
+    "calibration": {
+      "method": "ordinal_mode_interval_stratified_v3",
+      "modelVersion": "branchA_v2c",
+      "trainedImgSize": 512,
+      "temperature": 1.5437778038856966,
+      "stratumOf": [
+        0,
+        0,
+        1,
+        1,
+        1
+      ],
+      "qhatPerStratum": [
+        0,
+        0.9069146184928477
+      ],
+      "alphaPerStratum": [
+        0.3,
+        0.05
+      ],
+      "nCalPerStratum": [
+        658,
+        503
+      ],
+      "referableThreshold": 0.3872947768389075,
+      "referableTargetSensitivity": 0.05,
+      "referableFrom": 2,
+      "fittedOn": "pooled val+test, n=1161 (val=533, test=628)",
+      "fittedAt": "2026-09-21T14:33:48Z",
+      "calibrationProtocol": "pooled val+test; validated by cross-fitting",
+      "calibrated": true
+    },
+    "calibration_path": "C:\\Users\\Tanuj\\Desktop\\Projects\\DR_SCREENING\\SIH_2026\\central-system\\backend\\ml-pipeline\\models\\calibration_branchA_v2c.json",
+    "selection_half": {
+      "n": 872,
+      "mean_set_size": 2.2855504587155964,
+      "frac_size1": 0.39105504587155965,
+      "frac_size2": 0.02408256880733945,
+      "frac_size_ge3": 0.5848623853211009,
+      "tierA_share": 0.3646788990825688,
+      "tierB_share": 0.25,
+      "tierC_share": 0.3853211009174312,
+      "coverage_marginal": 0.8520642201834863,
+      "coverage_per_stratum": {
+        "non_referable": {
+          "coverage": 0.8167456556082149,
+          "n_k": 633
+        },
+        "referable": {
+          "coverage": 0.9456066945606695,
+          "n_k": 239
+        }
+      },
+      "coverage_per_grade": {
+        "0": {
+          "coverage": 0.9054325955734407,
+          "n_k": 497
+        },
+        "1": {
+          "coverage": 0.49264705882352944,
+          "n_k": 136
+        },
+        "2": {
+          "coverage": 0.9425287356321839,
+          "n_k": 174
+        },
+        "3": {
+          "coverage": 0.9534883720930233,
+          "n_k": 43
+        },
+        "4": {
+          "coverage": 0.9545454545454546,
+          "n_k": 22
+        }
+      },
+      "false_autoclear_set_ref_k": 9,
+      "false_autoclear_set_ref_n": 239,
+      "false_autoclear_set_ge3_k": 0,
+      "false_autoclear_set_ge3_n": 65,
+      "false_autoclear_tierA_ref_k": 9,
+      "false_autoclear_tierA_ref_n": 239,
+      "false_autoclear_tierA_ge3_k": 0,
+      "false_autoclear_tierA_ge3_n": 65,
+      "false_autoclear_set_ref_rate": 0.03765690376569038,
+      "false_autoclear_tierA_ref_rate": 0.03765690376569038,
+      "false_autoclear_set_ge3_rate": 0.0,
+      "false_autoclear_tierA_ge3_rate": 0.0,
+      "referableThreshold": 0.3872947768389075,
+      "referableThreshold_sens": 0.7615062761506276,
+      "referableThreshold_spec": 0.9131121642969984,
+      "referableThreshold_auc": 0.9164435807438842,
+      "patient_bootstrap_ci95": {
+        "tierA_share": [
+          0.32760595647193586,
+          0.4025460692818727
+        ],
+        "tierB_share": [
+          0.21378084466940842,
+          0.2870264064293915
+        ],
+        "tierC_share": [
+          0.3505732314255244,
+          0.4208760864316755
+        ],
+        "coverage_marginal": [
+          0.827033218785796,
+          0.8770114942528736
+        ],
+        "false_autoclear_tierA_ref_rate": [
+          0.014628869606003753,
+          0.06306306306306306
+        ],
+        "false_autoclear_tierA_ge3_rate": [
+          0.0,
+          0.0
+        ],
+        "referableThreshold_sens": [
+          0.6982634099616858,
+          0.8207200365205843
+        ],
+        "referableThreshold_spec": [
+          0.8895761679028592,
+          0.935332440641515
+        ]
+      }
+    },
+    "report_half": {
+      "n": 872,
+      "mean_set_size": 2.30045871559633,
+      "frac_size1": 0.38646788990825687,
+      "frac_size2": 0.02522935779816514,
+      "frac_size_ge3": 0.588302752293578,
+      "tierA_share": 0.3646788990825688,
+      "tierB_share": 0.22018348623853212,
+      "tierC_share": 0.4151376146788991,
+      "coverage_marginal": 0.8704128440366973,
+      "coverage_per_stratum": {
+        "non_referable": {
+          "coverage": 0.8379204892966361,
+          "n_k": 654
+        },
+        "referable": {
+          "coverage": 0.9678899082568807,
+          "n_k": 218
+        }
+      },
+      "coverage_per_grade": {
+        "0": {
+          "coverage": 0.9038461538461539,
+          "n_k": 520
+        },
+        "1": {
+          "coverage": 0.582089552238806,
+          "n_k": 134
+        },
+        "2": {
+          "coverage": 0.9710982658959537,
+          "n_k": 173
+        },
+        "3": {
+          "coverage": 0.9375,
+          "n_k": 32
+        },
+        "4": {
+          "coverage": 1.0,
+          "n_k": 13
+        }
+      },
+      "false_autoclear_set_ref_k": 5,
+      "false_autoclear_set_ref_n": 218,
+      "false_autoclear_set_ge3_k": 0,
+      "false_autoclear_set_ge3_n": 45,
+      "false_autoclear_tierA_ref_k": 5,
+      "false_autoclear_tierA_ref_n": 218,
+      "false_autoclear_tierA_ge3_k": 0,
+      "false_autoclear_tierA_ge3_n": 45,
+      "false_autoclear_set_ref_rate": 0.022935779816513763,
+      "false_autoclear_tierA_ref_rate": 0.022935779816513763,
+      "false_autoclear_set_ge3_rate": 0.0,
+      "false_autoclear_tierA_ge3_rate": 0.0,
+      "referableThreshold": 0.3872947768389075,
+      "referableThreshold_sens": 0.7522935779816514,
+      "referableThreshold_spec": 0.9388379204892966,
+      "referableThreshold_auc": 0.9236806666105546,
+      "patient_bootstrap_ci95": {
+        "tierA_share": [
+          0.324168740372082,
+          0.40668739075162874
+        ],
+        "tierB_share": [
+          0.18440341906644417,
+          0.25515604808375336
+        ],
+        "tierC_share": [
+          0.375,
+          0.4541284403669725
+        ],
+        "coverage_marginal": [
+          0.8457932195400695,
+          0.8934707903780069
+        ],
+        "false_autoclear_tierA_ref_rate": [
+          0.004672897196261682,
+          0.04412308026658937
+        ],
+        "false_autoclear_tierA_ge3_rate": [
+          0.0,
+          0.0
+        ],
+        "referableThreshold_sens": [
+          0.6860832851150007,
+          0.8143493327223782
+        ],
+        "referableThreshold_spec": [
+          0.9180771120137067,
+          0.9579112130998924
+        ]
+      }
+    },
+    "indomain_cross_fit_reference": {
+      "mean_set_size": {
+        "mean": 2.0100140594938583,
+        "ci95": [
+          1.97454214134391,
+          2.0454859776438066
+        ],
+        "n_folds": 50
+      },
+      "frac_size1": {
+        "mean": 0.4678592570667455,
+        "ci95": [
+          0.45252649510544485,
+          0.4831920190280462
+        ],
+        "n_folds": 50
+      },
+      "frac_size2": {
+        "mean": 0.09939803167085985,
+        "ci95": [
+          0.09367682210041689,
+          0.10511924124130281
+        ],
+        "n_folds": 50
+      },
+      "frac_size_ge3": {
+        "mean": 0.4327427112623946,
+        "ci95": [
+          0.41433628554258967,
+          0.45114913698219955
+        ],
+        "n_folds": 50
+      },
+      "tierA_share": {
+        "mean": 0.38405690395145775,
+        "ci95": [
+          0.37499450165621867,
+          0.39311930624669683
+        ],
+        "n_folds": 50
+      },
+      "tierB_share": {
+        "mean": 0.4375477282817819,
+        "ci95": [
+          0.4338408396086204,
+          0.4412546169549434
+        ],
+        "n_folds": 50
+      },
+      "tierC_share": {
+        "mean": 0.1783953677667604,
+        "ci95": [
+          0.16944339352454288,
+          0.18734734200897793
+        ],
+        "n_folds": 50
+      },
+      "coverage_marginal": {
+        "mean": 0.9236077401213556,
+        "ci95": [
+          0.9197844286820983,
+          0.9274310515606129
+        ],
+        "n_folds": 50
+      },
+      "false_autoclear_set_ref_rate": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_folds": 50
+      },
+      "false_autoclear_tierA_ref_rate": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_folds": 50
+      },
+      "false_autoclear_set_ge3_rate": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_folds": 50
+      },
+      "false_autoclear_tierA_ge3_rate": {
+        "mean": 0.0,
+        "ci95": [
+          0.0,
+          0.0
+        ],
+        "n_folds": 50
+      },
+      "false_autoclear_set_ref_pooled": {
+        "k_total": 0,
+        "n_total": 5030
+      },
+      "false_autoclear_tierA_ref_pooled": {
+        "k_total": 0,
+        "n_total": 5030
+      },
+      "false_autoclear_set_ge3_pooled": {
+        "k_total": 0,
+        "n_total": 1800
+      },
+      "false_autoclear_tierA_ge3_pooled": {
+        "k_total": 0,
+        "n_total": 1800
+      },
+      "coverage_per_stratum": {
+        "non_referable": {
+          "coverage": {
+            "mean": 0.9042574600971548,
+            "ci95": [
+              0.8989153645424266,
+              0.909599555651883
+            ],
+            "n_folds": 50
+          },
+          "mean_n_k": 131.6,
+          "total_n_k": 6580
+        },
+        "referable": {
+          "coverage": {
+            "mean": 0.9489148514851486,
+            "ci95": [
+              0.9416353581834447,
+              0.9561943447868526
+            ],
+            "n_folds": 50
+          },
+          "mean_n_k": 100.6,
+          "total_n_k": 5030
+        }
+      },
+      "coverage_per_grade": {
+        "0": {
+          "coverage": {
+            "mean": 0.9580250208507088,
+            "ci95": [
+              0.9540281738967089,
+              0.9620218678047088
+            ],
+            "n_folds": 50
+          },
+          "mean_n_k": 109.6,
+          "total_n_k": 5480
+        },
+        "1": {
+          "coverage": {
+            "mean": 0.6363636363636364,
+            "ci95": [
+              0.612444076262718,
+              0.6602831964645547
+            ],
+            "n_folds": 50
+          },
+          "mean_n_k": 22.0,
+          "total_n_k": 1100
+        },
+        "2": {
+          "coverage": {
+            "mean": 0.9743028846153847,
+            "ci95": [
+              0.9684480382614558,
+              0.9801577309693137
+            ],
+            "n_folds": 50
+          },
+          "mean_n_k": 64.6,
+          "total_n_k": 3230
+        },
+        "3": {
+          "coverage": {
+            "mean": 0.87375,
+            "ci95": [
+              0.8520728004668107,
+              0.8954271995331894
+            ],
+            "n_folds": 50
+          },
+          "mean_n_k": 16.0,
+          "total_n_k": 800
+        },
+        "4": {
+          "coverage": {
+            "mean": 0.927,
+            "ci95": [
+              0.9109618926954348,
+              0.9430381073045653
+            ],
+            "n_folds": 50
+          },
+          "mean_n_k": 20.0,
+          "total_n_k": 1000
+        }
+      },
+      "referable_sensitivity": {
+        "mean": 0.9457603960396039,
+        "ci95": [
+          0.9378210530094568,
+          0.953699739069751
+        ],
+        "n_folds": 50
+      },
+      "referable_specificity": {
+        "mean": 0.913090446449225,
+        "ci95": [
+          0.9082822778338744,
+          0.9178986150645756
+        ],
+        "n_folds": 50
+      },
+      "referable_sens_pooled": {
+        "k_total": 4757,
+        "n_total": 5030
+      },
+      "referable_spec_pooled": {
+        "k_total": 6008,
+        "n_total": 6580
+      },
+      "n_folds_run": 50,
+      "label": "branchA_v2c"
+    }
+  },
+  "part_d": {
+    "A_to_B": {
+      "threshold": 0.035204433415959274,
+      "cal_sens": 0.9539748953974896,
+      "cal_spec": 0.49763033175355453,
+      "eval_sens": 0.9724770642201835,
+      "eval_spec": 0.4969418960244648,
+      "eval_sens_ci95": [
+        0.949994769874477,
+        0.9911903933843419
+      ],
+      "eval_spec_ci95": [
+        0.44970007057163025,
+        0.5472077828054298
+      ],
+      "auc_cal_half": 0.9158420749965297,
+      "auc_eval_half": 0.9234912886120696
+    },
+    "B_to_A": {
+      "threshold": 0.051526527822082564,
+      "cal_sens": 0.9541284403669725,
+      "cal_spec": 0.5871559633027523,
+      "eval_sens": 0.9372384937238494,
+      "eval_spec": 0.5876777251184834,
+      "eval_sens_ci95": [
+        0.9066635514018692,
+        0.9672150298759
+      ],
+      "eval_spec_ci95": [
+        0.5434715512614063,
+        0.6310096382023292
+      ],
+      "auc_cal_half": 0.9234912886120696,
+      "auc_eval_half": 0.9158420749965297
+    },
+    "subsampling": {
+      "50": {
+        "n_valid_repeats": 20,
+        "sens_mean": 0.9435779816513763,
+        "sens_std": 0.0493433865935633,
+        "sens_min": 0.7844036697247706,
+        "sens_max": 0.9862385321100917,
+        "spec_mean": 0.5611620795107035,
+        "spec_std": 0.1565580493105245,
+        "spec_min": 0.3837920489296636,
+        "spec_max": 0.9174311926605505
+      },
+      "100": {
+        "n_valid_repeats": 20,
+        "sens_mean": 0.9532110091743121,
+        "sens_std": 0.028742110454716596,
+        "sens_min": 0.8853211009174312,
+        "sens_max": 0.981651376146789,
+        "spec_mean": 0.5476299694189601,
+        "spec_std": 0.10638540597496052,
+        "spec_min": 0.43730886850152906,
+        "spec_max": 0.7935779816513762
+      },
+      "200": {
+        "n_valid_repeats": 20,
+        "sens_mean": 0.9555045871559631,
+        "sens_std": 0.022848457624609693,
+        "sens_min": 0.9128440366972477,
+        "sens_max": 0.9770642201834863,
+        "spec_mean": 0.5447247706422018,
+        "spec_std": 0.07633458016118419,
+        "spec_min": 0.4648318042813456,
+        "spec_max": 0.7201834862385321
+      },
+      "400": {
+        "n_valid_repeats": 20,
+        "sens_mean": 0.9644495412844037,
+        "sens_std": 0.007378765111075888,
+        "sens_min": 0.9541284403669725,
+        "sens_max": 0.9724770642201835,
+        "spec_mean": 0.513149847094801,
+        "spec_std": 0.017583433041547462,
+        "spec_min": 0.4954128440366973,
+        "spec_max": 0.5504587155963303
+      }
+    },
+    "n_patients_A": 437,
+    "n_patients_B": 437
+  },
+  "closing_statements": {},
+  "wall_time_seconds": 6.596095561981201
+}

@@ -1,0 +1,5650 @@
+{
+  "tag": "v2b",
+  "n_patients_A": 437,
+  "n_patients_B": 437,
+  "shipped_calibration_path": "C:\\Users\\Tanuj\\Desktop\\Projects\\DR_SCREENING\\SIH_2026\\central-system\\backend\\ml-pipeline\\models\\calibration_branchA_v2b.json",
+  "subsampling": {
+    "50": {
+      "coverage_marginal": {
+        "mean": 0.9237958715596329,
+        "std": 0.04155820742790554,
+        "min": 0.8130733944954128,
+        "max": 0.9747706422018348
+      },
+      "mean_set_size": {
+        "mean": 2.5859518348623856,
+        "std": 0.6712699235785191,
+        "min": 1.525229357798165,
+        "max": 4.606651376146789
+      },
+      "tierA_share": {
+        "mean": 0.3338302752293579,
+        "std": 0.18985260591547828,
+        "min": 0.0,
+        "max": 0.698394495412844
+      },
+      "tierB_share": {
+        "mean": 0.16106651376146788,
+        "std": 0.007748042846889962,
+        "min": 0.12729357798165136,
+        "max": 0.1628440366972477
+      },
+      "tierC_share": {
+        "mean": 0.5051032110091744,
+        "std": 0.1890113787451303,
+        "min": 0.13876146788990826,
+        "max": 0.8371559633027523
+      },
+      "false_autoclear_tierA_ref_rate": {
+        "mean": 0.040137614678899085,
+        "std": 0.03785098629545104,
+        "min": 0.0,
+        "max": 0.14678899082568808
+      },
+      "false_autoclear_tierA_ge3_rate": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "referable_sensitivity": {
+        "mean": 0.9327981651376147,
+        "std": 0.046786179983927166,
+        "min": 0.7752293577981652,
+        "max": 0.9908256880733946
+      },
+      "referable_specificity": {
+        "mean": 0.6033639143730886,
+        "std": 0.1598056116527118,
+        "min": 0.3333333333333333,
+        "max": 0.9128440366972477
+      },
+      "coverage_stratum_non_referable": {
+        "mean": 0.9121559633027523,
+        "std": 0.04188730405461338
+      },
+      "coverage_stratum_referable": {
+        "mean": 0.9587155963302753,
+        "std": 0.0412589115995759
+      },
+      "n_repeats": 20,
+      "n_qhat_saturated_nonref": 0,
+      "n_referableThreshold_saturated": 0,
+      "mean_referableThreshold": 0.11412325453666379,
+      "mean_temperature": 1.678973495010202,
+      "mean_n_cal_referable": 26.4,
+      "_repeats_raw": [
+        {
+          "n_cal_images": 100,
+          "n_ref_in_cal": 28,
+          "referableThreshold_saturated": false,
+          "T": 1.5962015301848334,
+          "referableThreshold": 0.30908541118124777,
+          "qhatPerStratum": [
+            0.0,
+            0.7355756604606684
+          ],
+          "mean_set_size": 1.525229357798165,
+          "frac_size1": 0.7075688073394495,
+          "frac_size2": 0.08256880733944955,
+          "frac_size_ge3": 0.2098623853211009,
+          "tierA_share": 0.698394495412844,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.13876146788990826,
+          "coverage_marginal": 0.8130733944954128,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8073394495412844,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.8302752293577982,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.1791044776119403,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.8092485549132948,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 0.9375,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 0.8461538461538461,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 32,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 32,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.14678899082568808,
+          "false_autoclear_tierA_ref_rate": 0.14678899082568808,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.7752293577981652,
+          "referable_specificity": 0.9128440366972477
+        },
+        {
+          "n_cal_images": 100,
+          "n_ref_in_cal": 15,
+          "referableThreshold_saturated": false,
+          "T": 1.7007773902532461,
+          "referableThreshold": 0.13259971487025657,
+          "qhatPerStratum": [
+            0.0,
+            1.0
+          ],
+          "mean_set_size": 4.606651376146789,
+          "frac_size1": 0.0,
+          "frac_size2": 0.0,
+          "frac_size_ge3": 1.0,
+          "tierA_share": 0.0,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.8371559633027523,
+          "coverage_marginal": 0.9747706422018348,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9663608562691132,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 1.0,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.9552238805970149,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 1.0,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 0,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 0,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.0,
+          "false_autoclear_tierA_ref_rate": 0.0,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9128440366972477,
+          "referable_specificity": 0.7079510703363915
+        },
+        {
+          "n_cal_images": 100,
+          "n_ref_in_cal": 21,
+          "referableThreshold_saturated": false,
+          "T": 1.8192829160383044,
+          "referableThreshold": 0.1338937037403207,
+          "qhatPerStratum": [
+            0.0,
+            0.9161031330281697
+          ],
+          "mean_set_size": 2.4288990825688073,
+          "frac_size1": 0.3543577981651376,
+          "frac_size2": 0.013761467889908258,
+          "frac_size_ge3": 0.6318807339449541,
+          "tierA_share": 0.3543577981651376,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.4827981651376147,
+          "coverage_marginal": 0.9288990825688074,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9174311926605505,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.963302752293578,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.7164179104477612,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.953757225433526,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 8,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 8,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.03669724770642202,
+          "false_autoclear_tierA_ref_rate": 0.03669724770642202,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.926605504587156,
+          "referable_specificity": 0.6697247706422018
+        },
+        {
+          "n_cal_images": 100,
+          "n_ref_in_cal": 25,
+          "referableThreshold_saturated": false,
+          "T": 1.815345073496806,
+          "referableThreshold": 0.141732399178173,
+          "qhatPerStratum": [
+            0.0,
+            0.8665971404601253
+          ],
+          "mean_set_size": 2.0172018348623855,
+          "frac_size1": 0.5206422018348624,
+          "frac_size2": 0.026376146788990827,
+          "frac_size_ge3": 0.45298165137614677,
+          "tierA_share": 0.5206422018348624,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.3165137614678899,
+          "coverage_marginal": 0.8899082568807339,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8776758409785933,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.926605504587156,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.5223880597014925,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9075144508670521,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 16,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 16,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.07339449541284404,
+          "false_autoclear_tierA_ref_rate": 0.07339449541284404,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9220183486238532,
+          "referable_specificity": 0.691131498470948
+        },
+        {
+          "n_cal_images": 100,
+          "n_ref_in_cal": 26,
+          "referableThreshold_saturated": false,
+          "T": 1.4598766142081863,
+          "referableThreshold": 0.07138419478023056,
+          "qhatPerStratum": [
+            0.0,
+            0.9300424926269225
+          ],
+          "mean_set_size": 2.180045871559633,
+          "frac_size1": 0.45642201834862384,
+          "frac_size2": 0.02408256880733945,
+          "frac_size_ge3": 0.5194954128440367,
+          "tierA_share": 0.45642201834862384,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.38073394495412843,
+          "coverage_marginal": 0.908256880733945,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8944954128440367,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9495412844036697,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6044776119402985,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9364161849710982,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 11,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 11,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.05045871559633028,
+          "false_autoclear_tierA_ref_rate": 0.05045871559633028,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9495412844036697,
+          "referable_specificity": 0.5963302752293578
+        },
+        {
+          "n_cal_images": 100,
+          "n_ref_in_cal": 32,
+          "referableThreshold_saturated": false,
+          "T": 1.6279982141717764,
+          "referableThreshold": 0.15294841917993168,
+          "qhatPerStratum": [
+            0.0,
+            0.8784364285253556
+          ],
+          "mean_set_size": 1.9529816513761469,
+          "frac_size1": 0.5481651376146789,
+          "frac_size2": 0.02981651376146789,
+          "frac_size_ge3": 0.42201834862385323,
+          "tierA_share": 0.5481651376146789,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.2889908256880734,
+          "coverage_marginal": 0.8761467889908257,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8608562691131498,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9220183486238532,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.44029850746268656,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9017341040462428,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 17,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 17,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.0779816513761468,
+          "false_autoclear_tierA_ref_rate": 0.0779816513761468,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.908256880733945,
+          "referable_specificity": 0.7629969418960245
+        },
+        {
+          "n_cal_images": 100,
+          "n_ref_in_cal": 24,
+          "referableThreshold_saturated": false,
+          "T": 1.6392420282860154,
+          "referableThreshold": 0.05579173695176234,
+          "qhatPerStratum": [
+            0.0,
+            0.965328736026369
+          ],
+          "mean_set_size": 2.9323394495412844,
+          "frac_size1": 0.1834862385321101,
+          "frac_size2": 0.005733944954128441,
+          "frac_size_ge3": 0.8107798165137615,
+          "tierA_share": 0.1834862385321101,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.6536697247706422,
+          "coverage_marginal": 0.9552752293577982,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9434250764525994,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9908256880733946,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.8432835820895522,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9884393063583815,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 2,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 2,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.009174311926605505,
+          "false_autoclear_tierA_ref_rate": 0.009174311926605505,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9724770642201835,
+          "referable_specificity": 0.41590214067278286
+        },
+        {
+          "n_cal_images": 99,
+          "n_ref_in_cal": 25,
+          "referableThreshold_saturated": false,
+          "T": 1.3160426121865647,
+          "referableThreshold": 0.04586664995437066,
+          "qhatPerStratum": [
+            0.0,
+            0.9841529319344133
+          ],
+          "mean_set_size": 2.9231651376146788,
+          "frac_size1": 0.19495412844036697,
+          "frac_size2": 0.005733944954128441,
+          "frac_size_ge3": 0.7993119266055045,
+          "tierA_share": 0.19495412844036697,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.6422018348623854,
+          "coverage_marginal": 0.9552752293577982,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9434250764525994,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9908256880733946,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.8432835820895522,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9884393063583815,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 2,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 2,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.009174311926605505,
+          "false_autoclear_tierA_ref_rate": 0.009174311926605505,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9495412844036697,
+          "referable_specificity": 0.5642201834862385
+        },
+        {
+          "n_cal_images": 99,
+          "n_ref_in_cal": 25,
+          "referableThreshold_saturated": false,
+          "T": 1.52955576331992,
+          "referableThreshold": 0.05269867809769825,
+          "qhatPerStratum": [
+            0.0,
+            0.9828262117246176
+          ],
+          "mean_set_size": 3.2006880733944953,
+          "frac_size1": 0.11697247706422019,
+          "frac_size2": 0.0011467889908256881,
+          "frac_size_ge3": 0.8818807339449541,
+          "tierA_share": 0.11697247706422019,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.7201834862385321,
+          "coverage_marginal": 0.963302752293578,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9541284403669725,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9908256880733946,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.8955223880597015,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9884393063583815,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 2,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 2,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.009174311926605505,
+          "false_autoclear_tierA_ref_rate": 0.009174311926605505,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9678899082568807,
+          "referable_specificity": 0.4541284403669725
+        },
+        {
+          "n_cal_images": 100,
+          "n_ref_in_cal": 32,
+          "referableThreshold_saturated": false,
+          "T": 1.8383656929898589,
+          "referableThreshold": 0.07529738776798126,
+          "qhatPerStratum": [
+            0.0,
+            0.9511608908269028
+          ],
+          "mean_set_size": 2.9426605504587156,
+          "frac_size1": 0.16972477064220184,
+          "frac_size2": 0.0045871559633027525,
+          "frac_size_ge3": 0.8256880733944955,
+          "tierA_share": 0.16972477064220184,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.6674311926605505,
+          "coverage_marginal": 0.9552752293577982,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9434250764525994,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9908256880733946,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.8432835820895522,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9884393063583815,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 2,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 2,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.009174311926605505,
+          "false_autoclear_tierA_ref_rate": 0.009174311926605505,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9724770642201835,
+          "referable_specificity": 0.40214067278287463
+        },
+        {
+          "n_cal_images": 100,
+          "n_ref_in_cal": 21,
+          "referableThreshold_saturated": false,
+          "T": 1.5014165294719022,
+          "referableThreshold": 0.09338982585804298,
+          "qhatPerStratum": [
+            0.0,
+            0.9234811502888438
+          ],
+          "mean_set_size": 2.168577981651376,
+          "frac_size1": 0.4610091743119266,
+          "frac_size2": 0.02522935779816514,
+          "frac_size_ge3": 0.5137614678899083,
+          "tierA_share": 0.4610091743119266,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.3761467889908257,
+          "coverage_marginal": 0.9071100917431193,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8929663608562691,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9495412844036697,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.5970149253731343,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9364161849710982,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 11,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 11,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.05045871559633028,
+          "false_autoclear_tierA_ref_rate": 0.05045871559633028,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9311926605504587,
+          "referable_specificity": 0.6819571865443425
+        },
+        {
+          "n_cal_images": 100,
+          "n_ref_in_cal": 31,
+          "referableThreshold_saturated": false,
+          "T": 1.5055068026850955,
+          "referableThreshold": 0.11813592752235083,
+          "qhatPerStratum": [
+            0.0,
+            0.8914297810951506
+          ],
+          "mean_set_size": 1.9254587155963303,
+          "frac_size1": 0.5596330275229358,
+          "frac_size2": 0.033256880733944956,
+          "frac_size_ge3": 0.40711009174311924,
+          "tierA_share": 0.5596330275229358,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.2775229357798165,
+          "coverage_marginal": 0.8704128440366973,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8562691131498471,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9128440366972477,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.417910447761194,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.8901734104046243,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 19,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 19,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.0871559633027523,
+          "false_autoclear_tierA_ref_rate": 0.0871559633027523,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.908256880733945,
+          "referable_specificity": 0.7339449541284404
+        },
+        {
+          "n_cal_images": 100,
+          "n_ref_in_cal": 27,
+          "referableThreshold_saturated": false,
+          "T": 1.7664983220549633,
+          "referableThreshold": 0.10994396906585399,
+          "qhatPerStratum": [
+            0.0,
+            0.942436666774275
+          ],
+          "mean_set_size": 2.6892201834862384,
+          "frac_size1": 0.25573394495412843,
+          "frac_size2": 0.009174311926605505,
+          "frac_size_ge3": 0.7350917431192661,
+          "tierA_share": 0.25573394495412843,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.5814220183486238,
+          "coverage_marginal": 0.9495412844036697,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9373088685015291,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9862385321100917,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.8134328358208955,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9826589595375722,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 3,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 3,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.013761467889908258,
+          "false_autoclear_tierA_ref_rate": 0.013761467889908258,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9495412844036697,
+          "referable_specificity": 0.5978593272171254
+        },
+        {
+          "n_cal_images": 100,
+          "n_ref_in_cal": 27,
+          "referableThreshold_saturated": false,
+          "T": 1.8550571568956284,
+          "referableThreshold": 0.06903855047438939,
+          "qhatPerStratum": [
+            0.0,
+            0.9632942398533628
+          ],
+          "mean_set_size": 3.1410550458715596,
+          "frac_size1": 0.11811926605504587,
+          "frac_size2": 0.0011467889908256881,
+          "frac_size_ge3": 0.8807339449541285,
+          "tierA_share": 0.11811926605504587,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.7190366972477065,
+          "coverage_marginal": 0.963302752293578,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9541284403669725,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9908256880733946,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.8955223880597015,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9884393063583815,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 2,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 2,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.009174311926605505,
+          "false_autoclear_tierA_ref_rate": 0.009174311926605505,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9862385321100917,
+          "referable_specificity": 0.3470948012232416
+        },
+        {
+          "n_cal_images": 100,
+          "n_ref_in_cal": 30,
+          "referableThreshold_saturated": false,
+          "T": 1.9871102492721884,
+          "referableThreshold": 0.1734641156620807,
+          "qhatPerStratum": [
+            0.4113187308087959,
+            0.872101327736463
+          ],
+          "mean_set_size": 2.2477064220183487,
+          "frac_size1": 0.44036697247706424,
+          "frac_size2": 0.022935779816513763,
+          "frac_size_ge3": 0.536697247706422,
+          "tierA_share": 0.44036697247706424,
+          "tierB_share": 0.12729357798165136,
+          "tierC_share": 0.4323394495412844,
+          "coverage_marginal": 0.9162844036697247,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9051987767584098,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9495412844036697,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9730769230769231,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6417910447761194,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9364161849710982,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 11,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 11,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.05045871559633028,
+          "false_autoclear_tierA_ref_rate": 0.05045871559633028,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9128440366972477,
+          "referable_specificity": 0.7125382262996942
+        },
+        {
+          "n_cal_images": 100,
+          "n_ref_in_cal": 33,
+          "referableThreshold_saturated": false,
+          "T": 1.8931252601516864,
+          "referableThreshold": 0.06915829431479213,
+          "qhatPerStratum": [
+            0.0,
+            0.9692453170258438
+          ],
+          "mean_set_size": 3.3211009174311927,
+          "frac_size1": 0.0779816513761468,
+          "frac_size2": 0.0,
+          "frac_size_ge3": 0.9220183486238532,
+          "tierA_share": 0.0779816513761468,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.7591743119266054,
+          "coverage_marginal": 0.9690366972477065,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9587155963302753,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 1.0,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.917910447761194,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 1.0,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 0,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 0,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.0,
+          "false_autoclear_tierA_ref_rate": 0.0,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9908256880733946,
+          "referable_specificity": 0.3333333333333333
+        },
+        {
+          "n_cal_images": 100,
+          "n_ref_in_cal": 23,
+          "referableThreshold_saturated": false,
+          "T": 1.4620936895471812,
+          "referableThreshold": 0.03866508119764443,
+          "qhatPerStratum": [
+            0.0,
+            0.9653971447703609
+          ],
+          "mean_set_size": 2.658256880733945,
+          "frac_size1": 0.2775229357798165,
+          "frac_size2": 0.009174311926605505,
+          "frac_size_ge3": 0.713302752293578,
+          "tierA_share": 0.2775229357798165,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.5596330275229358,
+          "coverage_marginal": 0.9461009174311926,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9342507645259939,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.981651376146789,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.7985074626865671,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.976878612716763,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 4,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 4,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.01834862385321101,
+          "false_autoclear_tierA_ref_rate": 0.01834862385321101,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9770642201834863,
+          "referable_specificity": 0.40978593272171254
+        },
+        {
+          "n_cal_images": 100,
+          "n_ref_in_cal": 30,
+          "referableThreshold_saturated": false,
+          "T": 1.7306792392894947,
+          "referableThreshold": 0.0922361762789001,
+          "qhatPerStratum": [
+            0.0,
+            0.9456255017880673
+          ],
+          "mean_set_size": 2.688073394495413,
+          "frac_size1": 0.25688073394495414,
+          "frac_size2": 0.009174311926605505,
+          "frac_size_ge3": 0.7339449541284404,
+          "tierA_share": 0.25688073394495414,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.5802752293577982,
+          "coverage_marginal": 0.9495412844036697,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9373088685015291,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9862385321100917,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.8134328358208955,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9826589595375722,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 3,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 3,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.013761467889908258,
+          "false_autoclear_tierA_ref_rate": 0.013761467889908258,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9495412844036697,
+          "referable_specificity": 0.5535168195718655
+        },
+        {
+          "n_cal_images": 100,
+          "n_ref_in_cal": 33,
+          "referableThreshold_saturated": false,
+          "T": 1.6504094832375324,
+          "referableThreshold": 0.18469965683878467,
+          "qhatPerStratum": [
+            0.0,
+            0.9171120068202714
+          ],
+          "mean_set_size": 2.24197247706422,
+          "frac_size1": 0.43004587155963303,
+          "frac_size2": 0.021788990825688075,
+          "frac_size_ge3": 0.5481651376146789,
+          "tierA_share": 0.43004587155963303,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.40711009174311924,
+          "coverage_marginal": 0.9128440366972477,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.900611620795107,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9495412844036697,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6343283582089553,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9364161849710982,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 11,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 11,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.05045871559633028,
+          "false_autoclear_tierA_ref_rate": 0.05045871559633028,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.8807339449541285,
+          "referable_specificity": 0.8058103975535168
+        },
+        {
+          "n_cal_images": 99,
+          "n_ref_in_cal": 20,
+          "referableThreshold_saturated": false,
+          "T": 1.8848853324628585,
+          "referableThreshold": 0.16243519781846355,
+          "qhatPerStratum": [
+            0.0,
+            0.8391354345394078
+          ],
+          "mean_set_size": 1.9277522935779816,
+          "frac_size1": 0.5561926605504587,
+          "frac_size2": 0.03211009174311927,
+          "frac_size_ge3": 0.411697247706422,
+          "tierA_share": 0.5561926605504587,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.2809633027522936,
+          "coverage_marginal": 0.8715596330275229,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8577981651376146,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9128440366972477,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.4253731343283582,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.8901734104046243,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 19,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 19,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.0871559633027523,
+          "false_autoclear_tierA_ref_rate": 0.0871559633027523,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9128440366972477,
+          "referable_specificity": 0.7140672782874617
+        }
+      ]
+    },
+    "100": {
+      "coverage_marginal": {
+        "mean": 0.9360091743119267,
+        "std": 0.02536348832186826,
+        "min": 0.8841743119266054,
+        "max": 0.9690366972477065
+      },
+      "mean_set_size": {
+        "mean": 2.5934633027522933,
+        "std": 0.3964500295577856,
+        "min": 1.9954128440366972,
+        "max": 3.2993119266055047
+      },
+      "tierA_share": {
+        "mean": 0.3030963302752293,
+        "std": 0.1382064398316585,
+        "min": 0.0779816513761468,
+        "max": 0.533256880733945
+      },
+      "tierB_share": {
+        "mean": 0.1610091743119266,
+        "std": 0.007997979712918667,
+        "min": 0.12614678899082568,
+        "max": 0.1628440366972477
+      },
+      "tierC_share": {
+        "mean": 0.5358944954128441,
+        "std": 0.13907912499367392,
+        "min": 0.3038990825688073,
+        "max": 0.7591743119266054
+      },
+      "false_autoclear_tierA_ref_rate": {
+        "mean": 0.028440366972477073,
+        "std": 0.022547166472375244,
+        "min": 0.0,
+        "max": 0.0779816513761468
+      },
+      "false_autoclear_tierA_ge3_rate": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "referable_sensitivity": {
+        "mean": 0.9529816513761465,
+        "std": 0.02456913450186762,
+        "min": 0.908256880733945,
+        "max": 0.9908256880733946
+      },
+      "referable_specificity": {
+        "mean": 0.5138379204892967,
+        "std": 0.15426874817865485,
+        "min": 0.18807339449541285,
+        "max": 0.7553516819571865
+      },
+      "coverage_stratum_non_referable": {
+        "mean": 0.924159021406728,
+        "std": 0.026348542928329728
+      },
+      "coverage_stratum_referable": {
+        "mean": 0.9715596330275229,
+        "std": 0.022547166472375257
+      },
+      "n_repeats": 20,
+      "n_qhat_saturated_nonref": 0,
+      "n_referableThreshold_saturated": 0,
+      "mean_referableThreshold": 0.09982047983260012,
+      "mean_temperature": 1.8225594463522046,
+      "mean_n_cal_referable": 56.2,
+      "_repeats_raw": [
+        {
+          "n_cal_images": 199,
+          "n_ref_in_cal": 46,
+          "referableThreshold_saturated": false,
+          "T": 1.6796639138395437,
+          "referableThreshold": 0.09925098016910242,
+          "qhatPerStratum": [
+            0.0,
+            0.9625806737222196
+          ],
+          "mean_set_size": 2.9323394495412844,
+          "frac_size1": 0.1811926605504587,
+          "frac_size2": 0.0045871559633027525,
+          "frac_size_ge3": 0.8142201834862385,
+          "tierA_share": 0.1811926605504587,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.6559633027522935,
+          "coverage_marginal": 0.9552752293577982,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9434250764525994,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9908256880733946,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.8432835820895522,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9884393063583815,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 2,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 2,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.009174311926605505,
+          "false_autoclear_tierA_ref_rate": 0.009174311926605505,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9495412844036697,
+          "referable_specificity": 0.5978593272171254
+        },
+        {
+          "n_cal_images": 199,
+          "n_ref_in_cal": 63,
+          "referableThreshold_saturated": false,
+          "T": 1.7860136734041718,
+          "referableThreshold": 0.14508111472239343,
+          "qhatPerStratum": [
+            0.0,
+            0.8876578907323068
+          ],
+          "mean_set_size": 2.153669724770642,
+          "frac_size1": 0.4610091743119266,
+          "frac_size2": 0.02522935779816514,
+          "frac_size_ge3": 0.5137614678899083,
+          "tierA_share": 0.4610091743119266,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.3761467889908257,
+          "coverage_marginal": 0.908256880733945,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8944954128440367,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9495412844036697,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6044776119402985,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9364161849710982,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 11,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 11,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.05045871559633028,
+          "false_autoclear_tierA_ref_rate": 0.05045871559633028,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9128440366972477,
+          "referable_specificity": 0.7079510703363915
+        },
+        {
+          "n_cal_images": 200,
+          "n_ref_in_cal": 49,
+          "referableThreshold_saturated": false,
+          "T": 1.9059967627041448,
+          "referableThreshold": 0.08005611174786804,
+          "qhatPerStratum": [
+            0.0,
+            0.9261045028938527
+          ],
+          "mean_set_size": 2.653669724770642,
+          "frac_size1": 0.26376146788990823,
+          "frac_size2": 0.009174311926605505,
+          "frac_size_ge3": 0.7270642201834863,
+          "tierA_share": 0.26376146788990823,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.573394495412844,
+          "coverage_marginal": 0.9495412844036697,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9373088685015291,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9862385321100917,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.8134328358208955,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9826589595375722,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 3,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 3,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.013761467889908258,
+          "false_autoclear_tierA_ref_rate": 0.013761467889908258,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9724770642201835,
+          "referable_specificity": 0.38837920489296635
+        },
+        {
+          "n_cal_images": 198,
+          "n_ref_in_cal": 60,
+          "referableThreshold_saturated": false,
+          "T": 1.5517626589301494,
+          "referableThreshold": 0.13615819885241973,
+          "qhatPerStratum": [
+            0.0,
+            0.8968653709127927
+          ],
+          "mean_set_size": 1.9954128440366972,
+          "frac_size1": 0.533256880733945,
+          "frac_size2": 0.026376146788990827,
+          "frac_size_ge3": 0.44036697247706424,
+          "tierA_share": 0.533256880733945,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.3038990825688073,
+          "coverage_marginal": 0.8841743119266054,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8715596330275229,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9220183486238532,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.4925373134328358,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9017341040462428,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 17,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 17,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.0779816513761468,
+          "false_autoclear_tierA_ref_rate": 0.0779816513761468,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.908256880733945,
+          "referable_specificity": 0.7553516819571865
+        },
+        {
+          "n_cal_images": 200,
+          "n_ref_in_cal": 55,
+          "referableThreshold_saturated": false,
+          "T": 1.614951290863774,
+          "referableThreshold": 0.11984384944634355,
+          "qhatPerStratum": [
+            0.0,
+            0.8947787241126967
+          ],
+          "mean_set_size": 2.028669724770642,
+          "frac_size1": 0.518348623853211,
+          "frac_size2": 0.026376146788990827,
+          "frac_size_ge3": 0.4552752293577982,
+          "tierA_share": 0.518348623853211,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.31880733944954126,
+          "coverage_marginal": 0.8910550458715596,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8776758409785933,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9311926605504587,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.5223880597014925,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9132947976878613,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 15,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 15,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.06880733944954129,
+          "false_autoclear_tierA_ref_rate": 0.06880733944954129,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9220183486238532,
+          "referable_specificity": 0.7048929663608563
+        },
+        {
+          "n_cal_images": 199,
+          "n_ref_in_cal": 65,
+          "referableThreshold_saturated": false,
+          "T": 1.8696940063584633,
+          "referableThreshold": 0.13214158345627083,
+          "qhatPerStratum": [
+            0.0,
+            0.9104255075766994
+          ],
+          "mean_set_size": 2.42545871559633,
+          "frac_size1": 0.3543577981651376,
+          "frac_size2": 0.013761467889908258,
+          "frac_size_ge3": 0.6318807339449541,
+          "tierA_share": 0.3543577981651376,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.4827981651376147,
+          "coverage_marginal": 0.9288990825688074,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9174311926605505,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.963302752293578,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.7164179104477612,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.953757225433526,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 8,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 8,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.03669724770642202,
+          "false_autoclear_tierA_ref_rate": 0.03669724770642202,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9311926605504587,
+          "referable_specificity": 0.6406727828746177
+        },
+        {
+          "n_cal_images": 200,
+          "n_ref_in_cal": 51,
+          "referableThreshold_saturated": false,
+          "T": 1.7498680551995593,
+          "referableThreshold": 0.08298946059991917,
+          "qhatPerStratum": [
+            0.0,
+            0.9756662737315195
+          ],
+          "mean_set_size": 3.2993119266055047,
+          "frac_size1": 0.08944954128440367,
+          "frac_size2": 0.0,
+          "frac_size_ge3": 0.9105504587155964,
+          "tierA_share": 0.08944954128440367,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.7477064220183486,
+          "coverage_marginal": 0.9678899082568807,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9571865443425076,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 1.0,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.9104477611940298,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 1.0,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 0,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 0,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.0,
+          "false_autoclear_tierA_ref_rate": 0.0,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.963302752293578,
+          "referable_specificity": 0.5
+        },
+        {
+          "n_cal_images": 200,
+          "n_ref_in_cal": 70,
+          "referableThreshold_saturated": false,
+          "T": 1.7048252311179495,
+          "referableThreshold": 0.08195668330552033,
+          "qhatPerStratum": [
+            0.0,
+            0.9677146096393068
+          ],
+          "mean_set_size": 3.0642201834862384,
+          "frac_size1": 0.143348623853211,
+          "frac_size2": 0.0045871559633027525,
+          "frac_size_ge3": 0.8520642201834863,
+          "tierA_share": 0.143348623853211,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.6938073394495413,
+          "coverage_marginal": 0.9610091743119266,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9510703363914373,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9908256880733946,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.8805970149253731,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9884393063583815,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 2,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 2,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.009174311926605505,
+          "false_autoclear_tierA_ref_rate": 0.009174311926605505,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9587155963302753,
+          "referable_specificity": 0.5214067278287462
+        },
+        {
+          "n_cal_images": 199,
+          "n_ref_in_cal": 60,
+          "referableThreshold_saturated": false,
+          "T": 1.914135757585993,
+          "referableThreshold": 0.10703575545285884,
+          "qhatPerStratum": [
+            0.0,
+            0.893189045095305
+          ],
+          "mean_set_size": 2.294724770642202,
+          "frac_size1": 0.4048165137614679,
+          "frac_size2": 0.01834862385321101,
+          "frac_size_ge3": 0.5768348623853211,
+          "tierA_share": 0.4048165137614679,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.4323394495412844,
+          "coverage_marginal": 0.9174311926605505,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9051987767584098,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9541284403669725,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6567164179104478,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9421965317919075,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 10,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 10,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.045871559633027525,
+          "false_autoclear_tierA_ref_rate": 0.045871559633027525,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9541284403669725,
+          "referable_specificity": 0.5244648318042814
+        },
+        {
+          "n_cal_images": 199,
+          "n_ref_in_cal": 45,
+          "referableThreshold_saturated": false,
+          "T": 1.6929904230066721,
+          "referableThreshold": 0.08158007400790349,
+          "qhatPerStratum": [
+            0.0,
+            0.9489285718645333
+          ],
+          "mean_set_size": 2.69151376146789,
+          "frac_size1": 0.25688073394495414,
+          "frac_size2": 0.009174311926605505,
+          "frac_size_ge3": 0.7339449541284404,
+          "tierA_share": 0.25688073394495414,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.5802752293577982,
+          "coverage_marginal": 0.9495412844036697,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9373088685015291,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9862385321100917,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.8134328358208955,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9826589595375722,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 3,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 3,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.013761467889908258,
+          "false_autoclear_tierA_ref_rate": 0.013761467889908258,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9541284403669725,
+          "referable_specificity": 0.5259938837920489
+        },
+        {
+          "n_cal_images": 198,
+          "n_ref_in_cal": 63,
+          "referableThreshold_saturated": false,
+          "T": 1.691741616709548,
+          "referableThreshold": 0.12505803457261241,
+          "qhatPerStratum": [
+            0.0,
+            0.899506980630759
+          ],
+          "mean_set_size": 2.157110091743119,
+          "frac_size1": 0.4610091743119266,
+          "frac_size2": 0.02522935779816514,
+          "frac_size_ge3": 0.5137614678899083,
+          "tierA_share": 0.4610091743119266,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.3761467889908257,
+          "coverage_marginal": 0.908256880733945,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8944954128440367,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9495412844036697,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6044776119402985,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9364161849710982,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 11,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 11,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.05045871559633028,
+          "false_autoclear_tierA_ref_rate": 0.05045871559633028,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9220183486238532,
+          "referable_specificity": 0.6926605504587156
+        },
+        {
+          "n_cal_images": 200,
+          "n_ref_in_cal": 62,
+          "referableThreshold_saturated": false,
+          "T": 1.7275474262597401,
+          "referableThreshold": 0.07370079045509799,
+          "qhatPerStratum": [
+            0.0,
+            0.9357087910888329
+          ],
+          "mean_set_size": 2.536697247706422,
+          "frac_size1": 0.3165137614678899,
+          "frac_size2": 0.010321100917431193,
+          "frac_size_ge3": 0.6731651376146789,
+          "tierA_share": 0.3165137614678899,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.5206422018348624,
+          "coverage_marginal": 0.9392201834862385,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9281345565749235,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9724770642201835,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.7686567164179104,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9653179190751445,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 6,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 6,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.027522935779816515,
+          "false_autoclear_tierA_ref_rate": 0.027522935779816515,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.963302752293578,
+          "referable_specificity": 0.45718654434250766
+        },
+        {
+          "n_cal_images": 199,
+          "n_ref_in_cal": 54,
+          "referableThreshold_saturated": false,
+          "T": 2.0994731961635464,
+          "referableThreshold": 0.1351036673093159,
+          "qhatPerStratum": [
+            0.0,
+            0.8842847364417461
+          ],
+          "mean_set_size": 2.404816513761468,
+          "frac_size1": 0.356651376146789,
+          "frac_size2": 0.013761467889908258,
+          "frac_size_ge3": 0.6295871559633027,
+          "tierA_share": 0.356651376146789,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.4805045871559633,
+          "coverage_marginal": 0.9277522935779816,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9159021406727829,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.963302752293578,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.7089552238805971,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.953757225433526,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 8,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 8,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.03669724770642202,
+          "false_autoclear_tierA_ref_rate": 0.03669724770642202,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9495412844036697,
+          "referable_specificity": 0.5412844036697247
+        },
+        {
+          "n_cal_images": 200,
+          "n_ref_in_cal": 53,
+          "referableThreshold_saturated": false,
+          "T": 1.8909438492709318,
+          "referableThreshold": 0.07245455889811242,
+          "qhatPerStratum": [
+            0.0,
+            0.9471901604565701
+          ],
+          "mean_set_size": 2.9461009174311927,
+          "frac_size1": 0.16628440366972477,
+          "frac_size2": 0.0045871559633027525,
+          "frac_size_ge3": 0.8291284403669725,
+          "tierA_share": 0.16628440366972477,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.6708715596330275,
+          "coverage_marginal": 0.9575688073394495,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9464831804281345,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9908256880733946,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.8582089552238806,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9884393063583815,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 2,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 2,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.009174311926605505,
+          "false_autoclear_tierA_ref_rate": 0.009174311926605505,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9862385321100917,
+          "referable_specificity": 0.3470948012232416
+        },
+        {
+          "n_cal_images": 199,
+          "n_ref_in_cal": 54,
+          "referableThreshold_saturated": false,
+          "T": 1.9939858391430478,
+          "referableThreshold": 0.05342065032094084,
+          "qhatPerStratum": [
+            0.0,
+            0.962888435701634
+          ],
+          "mean_set_size": 3.2970183486238533,
+          "frac_size1": 0.0779816513761468,
+          "frac_size2": 0.0,
+          "frac_size_ge3": 0.9220183486238532,
+          "tierA_share": 0.0779816513761468,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.7591743119266054,
+          "coverage_marginal": 0.9690366972477065,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9587155963302753,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 1.0,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.917910447761194,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 1.0,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 0,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 0,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.0,
+          "false_autoclear_tierA_ref_rate": 0.0,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9908256880733946,
+          "referable_specificity": 0.18807339449541285
+        },
+        {
+          "n_cal_images": 200,
+          "n_ref_in_cal": 53,
+          "referableThreshold_saturated": false,
+          "T": 1.7485623754479203,
+          "referableThreshold": 0.04226214608640317,
+          "qhatPerStratum": [
+            0.0,
+            0.9647691773559621
+          ],
+          "mean_set_size": 3.05848623853211,
+          "frac_size1": 0.14220183486238533,
+          "frac_size2": 0.0045871559633027525,
+          "frac_size_ge3": 0.8532110091743119,
+          "tierA_share": 0.14220183486238533,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.694954128440367,
+          "coverage_marginal": 0.9610091743119266,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9510703363914373,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9908256880733946,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.8805970149253731,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9884393063583815,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 2,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 2,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.009174311926605505,
+          "false_autoclear_tierA_ref_rate": 0.009174311926605505,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9908256880733946,
+          "referable_specificity": 0.2308868501529052
+        },
+        {
+          "n_cal_images": 198,
+          "n_ref_in_cal": 47,
+          "referableThreshold_saturated": false,
+          "T": 1.8500494178920757,
+          "referableThreshold": 0.10620868943247312,
+          "qhatPerStratum": [
+            0.0,
+            0.912642914690414
+          ],
+          "mean_set_size": 2.42545871559633,
+          "frac_size1": 0.3543577981651376,
+          "frac_size2": 0.013761467889908258,
+          "frac_size_ge3": 0.6318807339449541,
+          "tierA_share": 0.3543577981651376,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.4827981651376147,
+          "coverage_marginal": 0.9288990825688074,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9174311926605505,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.963302752293578,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.7164179104477612,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.953757225433526,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 8,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 8,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.03669724770642202,
+          "false_autoclear_tierA_ref_rate": 0.03669724770642202,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9495412844036697,
+          "referable_specificity": 0.5489296636085627
+        },
+        {
+          "n_cal_images": 199,
+          "n_ref_in_cal": 48,
+          "referableThreshold_saturated": false,
+          "T": 1.8365301142753356,
+          "referableThreshold": 0.0731787269888921,
+          "qhatPerStratum": [
+            0.0,
+            0.9327133995821582
+          ],
+          "mean_set_size": 2.658256880733945,
+          "frac_size1": 0.26376146788990823,
+          "frac_size2": 0.009174311926605505,
+          "frac_size_ge3": 0.7270642201834863,
+          "tierA_share": 0.26376146788990823,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.573394495412844,
+          "coverage_marginal": 0.9495412844036697,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9373088685015291,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9862385321100917,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.8134328358208955,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9826589595375722,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 3,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 3,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.013761467889908258,
+          "false_autoclear_tierA_ref_rate": 0.013761467889908258,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9724770642201835,
+          "referable_specificity": 0.38990825688073394
+        },
+        {
+          "n_cal_images": 200,
+          "n_ref_in_cal": 58,
+          "referableThreshold_saturated": false,
+          "T": 2.318225586486347,
+          "referableThreshold": 0.12151063520613498,
+          "qhatPerStratum": [
+            0.38547115192705794,
+            0.8857848334964813
+          ],
+          "mean_set_size": 2.69954128440367,
+          "frac_size1": 0.2545871559633027,
+          "frac_size2": 0.009174311926605505,
+          "frac_size_ge3": 0.7362385321100917,
+          "tierA_share": 0.2545871559633027,
+          "tierB_share": 0.12614678899082568,
+          "tierC_share": 0.6192660550458715,
+          "coverage_marginal": 0.9587155963302753,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9480122324159022,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9908256880733946,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9730769230769231,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.8507462686567164,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9884393063583815,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 2,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 2,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.009174311926605505,
+          "false_autoclear_tierA_ref_rate": 0.009174311926605505,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9770642201834863,
+          "referable_specificity": 0.37003058103975534
+        },
+        {
+          "n_cal_images": 200,
+          "n_ref_in_cal": 68,
+          "referableThreshold_saturated": false,
+          "T": 1.8242277323851743,
+          "referableThreshold": 0.12741788562141934,
+          "qhatPerStratum": [
+            0.0,
+            0.8827377802440572
+          ],
+          "mean_set_size": 2.146788990825688,
+          "frac_size1": 0.46215596330275227,
+          "frac_size2": 0.02522935779816514,
+          "frac_size_ge3": 0.5126146788990825,
+          "tierA_share": 0.46215596330275227,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.375,
+          "coverage_marginal": 0.9071100917431193,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8929663608562691,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9495412844036697,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.5970149253731343,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9364161849710982,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 11,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 11,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.05045871559633028,
+          "false_autoclear_tierA_ref_rate": 0.05045871559633028,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9311926605504587,
+          "referable_specificity": 0.6437308868501529
+        }
+      ]
+    },
+    "200": {
+      "coverage_marginal": {
+        "mean": 0.9178899082568807,
+        "std": 0.01935798838986495,
+        "min": 0.8761467889908257,
+        "max": 0.9495412844036697
+      },
+      "mean_set_size": {
+        "mean": 2.3087729357798166,
+        "std": 0.209503903417818,
+        "min": 1.9529816513761469,
+        "max": 2.6892201834862384
+      },
+      "tierA_share": {
+        "mean": 0.4029243119266055,
+        "std": 0.08301696911356715,
+        "min": 0.25573394495412843,
+        "max": 0.5481651376146789
+      },
+      "tierB_share": {
+        "mean": 0.1628440366972477,
+        "std": 0.0,
+        "min": 0.1628440366972477,
+        "max": 0.1628440366972477
+      },
+      "tierC_share": {
+        "mean": 0.4342316513761467,
+        "std": 0.08301696911356717,
+        "min": 0.2889908256880734,
+        "max": 0.5814220183486238
+      },
+      "false_autoclear_tierA_ref_rate": {
+        "mean": 0.04472477064220184,
+        "std": 0.016846482503168673,
+        "min": 0.013761467889908258,
+        "max": 0.0779816513761468
+      },
+      "false_autoclear_tierA_ge3_rate": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "referable_sensitivity": {
+        "mean": 0.9465596330275229,
+        "std": 0.015974568944372356,
+        "min": 0.9128440366972477,
+        "max": 0.9724770642201835
+      },
+      "referable_specificity": {
+        "mean": 0.5753822629969421,
+        "std": 0.08631373193414545,
+        "min": 0.39143730886850153,
+        "max": 0.7171253822629969
+      },
+      "coverage_stratum_non_referable": {
+        "mean": 0.9054281345565748,
+        "std": 0.020263688995715054
+      },
+      "coverage_stratum_referable": {
+        "mean": 0.9552752293577982,
+        "std": 0.01684648250316868
+      },
+      "n_repeats": 20,
+      "n_qhat_saturated_nonref": 0,
+      "n_referableThreshold_saturated": 0,
+      "mean_referableThreshold": 0.10028250805186938,
+      "mean_temperature": 1.735035057233599,
+      "mean_n_cal_referable": 112.75,
+      "_repeats_raw": [
+        {
+          "n_cal_images": 400,
+          "n_ref_in_cal": 121,
+          "referableThreshold_saturated": false,
+          "T": 1.6976845868276211,
+          "referableThreshold": 0.11407751827200653,
+          "qhatPerStratum": [
+            0.0,
+            0.9036552621145123
+          ],
+          "mean_set_size": 2.188073394495413,
+          "frac_size1": 0.4506880733944954,
+          "frac_size2": 0.022935779816513763,
+          "frac_size_ge3": 0.5263761467889908,
+          "tierA_share": 0.4506880733944954,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.38646788990825687,
+          "coverage_marginal": 0.9094036697247706,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8960244648318043,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9495412844036697,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6119402985074627,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9364161849710982,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 11,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 11,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.05045871559633028,
+          "false_autoclear_tierA_ref_rate": 0.05045871559633028,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9311926605504587,
+          "referable_specificity": 0.6605504587155964
+        },
+        {
+          "n_cal_images": 399,
+          "n_ref_in_cal": 109,
+          "referableThreshold_saturated": false,
+          "T": 1.6367061918445658,
+          "referableThreshold": 0.08957366182711272,
+          "qhatPerStratum": [
+            0.0,
+            0.9248145914509563
+          ],
+          "mean_set_size": 2.301605504587156,
+          "frac_size1": 0.4048165137614679,
+          "frac_size2": 0.0194954128440367,
+          "frac_size_ge3": 0.5756880733944955,
+          "tierA_share": 0.4048165137614679,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.4323394495412844,
+          "coverage_marginal": 0.9174311926605505,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9051987767584098,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9541284403669725,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6567164179104478,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9421965317919075,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 10,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 10,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.045871559633027525,
+          "false_autoclear_tierA_ref_rate": 0.045871559633027525,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9495412844036697,
+          "referable_specificity": 0.5856269113149847
+        },
+        {
+          "n_cal_images": 399,
+          "n_ref_in_cal": 114,
+          "referableThreshold_saturated": false,
+          "T": 1.7145344199203225,
+          "referableThreshold": 0.08309901030455724,
+          "qhatPerStratum": [
+            0.0,
+            0.9277272110016911
+          ],
+          "mean_set_size": 2.4438073394495414,
+          "frac_size1": 0.35091743119266056,
+          "frac_size2": 0.013761467889908258,
+          "frac_size_ge3": 0.6353211009174312,
+          "tierA_share": 0.35091743119266056,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.48623853211009177,
+          "coverage_marginal": 0.9311926605504587,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9204892966360856,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.963302752293578,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.7313432835820896,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.953757225433526,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 8,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 8,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.03669724770642202,
+          "false_autoclear_tierA_ref_rate": 0.03669724770642202,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9587155963302753,
+          "referable_specificity": 0.5198776758409785
+        },
+        {
+          "n_cal_images": 399,
+          "n_ref_in_cal": 118,
+          "referableThreshold_saturated": false,
+          "T": 1.848936120247526,
+          "referableThreshold": 0.09904166436709688,
+          "qhatPerStratum": [
+            0.0,
+            0.9236375379817081
+          ],
+          "mean_set_size": 2.5424311926605503,
+          "frac_size1": 0.3084862385321101,
+          "frac_size2": 0.010321100917431193,
+          "frac_size_ge3": 0.6811926605504587,
+          "tierA_share": 0.3084862385321101,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.5286697247706422,
+          "coverage_marginal": 0.9392201834862385,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9281345565749235,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9724770642201835,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.7686567164179104,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9653179190751445,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 6,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 6,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.027522935779816515,
+          "false_autoclear_tierA_ref_rate": 0.027522935779816515,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9541284403669725,
+          "referable_specificity": 0.5214067278287462
+        },
+        {
+          "n_cal_images": 398,
+          "n_ref_in_cal": 114,
+          "referableThreshold_saturated": false,
+          "T": 1.8635169011921153,
+          "referableThreshold": 0.11458282219223423,
+          "qhatPerStratum": [
+            0.0,
+            0.9241595552865286
+          ],
+          "mean_set_size": 2.569954128440367,
+          "frac_size1": 0.2981651376146789,
+          "frac_size2": 0.009174311926605505,
+          "frac_size_ge3": 0.6926605504587156,
+          "tierA_share": 0.2981651376146789,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.5389908256880734,
+          "coverage_marginal": 0.9403669724770642,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9296636085626911,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9724770642201835,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.7761194029850746,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9653179190751445,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 6,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 6,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.027522935779816515,
+          "false_autoclear_tierA_ref_rate": 0.027522935779816515,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9495412844036697,
+          "referable_specificity": 0.5764525993883792
+        },
+        {
+          "n_cal_images": 399,
+          "n_ref_in_cal": 119,
+          "referableThreshold_saturated": false,
+          "T": 1.6541750670608242,
+          "referableThreshold": 0.07716310462470112,
+          "qhatPerStratum": [
+            0.0,
+            0.922836895375299
+          ],
+          "mean_set_size": 2.2993119266055047,
+          "frac_size1": 0.4048165137614679,
+          "frac_size2": 0.0194954128440367,
+          "frac_size_ge3": 0.5756880733944955,
+          "tierA_share": 0.4048165137614679,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.4323394495412844,
+          "coverage_marginal": 0.9174311926605505,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9051987767584098,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9541284403669725,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6567164179104478,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9421965317919075,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 10,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 10,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.045871559633027525,
+          "false_autoclear_tierA_ref_rate": 0.045871559633027525,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9541284403669725,
+          "referable_specificity": 0.5244648318042814
+        },
+        {
+          "n_cal_images": 399,
+          "n_ref_in_cal": 101,
+          "referableThreshold_saturated": false,
+          "T": 1.7663904594030782,
+          "referableThreshold": 0.06633470693044033,
+          "qhatPerStratum": [
+            0.0,
+            0.9424463373089289
+          ],
+          "mean_set_size": 2.6892201834862384,
+          "frac_size1": 0.25573394495412843,
+          "frac_size2": 0.009174311926605505,
+          "frac_size_ge3": 0.7350917431192661,
+          "tierA_share": 0.25573394495412843,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.5814220183486238,
+          "coverage_marginal": 0.9495412844036697,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9373088685015291,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9862385321100917,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.8134328358208955,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9826589595375722,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 3,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 3,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.013761467889908258,
+          "false_autoclear_tierA_ref_rate": 0.013761467889908258,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9724770642201835,
+          "referable_specificity": 0.39143730886850153
+        },
+        {
+          "n_cal_images": 399,
+          "n_ref_in_cal": 130,
+          "referableThreshold_saturated": false,
+          "T": 1.862897143348173,
+          "referableThreshold": 0.13143792133931895,
+          "qhatPerStratum": [
+            0.0,
+            0.8778745074380248
+          ],
+          "mean_set_size": 2.145642201834862,
+          "frac_size1": 0.46215596330275227,
+          "frac_size2": 0.02522935779816514,
+          "frac_size_ge3": 0.5126146788990825,
+          "tierA_share": 0.46215596330275227,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.375,
+          "coverage_marginal": 0.9071100917431193,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8929663608562691,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9495412844036697,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.5970149253731343,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9364161849710982,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 11,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 11,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.05045871559633028,
+          "false_autoclear_tierA_ref_rate": 0.05045871559633028,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9311926605504587,
+          "referable_specificity": 0.6406727828746177
+        },
+        {
+          "n_cal_images": 399,
+          "n_ref_in_cal": 110,
+          "referableThreshold_saturated": false,
+          "T": 1.734307730738119,
+          "referableThreshold": 0.1334972001451329,
+          "qhatPerStratum": [
+            0.0,
+            0.8820341837876378
+          ],
+          "mean_set_size": 2.0470183486238533,
+          "frac_size1": 0.5080275229357798,
+          "frac_size2": 0.026376146788990827,
+          "frac_size_ge3": 0.46559633027522934,
+          "tierA_share": 0.5080275229357798,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.3291284403669725,
+          "coverage_marginal": 0.8922018348623854,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8792048929663608,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9311926605504587,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.5298507462686567,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9132947976878613,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 15,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 15,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.06880733944954129,
+          "false_autoclear_tierA_ref_rate": 0.06880733944954129,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9220183486238532,
+          "referable_specificity": 0.6972477064220184
+        },
+        {
+          "n_cal_images": 399,
+          "n_ref_in_cal": 123,
+          "referableThreshold_saturated": false,
+          "T": 1.6232658805323363,
+          "referableThreshold": 0.10611548132312536,
+          "qhatPerStratum": [
+            0.0,
+            0.9119207346358538
+          ],
+          "mean_set_size": 2.186926605504587,
+          "frac_size1": 0.4518348623853211,
+          "frac_size2": 0.02408256880733945,
+          "frac_size_ge3": 0.5240825688073395,
+          "tierA_share": 0.4518348623853211,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.3853211009174312,
+          "coverage_marginal": 0.9094036697247706,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8960244648318043,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9495412844036697,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6119402985074627,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9364161849710982,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 11,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 11,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.05045871559633028,
+          "false_autoclear_tierA_ref_rate": 0.05045871559633028,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9311926605504587,
+          "referable_specificity": 0.6666666666666666
+        },
+        {
+          "n_cal_images": 399,
+          "n_ref_in_cal": 104,
+          "referableThreshold_saturated": false,
+          "T": 1.5635220022191034,
+          "referableThreshold": 0.11684313794217899,
+          "qhatPerStratum": [
+            0.0,
+            0.8878572643576819
+          ],
+          "mean_set_size": 1.9529816513761469,
+          "frac_size1": 0.5481651376146789,
+          "frac_size2": 0.02981651376146789,
+          "frac_size_ge3": 0.42201834862385323,
+          "tierA_share": 0.5481651376146789,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.2889908256880734,
+          "coverage_marginal": 0.8761467889908257,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8608562691131498,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9220183486238532,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.44029850746268656,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9017341040462428,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 17,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 17,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.0779816513761468,
+          "false_autoclear_tierA_ref_rate": 0.0779816513761468,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9128440366972477,
+          "referable_specificity": 0.7171253822629969
+        },
+        {
+          "n_cal_images": 400,
+          "n_ref_in_cal": 99,
+          "referableThreshold_saturated": false,
+          "T": 1.7596502169991206,
+          "referableThreshold": 0.08427154388770168,
+          "qhatPerStratum": [
+            0.0,
+            0.9343165221228699
+          ],
+          "mean_set_size": 2.5711009174311927,
+          "frac_size1": 0.30160550458715596,
+          "frac_size2": 0.009174311926605505,
+          "frac_size_ge3": 0.6892201834862385,
+          "tierA_share": 0.30160550458715596,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.5355504587155964,
+          "coverage_marginal": 0.9403669724770642,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9296636085626911,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9724770642201835,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.7761194029850746,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9653179190751445,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 6,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 6,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.027522935779816515,
+          "false_autoclear_tierA_ref_rate": 0.027522935779816515,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.963302752293578,
+          "referable_specificity": 0.5
+        },
+        {
+          "n_cal_images": 400,
+          "n_ref_in_cal": 113,
+          "referableThreshold_saturated": false,
+          "T": 1.8083682749632661,
+          "referableThreshold": 0.09421190983650578,
+          "qhatPerStratum": [
+            0.0,
+            0.9173264706679973
+          ],
+          "mean_set_size": 2.4288990825688073,
+          "frac_size1": 0.3543577981651376,
+          "frac_size2": 0.013761467889908258,
+          "frac_size_ge3": 0.6318807339449541,
+          "tierA_share": 0.3543577981651376,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.4827981651376147,
+          "coverage_marginal": 0.9288990825688074,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9174311926605505,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.963302752293578,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.7164179104477612,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.953757225433526,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 8,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 8,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.03669724770642202,
+          "false_autoclear_tierA_ref_rate": 0.03669724770642202,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9541284403669725,
+          "referable_specificity": 0.5214067278287462
+        },
+        {
+          "n_cal_images": 398,
+          "n_ref_in_cal": 112,
+          "referableThreshold_saturated": false,
+          "T": 1.7024079250805104,
+          "referableThreshold": 0.10205337495488648,
+          "qhatPerStratum": [
+            0.0,
+            0.898154153659846
+          ],
+          "mean_set_size": 2.157110091743119,
+          "frac_size1": 0.4610091743119266,
+          "frac_size2": 0.02522935779816514,
+          "frac_size_ge3": 0.5137614678899083,
+          "tierA_share": 0.4610091743119266,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.3761467889908257,
+          "coverage_marginal": 0.908256880733945,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8944954128440367,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9495412844036697,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6044776119402985,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9364161849710982,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 11,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 11,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.05045871559633028,
+          "false_autoclear_tierA_ref_rate": 0.05045871559633028,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9495412844036697,
+          "referable_specificity": 0.5978593272171254
+        },
+        {
+          "n_cal_images": 399,
+          "n_ref_in_cal": 108,
+          "referableThreshold_saturated": false,
+          "T": 1.7599463576402758,
+          "referableThreshold": 0.10913955533572611,
+          "qhatPerStratum": [
+            0.0,
+            0.9043411356833417
+          ],
+          "mean_set_size": 2.2442660550458715,
+          "frac_size1": 0.42660550458715596,
+          "frac_size2": 0.021788990825688075,
+          "frac_size_ge3": 0.551605504587156,
+          "tierA_share": 0.42660550458715596,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.4105504587155963,
+          "coverage_marginal": 0.9128440366972477,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.900611620795107,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9495412844036697,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6343283582089553,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9364161849710982,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 11,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 11,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.05045871559633028,
+          "false_autoclear_tierA_ref_rate": 0.05045871559633028,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9495412844036697,
+          "referable_specificity": 0.5978593272171254
+        },
+        {
+          "n_cal_images": 398,
+          "n_ref_in_cal": 108,
+          "referableThreshold_saturated": false,
+          "T": 1.6932747593228465,
+          "referableThreshold": 0.10092802758272441,
+          "qhatPerStratum": [
+            0.0,
+            0.9041442186475116
+          ],
+          "mean_set_size": 2.188073394495413,
+          "frac_size1": 0.4506880733944954,
+          "frac_size2": 0.022935779816513763,
+          "frac_size_ge3": 0.5263761467889908,
+          "tierA_share": 0.4506880733944954,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.38646788990825687,
+          "coverage_marginal": 0.9094036697247706,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8960244648318043,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9495412844036697,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6119402985074627,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9364161849710982,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 11,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 11,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.05045871559633028,
+          "false_autoclear_tierA_ref_rate": 0.05045871559633028,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9495412844036697,
+          "referable_specificity": 0.5978593272171254
+        },
+        {
+          "n_cal_images": 399,
+          "n_ref_in_cal": 118,
+          "referableThreshold_saturated": false,
+          "T": 1.7957741458430003,
+          "referableThreshold": 0.09338026129270947,
+          "qhatPerStratum": [
+            0.0,
+            0.9072854107948718
+          ],
+          "mean_set_size": 2.302752293577982,
+          "frac_size1": 0.4025229357798165,
+          "frac_size2": 0.01834862385321101,
+          "frac_size_ge3": 0.5791284403669725,
+          "tierA_share": 0.4025229357798165,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.43463302752293576,
+          "coverage_marginal": 0.9174311926605505,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9051987767584098,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9541284403669725,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6567164179104478,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9421965317919075,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 10,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 10,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.045871559633027525,
+          "false_autoclear_tierA_ref_rate": 0.045871559633027525,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9541284403669725,
+          "referable_specificity": 0.5259938837920489
+        },
+        {
+          "n_cal_images": 398,
+          "n_ref_in_cal": 125,
+          "referableThreshold_saturated": false,
+          "T": 1.7407912450103615,
+          "referableThreshold": 0.1245613502219495,
+          "qhatPerStratum": [
+            0.0,
+            0.8759588724408516
+          ],
+          "mean_set_size": 2.0126146788990824,
+          "frac_size1": 0.5240825688073395,
+          "frac_size2": 0.026376146788990827,
+          "frac_size_ge3": 0.44954128440366975,
+          "tierA_share": 0.5240825688073395,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.3130733944954128,
+          "coverage_marginal": 0.8887614678899083,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8761467889908257,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.926605504587156,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.5149253731343284,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9075144508670521,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 16,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 16,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.07339449541284404,
+          "false_autoclear_tierA_ref_rate": 0.07339449541284404,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9220183486238532,
+          "referable_specificity": 0.6758409785932722
+        },
+        {
+          "n_cal_images": 400,
+          "n_ref_in_cal": 104,
+          "referableThreshold_saturated": false,
+          "T": 1.68408035566623,
+          "referableThreshold": 0.09483588734348632,
+          "qhatPerStratum": [
+            0.0,
+            0.9131998021750299
+          ],
+          "mean_set_size": 2.243119266055046,
+          "frac_size1": 0.4288990825688073,
+          "frac_size2": 0.021788990825688075,
+          "frac_size_ge3": 0.5493119266055045,
+          "tierA_share": 0.4288990825688073,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.40825688073394495,
+          "coverage_marginal": 0.9128440366972477,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.900611620795107,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9495412844036697,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6343283582089553,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9364161849710982,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 11,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 11,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.05045871559633028,
+          "false_autoclear_tierA_ref_rate": 0.05045871559633028,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9495412844036697,
+          "referable_specificity": 0.5840978593272171
+        },
+        {
+          "n_cal_images": 399,
+          "n_ref_in_cal": 105,
+          "referableThreshold_saturated": false,
+          "T": 1.7904713608125786,
+          "referableThreshold": 0.07050202131379264,
+          "qhatPerStratum": [
+            0.0,
+            0.9370300761593964
+          ],
+          "mean_set_size": 2.6605504587155964,
+          "frac_size1": 0.26490825688073394,
+          "frac_size2": 0.009174311926605505,
+          "frac_size_ge3": 0.7259174311926605,
+          "tierA_share": 0.26490825688073394,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.5722477064220184,
+          "coverage_marginal": 0.9495412844036697,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9373088685015291,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9862385321100917,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.8134328358208955,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9826589595375722,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 3,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 3,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.013761467889908258,
+          "false_autoclear_tierA_ref_rate": 0.013761467889908258,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9724770642201835,
+          "referable_specificity": 0.40519877675840976
+        }
+      ]
+    },
+    "400": {
+      "coverage_marginal": {
+        "mean": 0.9194380733944956,
+        "std": 0.005846093624300389,
+        "min": 0.9094036697247706,
+        "max": 0.9288990825688074
+      },
+      "mean_set_size": {
+        "mean": 2.3208715596330274,
+        "std": 0.06877063241067945,
+        "min": 2.1903669724770642,
+        "max": 2.4346330275229358
+      },
+      "tierA_share": {
+        "mean": 0.39615825688073397,
+        "std": 0.02663533156846321,
+        "min": 0.3532110091743119,
+        "max": 0.44724770642201833
+      },
+      "tierB_share": {
+        "mean": 0.1628440366972477,
+        "std": 0.0,
+        "min": 0.1628440366972477,
+        "max": 0.1628440366972477
+      },
+      "tierC_share": {
+        "mean": 0.44099770642201824,
+        "std": 0.026635331568463216,
+        "min": 0.38990825688073394,
+        "max": 0.48394495412844035
+      },
+      "false_autoclear_tierA_ref_rate": {
+        "mean": 0.044266055045871555,
+        "std": 0.004649801590071856,
+        "min": 0.03669724770642202,
+        "max": 0.05045871559633028
+      },
+      "false_autoclear_tierA_ge3_rate": {
+        "mean": 0.0,
+        "std": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "referable_sensitivity": {
+        "mean": 0.9525229357798164,
+        "std": 0.0021879339482040435,
+        "min": 0.9495412844036697,
+        "max": 0.9541284403669725
+      },
+      "referable_specificity": {
+        "mean": 0.5380733944954128,
+        "std": 0.021014871316927013,
+        "min": 0.5214067278287462,
+        "max": 0.581039755351682
+      },
+      "coverage_stratum_non_referable": {
+        "mean": 0.9073394495412845,
+        "std": 0.006256046649993533
+      },
+      "coverage_stratum_referable": {
+        "mean": 0.9557339449541284,
+        "std": 0.00464980159007185
+      },
+      "n_repeats": 20,
+      "n_qhat_saturated_nonref": 0,
+      "n_referableThreshold_saturated": 0,
+      "mean_referableThreshold": 0.09512937288176927,
+      "mean_temperature": 1.7834403301597264,
+      "mean_n_cal_referable": 219.6,
+      "_repeats_raw": [
+        {
+          "n_cal_images": 798,
+          "n_ref_in_cal": 221,
+          "referableThreshold_saturated": false,
+          "T": 1.7947998623291674,
+          "referableThreshold": 0.09973935797281931,
+          "qhatPerStratum": [
+            0.0,
+            0.9067320405709159
+          ],
+          "mean_set_size": 2.294724770642202,
+          "frac_size1": 0.4059633027522936,
+          "frac_size2": 0.0194954128440367,
+          "frac_size_ge3": 0.5745412844036697,
+          "tierA_share": 0.4059633027522936,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.43119266055045874,
+          "coverage_marginal": 0.9174311926605505,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9051987767584098,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9541284403669725,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6567164179104478,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9421965317919075,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 10,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 10,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.045871559633027525,
+          "false_autoclear_tierA_ref_rate": 0.045871559633027525,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9495412844036697,
+          "referable_specificity": 0.5519877675840978
+        },
+        {
+          "n_cal_images": 798,
+          "n_ref_in_cal": 223,
+          "referableThreshold_saturated": false,
+          "T": 1.801794082845299,
+          "referableThreshold": 0.10783518373098185,
+          "qhatPerStratum": [
+            0.0,
+            0.8994415258295836
+          ],
+          "mean_set_size": 2.2442660550458715,
+          "frac_size1": 0.42660550458715596,
+          "frac_size2": 0.021788990825688075,
+          "frac_size_ge3": 0.551605504587156,
+          "tierA_share": 0.42660550458715596,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.4105504587155963,
+          "coverage_marginal": 0.9128440366972477,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.900611620795107,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9495412844036697,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6343283582089553,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9364161849710982,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 11,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 11,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.05045871559633028,
+          "false_autoclear_tierA_ref_rate": 0.05045871559633028,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9495412844036697,
+          "referable_specificity": 0.5795107033639144
+        },
+        {
+          "n_cal_images": 798,
+          "n_ref_in_cal": 222,
+          "referableThreshold_saturated": false,
+          "T": 1.7898739965140829,
+          "referableThreshold": 0.0927002561805208,
+          "qhatPerStratum": [
+            0.0,
+            0.9079864274021271
+          ],
+          "mean_set_size": 2.302752293577982,
+          "frac_size1": 0.4025229357798165,
+          "frac_size2": 0.01834862385321101,
+          "frac_size_ge3": 0.5791284403669725,
+          "tierA_share": 0.4025229357798165,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.43463302752293576,
+          "coverage_marginal": 0.9174311926605505,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9051987767584098,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9541284403669725,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6567164179104478,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9421965317919075,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 10,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 10,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.045871559633027525,
+          "false_autoclear_tierA_ref_rate": 0.045871559633027525,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9541284403669725,
+          "referable_specificity": 0.5259938837920489
+        },
+        {
+          "n_cal_images": 800,
+          "n_ref_in_cal": 219,
+          "referableThreshold_saturated": false,
+          "T": 1.77584333195922,
+          "referableThreshold": 0.10498225009838677,
+          "qhatPerStratum": [
+            0.0,
+            0.8950177499016132
+          ],
+          "mean_set_size": 2.1903669724770642,
+          "frac_size1": 0.44724770642201833,
+          "frac_size2": 0.022935779816513763,
+          "frac_size_ge3": 0.5298165137614679,
+          "tierA_share": 0.44724770642201833,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.38990825688073394,
+          "coverage_marginal": 0.9094036697247706,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.8960244648318043,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9495412844036697,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6119402985074627,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9364161849710982,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 11,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 11,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.05045871559633028,
+          "false_autoclear_tierA_ref_rate": 0.05045871559633028,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9495412844036697,
+          "referable_specificity": 0.5795107033639144
+        },
+        {
+          "n_cal_images": 798,
+          "n_ref_in_cal": 219,
+          "referableThreshold_saturated": false,
+          "T": 1.7910612183294476,
+          "referableThreshold": 0.09283706993521054,
+          "qhatPerStratum": [
+            0.0,
+            0.9071629300647894
+          ],
+          "mean_set_size": 2.294724770642202,
+          "frac_size1": 0.4059633027522936,
+          "frac_size2": 0.0194954128440367,
+          "frac_size_ge3": 0.5745412844036697,
+          "tierA_share": 0.4059633027522936,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.43119266055045874,
+          "coverage_marginal": 0.9174311926605505,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9051987767584098,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9541284403669725,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6567164179104478,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9421965317919075,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 10,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 10,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.045871559633027525,
+          "false_autoclear_tierA_ref_rate": 0.045871559633027525,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9541284403669725,
+          "referable_specificity": 0.5259938837920489
+        },
+        {
+          "n_cal_images": 798,
+          "n_ref_in_cal": 216,
+          "referableThreshold_saturated": false,
+          "T": 1.7657429023942026,
+          "referableThreshold": 0.09633725304438275,
+          "qhatPerStratum": [
+            0.0,
+            0.9100785026788938
+          ],
+          "mean_set_size": 2.294724770642202,
+          "frac_size1": 0.4059633027522936,
+          "frac_size2": 0.0194954128440367,
+          "frac_size_ge3": 0.5745412844036697,
+          "tierA_share": 0.4059633027522936,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.43119266055045874,
+          "coverage_marginal": 0.9174311926605505,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9051987767584098,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9541284403669725,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6567164179104478,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9421965317919075,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 10,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 10,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.045871559633027525,
+          "false_autoclear_tierA_ref_rate": 0.045871559633027525,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9495412844036697,
+          "referable_specificity": 0.5519877675840978
+        },
+        {
+          "n_cal_images": 798,
+          "n_ref_in_cal": 218,
+          "referableThreshold_saturated": false,
+          "T": 1.809653489251104,
+          "referableThreshold": 0.09436477706601976,
+          "qhatPerStratum": [
+            0.0,
+            0.917182544501671
+          ],
+          "mean_set_size": 2.4288990825688073,
+          "frac_size1": 0.3543577981651376,
+          "frac_size2": 0.013761467889908258,
+          "frac_size_ge3": 0.6318807339449541,
+          "tierA_share": 0.3543577981651376,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.4827981651376147,
+          "coverage_marginal": 0.9288990825688074,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9174311926605505,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.963302752293578,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.7164179104477612,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.953757225433526,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 8,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 8,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.03669724770642202,
+          "false_autoclear_tierA_ref_rate": 0.03669724770642202,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9541284403669725,
+          "referable_specificity": 0.5214067278287462
+        },
+        {
+          "n_cal_images": 798,
+          "n_ref_in_cal": 222,
+          "referableThreshold_saturated": false,
+          "T": 1.7484295004876182,
+          "referableThreshold": 0.10195965791220186,
+          "qhatPerStratum": [
+            0.0,
+            0.905688555637693
+          ],
+          "mean_set_size": 2.24197247706422,
+          "frac_size1": 0.42775229357798167,
+          "frac_size2": 0.021788990825688075,
+          "frac_size_ge3": 0.5504587155963303,
+          "tierA_share": 0.42775229357798167,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.40940366972477066,
+          "coverage_marginal": 0.9128440366972477,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.900611620795107,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9495412844036697,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6343283582089553,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9364161849710982,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 11,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 11,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.05045871559633028,
+          "false_autoclear_tierA_ref_rate": 0.05045871559633028,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9495412844036697,
+          "referable_specificity": 0.581039755351682
+        },
+        {
+          "n_cal_images": 798,
+          "n_ref_in_cal": 212,
+          "referableThreshold_saturated": false,
+          "T": 1.7918531519183483,
+          "referableThreshold": 0.09224868797457522,
+          "qhatPerStratum": [
+            0.0,
+            0.9191728472062876
+          ],
+          "mean_set_size": 2.4288990825688073,
+          "frac_size1": 0.3543577981651376,
+          "frac_size2": 0.013761467889908258,
+          "frac_size_ge3": 0.6318807339449541,
+          "tierA_share": 0.3543577981651376,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.4827981651376147,
+          "coverage_marginal": 0.9288990825688074,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9174311926605505,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.963302752293578,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.7164179104477612,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.953757225433526,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 8,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 8,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.03669724770642202,
+          "false_autoclear_tierA_ref_rate": 0.03669724770642202,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9541284403669725,
+          "referable_specificity": 0.5214067278287462
+        },
+        {
+          "n_cal_images": 798,
+          "n_ref_in_cal": 222,
+          "referableThreshold_saturated": false,
+          "T": 1.7737097726097533,
+          "referableThreshold": 0.09083842798688574,
+          "qhatPerStratum": [
+            0.0,
+            0.909905231825336
+          ],
+          "mean_set_size": 2.305045871559633,
+          "frac_size1": 0.4025229357798165,
+          "frac_size2": 0.01834862385321101,
+          "frac_size_ge3": 0.5791284403669725,
+          "tierA_share": 0.4025229357798165,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.43463302752293576,
+          "coverage_marginal": 0.9174311926605505,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9051987767584098,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9541284403669725,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6567164179104478,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9421965317919075,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 10,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 10,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.045871559633027525,
+          "false_autoclear_tierA_ref_rate": 0.045871559633027525,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9541284403669725,
+          "referable_specificity": 0.5259938837920489
+        },
+        {
+          "n_cal_images": 798,
+          "n_ref_in_cal": 219,
+          "referableThreshold_saturated": false,
+          "T": 1.8123330072931563,
+          "referableThreshold": 0.09468352395809028,
+          "qhatPerStratum": [
+            0.0,
+            0.9053164760419097
+          ],
+          "mean_set_size": 2.301605504587156,
+          "frac_size1": 0.4025229357798165,
+          "frac_size2": 0.01834862385321101,
+          "frac_size_ge3": 0.5791284403669725,
+          "tierA_share": 0.4025229357798165,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.43463302752293576,
+          "coverage_marginal": 0.9174311926605505,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9051987767584098,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9541284403669725,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6567164179104478,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9421965317919075,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 10,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 10,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.045871559633027525,
+          "false_autoclear_tierA_ref_rate": 0.045871559633027525,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9541284403669725,
+          "referable_specificity": 0.5214067278287462
+        },
+        {
+          "n_cal_images": 798,
+          "n_ref_in_cal": 219,
+          "referableThreshold_saturated": false,
+          "T": 1.785750008321804,
+          "referableThreshold": 0.09222508055921441,
+          "qhatPerStratum": [
+            0.0,
+            0.9077749194407856
+          ],
+          "mean_set_size": 2.294724770642202,
+          "frac_size1": 0.4059633027522936,
+          "frac_size2": 0.0194954128440367,
+          "frac_size_ge3": 0.5745412844036697,
+          "tierA_share": 0.4059633027522936,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.43119266055045874,
+          "coverage_marginal": 0.9174311926605505,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9051987767584098,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9541284403669725,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6567164179104478,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9421965317919075,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 10,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 10,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.045871559633027525,
+          "false_autoclear_tierA_ref_rate": 0.045871559633027525,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9541284403669725,
+          "referable_specificity": 0.5259938837920489
+        },
+        {
+          "n_cal_images": 798,
+          "n_ref_in_cal": 226,
+          "referableThreshold_saturated": false,
+          "T": 1.7481770507042125,
+          "referableThreshold": 0.0942819162202119,
+          "qhatPerStratum": [
+            0.0,
+            0.9120982266668447
+          ],
+          "mean_set_size": 2.2958715596330275,
+          "frac_size1": 0.4059633027522936,
+          "frac_size2": 0.0194954128440367,
+          "frac_size_ge3": 0.5745412844036697,
+          "tierA_share": 0.4059633027522936,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.43119266055045874,
+          "coverage_marginal": 0.9174311926605505,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9051987767584098,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9541284403669725,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6567164179104478,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9421965317919075,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 10,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 10,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.045871559633027525,
+          "false_autoclear_tierA_ref_rate": 0.045871559633027525,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9495412844036697,
+          "referable_specificity": 0.5535168195718655
+        },
+        {
+          "n_cal_images": 798,
+          "n_ref_in_cal": 217,
+          "referableThreshold_saturated": false,
+          "T": 1.8179078844450793,
+          "referableThreshold": 0.09534684572042616,
+          "qhatPerStratum": [
+            0.0,
+            0.9162573785969288
+          ],
+          "mean_set_size": 2.4288990825688073,
+          "frac_size1": 0.3543577981651376,
+          "frac_size2": 0.013761467889908258,
+          "frac_size_ge3": 0.6318807339449541,
+          "tierA_share": 0.3543577981651376,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.4827981651376147,
+          "coverage_marginal": 0.9288990825688074,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9174311926605505,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.963302752293578,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.7164179104477612,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.953757225433526,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 8,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 8,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.03669724770642202,
+          "false_autoclear_tierA_ref_rate": 0.03669724770642202,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9541284403669725,
+          "referable_specificity": 0.5214067278287462
+        },
+        {
+          "n_cal_images": 798,
+          "n_ref_in_cal": 217,
+          "referableThreshold_saturated": false,
+          "T": 1.757922300557308,
+          "referableThreshold": 0.08822349574346802,
+          "qhatPerStratum": [
+            0.0,
+            0.9229465884704988
+          ],
+          "mean_set_size": 2.4346330275229358,
+          "frac_size1": 0.3532110091743119,
+          "frac_size2": 0.013761467889908258,
+          "frac_size_ge3": 0.6330275229357798,
+          "tierA_share": 0.3532110091743119,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.48394495412844035,
+          "coverage_marginal": 0.9288990825688074,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9174311926605505,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.963302752293578,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.7164179104477612,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.953757225433526,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 8,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 8,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.03669724770642202,
+          "false_autoclear_tierA_ref_rate": 0.03669724770642202,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9541284403669725,
+          "referable_specificity": 0.5214067278287462
+        },
+        {
+          "n_cal_images": 799,
+          "n_ref_in_cal": 214,
+          "referableThreshold_saturated": false,
+          "T": 1.7954876944509786,
+          "referableThreshold": 0.0926805478635144,
+          "qhatPerStratum": [
+            0.0,
+            0.9187670129530823
+          ],
+          "mean_set_size": 2.4288990825688073,
+          "frac_size1": 0.3543577981651376,
+          "frac_size2": 0.013761467889908258,
+          "frac_size_ge3": 0.6318807339449541,
+          "tierA_share": 0.3543577981651376,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.4827981651376147,
+          "coverage_marginal": 0.9288990825688074,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9174311926605505,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.963302752293578,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.7164179104477612,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.953757225433526,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 8,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 8,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.03669724770642202,
+          "false_autoclear_tierA_ref_rate": 0.03669724770642202,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9541284403669725,
+          "referable_specificity": 0.5214067278287462
+        },
+        {
+          "n_cal_images": 798,
+          "n_ref_in_cal": 221,
+          "referableThreshold_saturated": false,
+          "T": 1.7909477602310344,
+          "referableThreshold": 0.09282399482362641,
+          "qhatPerStratum": [
+            0.0,
+            0.9078588732095705
+          ],
+          "mean_set_size": 2.302752293577982,
+          "frac_size1": 0.4025229357798165,
+          "frac_size2": 0.01834862385321101,
+          "frac_size_ge3": 0.5791284403669725,
+          "tierA_share": 0.4025229357798165,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.43463302752293576,
+          "coverage_marginal": 0.9174311926605505,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9051987767584098,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9541284403669725,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6567164179104478,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9421965317919075,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 10,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 10,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.045871559633027525,
+          "false_autoclear_tierA_ref_rate": 0.045871559633027525,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9541284403669725,
+          "referable_specificity": 0.5259938837920489
+        },
+        {
+          "n_cal_images": 798,
+          "n_ref_in_cal": 225,
+          "referableThreshold_saturated": false,
+          "T": 1.7449389723888247,
+          "referableThreshold": 0.09390320052981242,
+          "qhatPerStratum": [
+            0.0,
+            0.9124702091150807
+          ],
+          "mean_set_size": 2.2958715596330275,
+          "frac_size1": 0.4059633027522936,
+          "frac_size2": 0.0194954128440367,
+          "frac_size_ge3": 0.5745412844036697,
+          "tierA_share": 0.4059633027522936,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.43119266055045874,
+          "coverage_marginal": 0.9174311926605505,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9051987767584098,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9541284403669725,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6567164179104478,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9421965317919075,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 10,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 10,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.045871559633027525,
+          "false_autoclear_tierA_ref_rate": 0.045871559633027525,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9495412844036697,
+          "referable_specificity": 0.5535168195718655
+        },
+        {
+          "n_cal_images": 798,
+          "n_ref_in_cal": 220,
+          "referableThreshold_saturated": false,
+          "T": 1.7721657814305642,
+          "referableThreshold": 0.09066068583919804,
+          "qhatPerStratum": [
+            0.0,
+            0.9100883696522671
+          ],
+          "mean_set_size": 2.305045871559633,
+          "frac_size1": 0.4025229357798165,
+          "frac_size2": 0.01834862385321101,
+          "frac_size_ge3": 0.5791284403669725,
+          "tierA_share": 0.4025229357798165,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.43463302752293576,
+          "coverage_marginal": 0.9174311926605505,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9051987767584098,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9541284403669725,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6567164179104478,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9421965317919075,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 10,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 10,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.045871559633027525,
+          "false_autoclear_tierA_ref_rate": 0.045871559633027525,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9541284403669725,
+          "referable_specificity": 0.5259938837920489
+        },
+        {
+          "n_cal_images": 798,
+          "n_ref_in_cal": 220,
+          "referableThreshold_saturated": false,
+          "T": 1.800414834733316,
+          "referableThreshold": 0.0939152444758389,
+          "qhatPerStratum": [
+            0.0,
+            0.9067338239106921
+          ],
+          "mean_set_size": 2.302752293577982,
+          "frac_size1": 0.4025229357798165,
+          "frac_size2": 0.01834862385321101,
+          "frac_size_ge3": 0.5791284403669725,
+          "tierA_share": 0.4025229357798165,
+          "tierB_share": 0.1628440366972477,
+          "tierC_share": 0.43463302752293576,
+          "coverage_marginal": 0.9174311926605505,
+          "coverage_per_stratum": {
+            "non_referable": {
+              "coverage": 0.9051987767584098,
+              "n_k": 654
+            },
+            "referable": {
+              "coverage": 0.9541284403669725,
+              "n_k": 218
+            }
+          },
+          "coverage_per_grade": {
+            "0": {
+              "coverage": 0.9692307692307692,
+              "n_k": 520
+            },
+            "1": {
+              "coverage": 0.6567164179104478,
+              "n_k": 134
+            },
+            "2": {
+              "coverage": 0.9421965317919075,
+              "n_k": 173
+            },
+            "3": {
+              "coverage": 1.0,
+              "n_k": 32
+            },
+            "4": {
+              "coverage": 1.0,
+              "n_k": 13
+            }
+          },
+          "false_autoclear_set_ref_k": 10,
+          "false_autoclear_set_ref_n": 218,
+          "false_autoclear_set_ge3_k": 0,
+          "false_autoclear_set_ge3_n": 45,
+          "false_autoclear_tierA_ref_k": 10,
+          "false_autoclear_tierA_ref_n": 218,
+          "false_autoclear_tierA_ge3_k": 0,
+          "false_autoclear_tierA_ge3_n": 45,
+          "false_autoclear_set_ref_rate": 0.045871559633027525,
+          "false_autoclear_tierA_ref_rate": 0.045871559633027525,
+          "false_autoclear_set_ge3_rate": 0.0,
+          "false_autoclear_tierA_ge3_rate": 0.0,
+          "referable_sensitivity": 0.9541284403669725,
+          "referable_specificity": 0.5259938837920489
+        }
+      ]
+    }
+  },
+  "full_437_swap": {
+    "A_to_B": {
+      "T": 1.7791400229818568,
+      "qhatPerStratum": [
+        0.0,
+        0.908536306468804
+      ],
+      "referableThreshold": 0.09146369353119596,
+      "n_cal": 872,
+      "n_cal_referable": 239,
+      "referableThreshold_saturated": false,
+      "mean_set_size": 2.294724770642202,
+      "frac_size1": 0.4059633027522936,
+      "frac_size2": 0.0194954128440367,
+      "frac_size_ge3": 0.5745412844036697,
+      "tierA_share": 0.4059633027522936,
+      "tierB_share": 0.1628440366972477,
+      "tierC_share": 0.43119266055045874,
+      "coverage_marginal": 0.9174311926605505,
+      "coverage_per_stratum": {
+        "non_referable": {
+          "coverage": 0.9051987767584098,
+          "n_k": 654
+        },
+        "referable": {
+          "coverage": 0.9541284403669725,
+          "n_k": 218
+        }
+      },
+      "coverage_per_grade": {
+        "0": {
+          "coverage": 0.9692307692307692,
+          "n_k": 520
+        },
+        "1": {
+          "coverage": 0.6567164179104478,
+          "n_k": 134
+        },
+        "2": {
+          "coverage": 0.9421965317919075,
+          "n_k": 173
+        },
+        "3": {
+          "coverage": 1.0,
+          "n_k": 32
+        },
+        "4": {
+          "coverage": 1.0,
+          "n_k": 13
+        }
+      },
+      "false_autoclear_set_ref_k": 10,
+      "false_autoclear_set_ref_n": 218,
+      "false_autoclear_set_ge3_k": 0,
+      "false_autoclear_set_ge3_n": 45,
+      "false_autoclear_tierA_ref_k": 10,
+      "false_autoclear_tierA_ref_n": 218,
+      "false_autoclear_tierA_ge3_k": 0,
+      "false_autoclear_tierA_ge3_n": 45,
+      "false_autoclear_set_ref_rate": 0.045871559633027525,
+      "false_autoclear_tierA_ref_rate": 0.045871559633027525,
+      "false_autoclear_set_ge3_rate": 0.0,
+      "false_autoclear_tierA_ge3_rate": 0.0,
+      "referable_sensitivity": 0.9541284403669725,
+      "referable_specificity": 0.5259938837920489
+    },
+    "B_to_A": {
+      "T": 1.7370282153743348,
+      "qhatPerStratum": [
+        0.0,
+        0.9143620856046017
+      ],
+      "referableThreshold": 0.0886451718912822,
+      "n_cal": 872,
+      "n_cal_referable": 218,
+      "referableThreshold_saturated": false,
+      "mean_set_size": 2.3268348623853212,
+      "frac_size1": 0.38073394495412843,
+      "frac_size2": 0.021788990825688075,
+      "frac_size_ge3": 0.5974770642201835,
+      "tierA_share": 0.38073394495412843,
+      "tierB_share": 0.1926605504587156,
+      "tierC_share": 0.42660550458715596,
+      "coverage_marginal": 0.9128440366972477,
+      "coverage_per_stratum": {
+        "non_referable": {
+          "coverage": 0.8957345971563981,
+          "n_k": 633
+        },
+        "referable": {
+          "coverage": 0.9581589958158996,
+          "n_k": 239
+        }
+      },
+      "coverage_per_grade": {
+        "0": {
+          "coverage": 0.9678068410462777,
+          "n_k": 497
+        },
+        "1": {
+          "coverage": 0.6323529411764706,
+          "n_k": 136
+        },
+        "2": {
+          "coverage": 0.9482758620689655,
+          "n_k": 174
+        },
+        "3": {
+          "coverage": 1.0,
+          "n_k": 43
+        },
+        "4": {
+          "coverage": 0.9545454545454546,
+          "n_k": 22
+        }
+      },
+      "false_autoclear_set_ref_k": 10,
+      "false_autoclear_set_ref_n": 239,
+      "false_autoclear_set_ge3_k": 1,
+      "false_autoclear_set_ge3_n": 65,
+      "false_autoclear_tierA_ref_k": 10,
+      "false_autoclear_tierA_ref_n": 239,
+      "false_autoclear_tierA_ge3_k": 1,
+      "false_autoclear_tierA_ge3_n": 65,
+      "false_autoclear_set_ref_rate": 0.04184100418410042,
+      "false_autoclear_tierA_ref_rate": 0.04184100418410042,
+      "false_autoclear_set_ge3_rate": 0.015384615384615385,
+      "false_autoclear_tierA_ge3_rate": 0.015384615384615385,
+      "referable_sensitivity": 0.9497907949790795,
+      "referable_specificity": 0.5276461295418642
+    }
+  },
+  "unvalidated_camera_rule": {
+    "baseline_shipped_report_half": {
+      "tierA_share": 0.6594036697247706,
+      "tierB_share": 0.1628440366972477,
+      "tierC_share": 0.17775229357798164,
+      "false_autoclear_tierA_ref_rate": 0.12844036697247707,
+      "false_autoclear_tierA_ref_k": 28,
+      "false_autoclear_tierA_ref_n": 218,
+      "false_autoclear_tierA_ge3_rate": 0.0
+    },
+    "camera_rule_report_half": {
+      "tierA_share": 0.0,
+      "tierB_share": 0.8222477064220183,
+      "tierC_share": 0.17775229357798164,
+      "false_autoclear_tierA_ref_rate": 0.0,
+      "false_autoclear_tierA_ge3_rate": 0.0
+    },
+    "workload_cost_share": 0.6594036697247706,
+    "workload_cost_k": 575,
+    "n_total": 872
+  },
+  "wall_time_seconds": 0.48642706871032715
+}
