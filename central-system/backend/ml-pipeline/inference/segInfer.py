@@ -92,7 +92,26 @@ FOVEA_PEAK_THRESHOLD = 0.37
 # code that ran before this switch existed -- see lesions()'s v1 branch --
 # so v1 output is unchanged, not merely equivalent.
 RED_LESION_MODEL_VERSIONS = {"v1": "red_lesion", "v2": "red_lesion_v2"}
-RED_LESION_MODEL_VERSION = os.environ.get("RED_LESION_MODEL_VERSION", "v1")
+# DEFAULT CHANGED v1 -> v2, 2026-09-23 (Saad's decision).
+#
+# v2 is the 3-class retrain: it reports microaneurysms and haemorrhages
+# separately instead of one merged "red lesion" mask, which is what makes
+# lesionCounts.microaneurysms / .hemorrhages real numbers instead of null.
+# Verified end to end before flipping: the net loads and emits [512 512 3],
+# and maPerQuadrant + hePerQuadrant sum to redPerQuadrant exactly.
+#
+# THE THRESHOLDS MOVED WITH IT, AND HAD TO. v2 finds ~2.6x more red lesions
+# than v1, so v1's thresholds against v2's counts drop referable specificity
+# to 0.231 on IDRiD's test split -- 30 of 39 healthy eyes flagged as
+# referable, with nothing erroring. The matching set is in
+# models/rule_thresholds_by_red_version.json and is attached per case by
+# gradingOrchestrator's caseRuleOpts(), keyed off the redLesionModelVersion
+# this module reports, so the two cannot be flipped independently.
+#
+# ROLLBACK: set RED_LESION_MODEL_VERSION=v1 in the environment. The v1 code
+# paths are untouched and the v1 thresholds are still in that JSON, so the
+# rollback restores both halves together.
+RED_LESION_MODEL_VERSION = os.environ.get("RED_LESION_MODEL_VERSION", "v2")
 
 # 10 px at 512. NOT a free parameter: redFloor and grade3QuadMin were
 # calibrated against counts produced with this exact filter.
