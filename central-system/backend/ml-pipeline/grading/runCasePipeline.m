@@ -77,8 +77,11 @@ imagePath = reqStr(req, 'imagePath');
 
 % ── §J: neovascularization suspicion ────────────────────────────────────────
 % nvScore stays [] when it could not run -- reported as NULL, never as a
-% measured 0. The rule engine still gets 0 in that case (nvForRule), so a
-% missing score keeps the grade-4 path shut rather than erroring.
+% measured 0.
+%
+% The rule engine now gets 0 ALWAYS (nvForRule), not just when the score is
+% missing: the score failed its validation and must not decide anything. See
+% the note at the assignment below for the numbers and the reason.
 vesselPath = reqStr(req, 'vesselPath');
 odXY       = reqRow(req, 'odXY', 2);
 nvScore = [];
@@ -87,7 +90,26 @@ if isfile(vesselPath) && numel(odXY) == 2
     [nvS, nvDetail] = neovascularizationSuspicion(imread(vesselPath) > 127, odXY);
     if nvDetail.valid
         nvScore = nvS;
-        nvForRule = nvS;
+        % nvForRule DELIBERATELY STAYS 0 -- the score is reported, never graded on.
+        %
+        % The score was validated against ground truth and FAILED (Tanuj, ML
+        % Layer Final Report, 2026-09-21): AUC 0.286 separating PDR on IDRiD
+        % test (n=103) and 0.379 on Messidor-2 (n=1,744). Both are at or below
+        % chance, so the design's 0.6 threshold for asserting grade 4 has no
+        % support. The cause was investigated rather than guessed: the vessel
+        % model is trained on healthy CHASE_DB1 retinas and segments LESS
+        % vessel signal on more diseased ones, a confound that runs opposite to
+        % the NV signal the score tries to isolate.
+        %
+        % Feeding it in was bounded -- ruleEngineGrade caps at 3 -- but not
+        % harmless: above 0.6 it changed the criterion that fired and set
+        % isLowerBound, which can escalate a case's tier. A worse-than-chance
+        % signal must not move a grade or a tier at all.
+        %
+        % The measured value still reaches the caller as out.nvSuspicionScore,
+        % so the signal stays visible and auditable; it simply decides nothing.
+        % TO RE-ENABLE: this needs a detector that separates PDR above chance,
+        % not a threshold change -- set nvForRule = nvS then, and only then.
     end
 end
 
@@ -233,5 +255,26 @@ for name = {'venousBeadingQuadrants', 'irmaQuadrants'}
 end
 if isfield(r, 'foveaUnreliable') && isequal(r.foveaUnreliable, true)
     opts.foveaUnreliable = true;
+end
+
+% ── THRESHOLDS, WHICH TRAVEL WITH THE COUNTS ───────────────────────────────
+% This whitelist used to stop at foveaUnreliable, so when the orchestrator
+% began attaching the red-lesion model's own thresholds (caseRuleOpts ->
+% models/rule_thresholds_by_red_version.json) they were dropped HERE without
+% a word. The JS fallback passes ruleOpts straight through, so the two
+% engines would have graded the same image on different thresholds -- and
+% with RED_LESION_MODEL_VERSION=v2 the difference is referable specificity
+% 0.872 vs 0.231, not a rounding detail.
+%
+% Validated rather than trusted: a malformed value is IGNORED, leaving
+% ruleEngineGrade on its documented defaults, because a threshold quietly
+% coerced from nonsense is worse than one that was never supplied.
+for name = {'redFloor', 'grade3QuadMin', 'moderateRedCount', 'brightFloor'}
+    key = name{1};
+    if ~isfield(r, key), continue; end
+    v = r.(key);
+    if isnumeric(v) && isscalar(v) && isfinite(v) && v >= 0 && mod(v, 1) == 0
+        opts.(key) = double(v);
+    end
 end
 end

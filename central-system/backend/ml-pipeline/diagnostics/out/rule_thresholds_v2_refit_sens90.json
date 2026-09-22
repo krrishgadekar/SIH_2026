@@ -1,0 +1,25 @@
+{
+  "fittedAt": "2026-09-22T20:18:28Z",
+  "fittedBy": "grading/optimizeRuleThresholds.m",
+  "dataSource": "csv: ..\\diagnostics\\out\\lesion_counts_v2_train.csv",
+  "n": 251,
+  "syntheticData": false,
+  "tuned": [
+    "redFloor",
+    "grade3QuadMin",
+    "moderateRedCount",
+    "brightFloor"
+  ],
+  "thresholds": {
+    "redFloor": 9,
+    "grade3QuadMin": 8,
+    "moderateRedCount": 11,
+    "brightFloor": 7,
+    "nvThreshold": 0.6
+  },
+  "qwk": 0.87814527124736608,
+  "cvQwk": 0.86319327174450877,
+  "referableSensitivity": 0.90476190476190477,
+  "tiedOptima": 7,
+  "limitation": "7 threshold combinations score identically; the reported one is the tie broken toward the current defaults, not a uniquely best answer."
+}

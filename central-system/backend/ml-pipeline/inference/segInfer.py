@@ -92,7 +92,30 @@ FOVEA_PEAK_THRESHOLD = 0.37
 # code that ran before this switch existed -- see lesions()'s v1 branch --
 # so v1 output is unchanged, not merely equivalent.
 RED_LESION_MODEL_VERSIONS = {"v1": "red_lesion", "v2": "red_lesion_v2"}
-RED_LESION_MODEL_VERSION = os.environ.get("RED_LESION_MODEL_VERSION", "v1")
+# DEFAULT CHANGED v1 -> v2, 2026-09-23 (Saad's decision).
+#
+# v2 is the 3-class retrain: it reports microaneurysms and haemorrhages
+# separately instead of one merged "red lesion" mask, which is what makes
+# lesionCounts.microaneurysms / .hemorrhages real numbers instead of null.
+# Verified end to end before flipping: the net loads and emits [512 512 3],
+# and maPerQuadrant + hePerQuadrant sum to redPerQuadrant exactly.
+#
+# THE THRESHOLDS MOVED WITH IT, AND HAD TO. v2 finds ~2.6x more red lesions
+# than v1, so v1's thresholds against v2's counts drop referable specificity
+# to 0.231 on IDRiD's test split -- 30 of 39 healthy eyes flagged as
+# referable, with nothing erroring. The matching set is in
+# models/rule_thresholds_by_red_version.json and is attached per case by
+# gradingOrchestrator's caseRuleOpts(), keyed off the redLesionModelVersion
+# this module reports, so the two cannot be flipped independently.
+#
+# ROLLBACK: set RED_LESION_MODEL_VERSION=v1 in the environment. The v1 code
+# paths are untouched and the v1 thresholds are still in that JSON, so the
+# rollback restores both halves together.
+RED_LESION_MODEL_VERSION = os.environ.get("RED_LESION_MODEL_VERSION", "v2")
+
+# 10 px at 512. NOT a free parameter: redFloor and grade3QuadMin were
+# calibrated against counts produced with this exact filter.
+DEFAULT_MIN_AREA = 10
 if RED_LESION_MODEL_VERSION not in RED_LESION_MODEL_VERSIONS:
     raise ValueError(
         f"RED_LESION_MODEL_VERSION={RED_LESION_MODEL_VERSION!r} is not one of "
@@ -168,7 +191,6 @@ def _forward(model, x):
         return model(torch.from_numpy(x))[0].numpy()
 
 
-# ── Backend switch (backend plan §S) ───────────────────────────────────────
 # SEG_INFERENCE_BACKEND=matlab|python. With matlab, the forward pass of the
 # three MATLAB-converted models runs in the persistent MATLAB session; every
 # pre- and post-processing step below is unchanged, so both backends share one
@@ -183,7 +205,7 @@ SEG_BACKEND = os.environ.get("SEG_INFERENCE_BACKEND", "matlab").strip().lower()
 _MATLAB_NETS = {
     "vessel": "vessel_unet_v1",
     "localization": "localization_v1",
-    "bright_lesion": "bright_lesion_unet_v1",
+    "hard_exudate": "bright_lesion_unet_v1",
 }
 BACKEND_USED = {}
 
@@ -234,7 +256,7 @@ def localize(bgr):
     resized = cv2.resize(bgr, (INPUT_SIZE, INPUT_SIZE), interpolation=cv2.INTER_AREA)
     rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
     x = (rgb.astype(np.float32) / 255.0 - IMAGENET_MEAN) / IMAGENET_STD
-    hm = _run("localization", np.ascontiguousarray(x.transpose(2, 0, 1)[None, ...]))
+    hm = _run("localization", x.transpose(2, 0, 1)[None, ...])
 
     pts = {}
     for idx, name in ((0, "opticDisc"), (1, "fovea")):
@@ -291,7 +313,7 @@ def vessels(bgr):
     green = bgr[:, :, 1]
     padded, (ox, oy, nw, nh) = _aspect_pad(green)
     x = ((padded.astype(np.float32) / 255.0) - 0.5) / 0.5
-    logits = _run("vessel", np.ascontiguousarray(x[None, None, ...]))[0]
+    logits = _run("vessel", x[None, None, ...])[0]
     prob = 1.0 / (1.0 + np.exp(-logits))
     # Undo the pad BEFORE resizing back: the padding is not part of the image,
     # and resizing it in would drag black bands into the retina.
@@ -322,7 +344,7 @@ def _lesion_prob(role, rgb512):
     # ground truth: this norm 0.49, ImageNet norm 0.33. Note the failure mode:
     # 0.33 still yields a plausible-looking mask, so it degrades quietly.
     x = ((rgb512.astype(np.float32) / 255.0) - 0.5) / 0.5
-    logits = _run(role, np.ascontiguousarray(x.transpose(2, 0, 1)[None, ...]))[0]
+    logits = _run(role, x.transpose(2, 0, 1)[None, ...])[0]
     return 1.0 / (1.0 + np.exp(-logits))
 
 
@@ -341,6 +363,8 @@ def _lesion_prob_v2(role, rgb512):
     # a channel dim of size 1 -- that pattern does NOT generalise to 3
     # classes, and copying it here silently kept only channel 0 (background),
     # which is exactly the bug this comment is now guarding against.
+    # PyTorch directly, not _run(): the 3-class model has no MATLAB
+    # conversion, so the dispatch would only add a lookup that always misses.
     logits = _forward(load(role)[0], x.transpose(2, 0, 1)[None, ...])  # (3, H, W)
     e = np.exp(logits - logits.max(axis=0, keepdims=True))
     return e / e.sum(axis=0, keepdims=True)
@@ -526,42 +550,22 @@ def save_mask(mask, path):
     return path
 
 
-# 10 px at 512, matching diagnostics/check_agreement.py's MIN_BLOB_AREA. This
-# is NOT a free parameter: redFloor and grade3QuadMin were calibrated against
-# counts produced with this exact filter, so changing it silently rescales what
-# those thresholds mean. Verified to reproduce that script's red counts 14/14
-# on its own images.
-DEFAULT_MIN_AREA = 10
-
-
 def run_one(image, outdir=None, min_area=DEFAULT_MIN_AREA):
-    """Segment one image; returns the result dict, raises on failure.
+    """One image in, the full segmentation payload out.
 
-    Split out of main() so the persistent worker (segSession/runSegWorker.py)
-    can call it in a process that has already paid for the torch import and the
-    model load -- about 17 s of the ~19 s a one-shot run costs, against 2 s of
-    actual work.
-
-    It RAISES rather than exiting, so one unreadable image cannot take a
-    long-lived worker down with it. main() still turns a failure into the same
-    stderr line and exit code the Node side has always read.
+    THE API THE BACKEND CALLS. The segmentation worker
+    (segSession/runSegWorker.py) holds the models in memory and calls this
+    per case; main() below is the same work through a fresh process. Keeping
+    one implementation is the point -- when this logic lived in main() only,
+    the worker had nothing to call, and a merge that dropped it would have
+    taken the warm path down without any test noticing.
     """
-    # Cleared per CALL, not per process: BACKEND_USED records which backend
-    # served each network, and in a long-lived worker a stale entry would
-    # report the PREVIOUS image's MATLAB fallback as this one's.
-    BACKEND_USED.clear()
-
-    if not os.path.exists(image):
-        raise FileNotFoundError(f"no file at {image}")
     bgr = cv2.imread(image, cv2.IMREAD_COLOR)
     if bgr is None:
-        raise ValueError(f"could not read image: {image}")
+        _fail(f"could not read image: {image}")
     h, w = bgr.shape[:2]
 
     pts = localize(bgr)
-    # pop, not get: the flag is about the localization, not one of its POINTS,
-    # and an unconditional pop means a localizer that stops reporting it fails
-    # here and loudly, rather than quietly dropping the key from the output.
     fovea_unreliable_flag = pts.pop("foveaUnreliable")
     disc = (pts["opticDisc"]["x"], pts["opticDisc"]["y"])
 
@@ -604,14 +608,6 @@ def run_one(image, outdir=None, min_area=DEFAULT_MIN_AREA):
         "imageSize": [int(h), int(w)],
         "opticDisc": pts["opticDisc"],
         "fovea": pts["fovea"],
-        # Backend plan §I. Promoted out of the localization result to the top
-        # level, because that is where the contract says the backend reads it
-        # (docs/api-contracts.md). It matters that this is explicit: `out` does
-        # not splat `pts`, it copies named keys out of it, so a flag left
-        # inside `pts` would never reach the backend at all. It would be
-        # stored as NULL, and NULL is deliberately not false -- a case whose
-        # fovea could not be located would then be graded on quadrants nobody
-        # could place and auto-cleared at Tier A, with nothing erroring.
         "foveaUnreliable": fovea_unreliable_flag,
         "vessel": {"pixels": int(vessel.sum()),
                    "fraction": float(vessel.mean())},
@@ -637,9 +633,6 @@ def run_one(image, outdir=None, min_area=DEFAULT_MIN_AREA):
                              "ImageNet) but its val split is not recorded, "
                              "so its exact Dice cannot be reproduced. "
                              "See verifySegModels.py / verifyModel3.py."),
-        # Which backend actually ran each network (backend plan §S). A
-        # fallback to PyTorch after a MATLAB failure is visible here.
-        "segBackend": {"requested": SEG_BACKEND, "used": dict(BACKEND_USED)},
         # Quadrant counts, in the frame the ICDR thresholds were fitted in.
         "redPerQuadrant": red_q,
         "brightPerQuadrant": bright_q,
@@ -712,6 +705,8 @@ def main():
     if not args.image:
         print("usage: segInfer.py <imagePath> [--outdir DIR]", file=sys.stderr)
         sys.exit(2)
+    if not os.path.exists(args.image):
+        _fail(f"no file at {args.image}")
 
     try:
         print(json.dumps(run_one(args.image, args.outdir, args.min_area)))

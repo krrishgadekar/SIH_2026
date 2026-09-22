@@ -1,0 +1,78 @@
+{
+  "_comment": [
+    "Rule-engine thresholds, keyed by the RED-LESION MODEL that produced the counts.",
+    "",
+    "WHY KEYED, AND NOT JUST CHANGED. These are not clinical constants. They are",
+    "properties of the SEGMENTER: redFloor is a measured false-positive noise",
+    "floor, not a number from the ETDRS text. Retrain the lesion model and every",
+    "one of them is describing a detector that no longer exists.",
+    "",
+    "Measured: on one image v1 found 31 red lesions and v2 found 81 -- 2.6x. Run",
+    "v2's counts through v1's thresholds and referable specificity on IDRiD's",
+    "103-image test split collapses to 0.231, i.e. 30 of the 39 non-referable",
+    "eyes get flagged. So a threshold set is only meaningful against the counts it",
+    "was fitted to, and the two must travel together. That is what this file is:",
+    "gradingOrchestrator's caseRuleOpts() reads segInfer's own",
+    "redLesionModelVersion and hands the rule engine the matching set, so the",
+    "pairing cannot come apart by someone flipping one and forgetting the other.",
+    "",
+    "Both engines read it through the same caseRuleOpts(), so the MATLAB rule",
+    "engine and the JS fallback cannot drift onto different thresholds."
+  ],
+
+  "v1": {
+    "_source": "The original hand-measured values, from 14 validation images (ruleEngineGrade.m's header). Left untouched: v1 is no longer the default and re-fitting a retired model's thresholds would be work with no consumer.",
+    "redFloor": 3,
+    "grade3QuadMin": 3,
+    "moderateRedCount": 5,
+    "brightFloor": 1
+  },
+
+  "v2": {
+    "_source": "grading/optimizeRuleThresholds.m, fitted 2026-09-23 on IDRiD's official grading TRAIN split (251 of 413 images on disk) and reported on the untouched TEST split (103/103). Counts from diagnostics/collectLesionCounts.py with RED_LESION_MODEL_VERSION=v2.",
+    "redFloor": 9,
+    "grade3QuadMin": 4,
+    "moderateRedCount": 11,
+    "brightFloor": 7,
+
+    "_heldOutTest": {
+      "n": 103,
+      "qwk": 0.692,
+      "qwkCI95": [0.559, 0.802],
+      "referableSensitivity": 0.859,
+      "referableSpecificity": 0.872,
+      "vsCurrentThresholds": "QWK 0.457 -> 0.692, specificity 0.231 -> 0.872, sensitivity 0.984 -> 0.859"
+    },
+
+    "_whyGrade3QuadMinIs4Not8": [
+      "The joint search fitted 8 on TRAIN; Youden's J (perfcurve) and Tanuj's",
+      "independent Python fit both said 4. Isolating the parameter settled it:",
+      "grade3QuadMin changes NEITHER sensitivity NOR specificity (both flat at",
+      "0.859 / 0.872 for every value 3..10) because it only separates grade 3",
+      "from grade 2, and both are referable. It moves exact-grade accuracy only:",
+      "on TRAIN 8 wins (0.757 vs 0.709), on the held-out TEST 4 wins (0.650 vs",
+      "0.602). The held-out number is the honest one, so 8 was overfitting and 4",
+      "is kept -- which is also the value two independent methods already agreed on."
+    ],
+
+    "_knownLimitations": [
+      "SENSITIVITY IS BELOW THE 0.90 TARGET. 0.859 held out, and no threshold set",
+      "in this family reaches 0.90 with usable specificity -- the frontier tops out",
+      "near 0.875. That is a model-level limit, not a tuning choice, and it must be",
+      "disclosed rather than tuned around. With 64 referable test cases, 0.875 and",
+      "0.90 may not be statistically distinguishable either way.",
+      "",
+      "GRADE 1 IS ESSENTIALLY UNDETECTED: of 17 true grade-1 test cases, 14 are",
+      "called 0. Pre-existing, not caused by this refit, but it is in the confusion",
+      "matrix and should not be quoted around.",
+      "",
+      "5-fold CV estimated QWK 0.863 while the held-out test gave 0.692. Trust the",
+      "held-out number; the likely cause is the known train-split data gap (251 of",
+      "413 images on this machine).",
+      "",
+      "The search was COARSE + locally refined, not exhaustive: the full grid is",
+      "4.42e8 points against a 1.2e6 cap. A better optimum outside the refined",
+      "neighbourhood is possible."
+    ]
+  }
+}

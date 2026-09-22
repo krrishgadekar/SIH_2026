@@ -176,7 +176,55 @@ function main() {
 
   console.log(`\n${cases.length} cases x ${FIELDS.length} fields, ${failed} mismatched`);
   if (failed === 0) console.log('JS fallback and ruleEngineGrade.m agree');
+
+  failed += evidenceTextUsesRuleOpts(cases);
+
   return failed === 0 ? 0 : 1;
+}
+
+/**
+ * The evidence PROSE must describe the same rule engine that produced the grade.
+ *
+ * The fields compared above are ruleEngineGrade's own outputs. evidenceSummaryText
+ * re-runs the rule engine a second time to build its sentences, and it used to do
+ * so WITHOUT ruleOpts -- so on a fovea-unreliable case the grade said "Moderate
+ * NPDR" while the text under it said "Severe NPDR, ETDRS 4-2-1(a) structure",
+ * citing quadrant reasoning the grade had deliberately skipped. Every field above
+ * still matched, because none of them is the prose.
+ *
+ * Invariant: the criterion sentence in the text must be the criterion the rule
+ * engine reports for the SAME inputs and the SAME opts.
+ */
+function evidenceTextUsesRuleOpts(cases) {
+  const { ruleEngineGrade, evidenceSummaryText } = require(
+    './central-system/backend/services/matlabFallback');
+
+  let bad = 0;
+  let checked = 0;
+  for (const c of cases) {
+    for (const opts of [{}, { foveaUnreliable: true },
+      { venousBeadingQuadrants: [true, true, false, false] },
+      { irmaQuadrants: [true, false, false, false] }]) {
+      const inputs = {
+        redByQuadrant: c.red, brightByQuadrant: c.bright, nvSuspicionScore: c.nv,
+      };
+      const { evidence } = ruleEngineGrade(c.red, c.bright, c.nv, opts);
+      const text = evidenceSummaryText(inputs, opts);
+      checked += 1;
+      if (evidence.criterion && !text.includes(evidence.criterion.trim())) {
+        bad += 1;
+        if (bad <= 3) {
+          console.log(`MISMATCH evidence prose\n  case: ${describe(c)}`
+            + `\n  opts:      ${JSON.stringify(opts)}`
+            + `\n  criterion: ${evidence.criterion}`
+            + `\n  text:      ${text.slice(0, 160)}`);
+        }
+      }
+    }
+  }
+  console.log(`\n${checked} evidence-text checks, ${bad} mismatched`);
+  if (bad === 0) console.log('evidence prose cites the criterion that actually fired');
+  return bad;
 }
 
 process.exit(main());

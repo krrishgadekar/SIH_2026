@@ -77,7 +77,28 @@ for i = 1:numel(images)
     failures = failures + report('disc and fovea are meaningfully separated', ...
         sep > W / 8, sprintf('%.0f px apart (need > %.0f)', sep, W/8));
 
-    % ── Task 4.1 (classical) ────────────────────────────────────────────────
+    % ── Task 4.1 ────────────────────────────────────────────────────────────
+    % ── KNOWN: THE CONNECTIVITY CHECK BELOW FAILS HERE, AND THE MASK IS NOT
+    %    THE ONE PRODUCTION PRODUCES ──────────────────────────────────────────
+    % `cropped` is benGrahamCrop's output: resized to 512 WITH antialiasing,
+    % which low-pass filters away the one-to-two-pixel structures the vessel
+    % model keys on. The mask comes back as confetti -- largest connected
+    % component 9-18% of the mask -- and the connectivity assertion below
+    % reports that honestly rather than being relaxed to hide it.
+    %
+    % Production does not do this. segInfer.py's vessels() takes the ORIGINAL
+    % image and does its own aspect-pad; on that input the same model gives a
+    % properly connected tree (largest component ~55%, vessel fraction 0.0564,
+    % MATLAB and Python agreeing to four decimals). So this is the HARNESS
+    % feeding the vessel model the CLASSIFIER's preprocessing, not a defect in
+    % vesselSegmentationUnet.
+    %
+    % NOT FIXED HERE because it cannot be fixed cleanly yet: odX/odY and the
+    % overlay below are in `cropped` coordinates, so passing `raw` would return
+    % a mask in a different space and silently misalign the NV score. The real
+    % fix is for benGrahamCrop to return its crop box (as Python's
+    % retinal_crop_box already does) so a raw-space mask can be mapped back.
+    % Until then this check stays red and says why.
     t = tic;
     [vessels, method] = vesselSegmentationUnet(cropped);
     tVes = toc(t);

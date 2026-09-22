@@ -170,6 +170,29 @@ calibPath = fullfile(mlRoot, 'models', cfg.calibFile);
 % case the v2a integration's own end-to-end check exercises).
 persistent net netVersion
 if isempty(net) || ~strcmp(netVersion, BRANCH_A_MODEL_VERSION)
+    % The ONNX converter's layer classes must be reachable BEFORE this load.
+    % Without them load() SUCCEEDS, substituting placeholder layers, and the
+    % net then dies inside initialize/predict with "Undefined function
+    % 'getExecutableNetwork'" -- an internal name that mentions no support
+    % package and reads exactly like a corrupt model file. The conclusion
+    % nearly reached was to regenerate a .mat that turned out to be perfectly
+    % good (Initialized = 1, 242 layers, predicts correctly once the path is
+    % right).
+    %
+    % runMatlabInferenceSession guards its own startup the same way, which is
+    % precisely why this hid for so long: the long-running session was immune
+    % and every cold MATLAB -- including any compiled build -- was not. The
+    % guard belongs HERE too, next to the load it protects, so every caller
+    % is covered rather than only the one that remembered.
+    %
+    % Refused, not warned: a placeholder network does not fail safely, it
+    % fails confusingly several calls later.
+    if ~ensureOnnxSupportOnPath()
+        error('branchAInferMatlab:noOnnxSupport', ...
+            ['The Deep Learning Toolbox Converter for ONNX Model Format is ' ...
+             'not on the path, so %s cannot be loaded correctly. Install it ' ...
+             'from the Add-On Explorer.'], modelPath);
+    end
     loaded = load(modelPath, 'net');
     net = loaded.net;
     if isa(net, 'dlnetwork') && ~net.Initialized
