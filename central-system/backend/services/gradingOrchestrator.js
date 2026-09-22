@@ -63,6 +63,7 @@ const { fromMatlab, fromMatlabDeep } = require('./matlabInterop');
 const matlabFallback = require('./matlabFallback');
 const matlabSession  = require('./matlabSessionClient');
 const segSession     = require('./segSessionClient');
+const { cameraNotValidated: isCameraNotValidated } = require('./validatedCameras');
 
 // Task: MATLAB workaround for a dev machine with no MATLAB install (no
 // license, no disk space). When true, MATLAB genuinely failing to SPAWN
@@ -457,6 +458,99 @@ function assignTier(confidence, branchAgreement) {
   return 'C';
 }
 
+/**
+ * decideTier(input) -> { tier, tierReason }
+ *
+ * The whole tier decision as one pure function: the escalation chain, then
+ * the floors. Extracted from processCase because it could not be tested in
+ * place -- exercising a Tier A -> B floor needs a case that is high
+ * confidence AND has agreeing branches AND carries a flag, and no image in
+ * the corpus happens to be all three at once. Grading a real flagged image
+ * proved the flag reaches the database; only this proves the floor itself
+ * does anything.
+ *
+ * TWO RULES, and the order matters:
+ *   1. ESCALATION picks the tier, worst-first, first match wins.
+ *   2. FLOORS may only raise A -> B. They never lower a B or a C -- these
+ *      used to sit inside the chain as `tier = 'B'`, so a probation-camera
+ *      case the conformal set had put in C came out as B and the "floor"
+ *      was cutting the review requirement.
+ */
+function decideTier(input) {
+  const {
+    branchAgreement, beyondRuleEngine, qualityForced, ruleMaxGrade, grade,
+    conformalTier, conformalReason, confidenceScore,
+    cameraProbationOverride, lateralityMismatch, foveaUnreliable,
+    cameraNotValidated,
+  } = input;
+
+  let tier;
+  let tierReason;
+  if (branchAgreement === false) {
+    tier = 'C';
+    tierReason = 'branches disagree';
+  } else if (beyondRuleEngine) {
+    tier = 'C';
+    tierReason = `CNN grade ${grade} is above the rule engine's ceiling `
+      + `(${ruleMaxGrade}); no second opinion is possible`;
+  } else if (qualityForced) {
+    tier = 'C';
+    tierReason = 'capture quality is below the local retake threshold '
+      + '(qualityGateMain.m-equivalent hard failure) — no shortcut on an '
+      + 'image the quality gate itself would have rejected';
+  } else if (conformalTier) {
+    tier = conformalTier;
+    tierReason = conformalReason || 'conformal prediction set';
+  } else {
+    tier = assignTier(confidenceScore, branchAgreement);
+    tierReason = 'uncalibrated fallback thresholds';
+  }
+
+  // ── Floors: can only raise A -> B, never lower a B or C ──────────────────
+  // Applied to the tier the conformal set (or fallback) produced. These used
+  // to sit INSIDE the chain above as `tier = 'B'`, which meant a probation-
+  // camera case the conformal set had put in Tier C came out as B -- the
+  // "floor" was lowering it. A floor is a minimum; it is applied as one now.
+  if (tier === 'A' && cameraProbationOverride) {
+    tier = 'B';
+    tierReason = `camera family mismatch on a camera/site with fewer than `
+      + `${CAMERA_PROBATION_MIN_CASES} prior graded cases — not yet enough `
+      + 'of a track record to auto-clear';
+  }
+  // §I: the quadrants were keyed to an axis drawn through a fovea the gate
+  // flagged as untrustworthy (segInfer does not fall back to the image axes),
+  // and the rule engine skipped its quadrant criteria -- not a basis for
+  // auto-clearing.
+  if (tier === 'A' && lateralityMismatch) {
+    tier = 'B';
+    tierReason = 'the image file and the technician disagree on which eye this is — '
+      + 'not auto-cleared until a human confirms the laterality';
+  }
+  if (tier === 'A' && foveaUnreliable === true) {
+    tier = 'B';
+    tierReason = 'fovea could not be located reliably, so lesion quadrants and '
+      + 'the quadrant-based severe-NPDR criteria are unreliable — not auto-cleared';
+  }
+  // ── unvalidated_camera ──────────────────────────────────────────────────
+  // Distinct from cameraProbationOverride above, which needs a reported-vs-
+  // detected family MISMATCH before it fires. The case this catches has no
+  // mismatch at all: an unfamiliar camera that reports itself honestly and
+  // produces a perfectly normal-looking image, on which referable sensitivity
+  // measured 75.2% instead of 95.0% (Messidor-2, ML Layer Final Report §3).
+  // Nothing in the image announces that, so no image-derived signal can catch
+  // it -- only knowing whether anyone validated this camera here.
+  //
+  // Last of the floors because it is the broadest: it should not supply the
+  // reason on a case that has a more specific one to give.
+  if (tier === 'A' && cameraNotValidated === true) {
+    tier = 'B';
+    tierReason = 'unvalidated_camera: this camera/site has not been validated '
+      + 'against known-correct grades, and referable sensitivity is measurably '
+      + 'lower on unfamiliar cameras — not auto-cleared';
+  }
+  return { tier, tierReason };
+}
+
 // ── Quality-forced override (design doc §6.8's "force-flagged poor-but-not-
 // unusable capture" -> Tier C) ──────────────────────────────────────────────
 /**
@@ -801,53 +895,16 @@ async function processCase(caseId) {
   // confirmed grade 4 must still reach 'C', not get stuck at 'B' because the
   // probation check matched first. A floor can only ever raise A -> B; it
   // must never be able to pre-empt a real C.
-  let tier;
-  let tierReason;
-  if (branchAgreement === false) {
-    tier = 'C';
-    tierReason = 'branches disagree';
-  } else if (beyondRuleEngine) {
-    tier = 'C';
-    tierReason = `CNN grade ${grade} is above the rule engine's ceiling `
-      + `(${mlResult.ruleMaxGrade}); no second opinion is possible`;
-  } else if (qualityForced) {
-    tier = 'C';
-    tierReason = 'capture quality is below the local retake threshold '
-      + '(qualityGateMain.m-equivalent hard failure) — no shortcut on an '
-      + 'image the quality gate itself would have rejected';
-  } else if (branchA.conformalTier) {
-    tier = branchA.conformalTier;
-    tierReason = branchA.tierReason || 'conformal prediction set';
-  } else {
-    tier = assignTier(confidenceScore, branchAgreement);
-    tierReason = 'uncalibrated fallback thresholds';
-  }
+  const decided = decideTier({
+    branchAgreement, beyondRuleEngine, qualityForced,
+    ruleMaxGrade: mlResult.ruleMaxGrade, grade,
+    conformalTier: branchA.conformalTier, conformalReason: branchA.tierReason,
+    confidenceScore, cameraProbationOverride, lateralityMismatch, foveaUnreliable,
+    cameraNotValidated: isCameraNotValidated(caseRow.phc_id, cameraDeviceId),
+  });
+  const tier = decided.tier;
+  const tierReason = decided.tierReason;
 
-  // ── Floors: can only raise A -> B, never lower a B or C ──────────────────
-  // Applied to the tier the conformal set (or fallback) produced. These used
-  // to sit INSIDE the chain above as `tier = 'B'`, which meant a probation-
-  // camera case the conformal set had put in Tier C came out as B -- the
-  // "floor" was lowering it. A floor is a minimum; it is applied as one now.
-  if (tier === 'A' && cameraProbationOverride) {
-    tier = 'B';
-    tierReason = `camera family mismatch on a camera/site with fewer than `
-      + `${CAMERA_PROBATION_MIN_CASES} prior graded cases — not yet enough `
-      + 'of a track record to auto-clear';
-  }
-  // §I: the quadrants were keyed to an axis drawn through a fovea the gate
-  // flagged as untrustworthy (segInfer does not fall back to the image axes),
-  // and the rule engine skipped its quadrant criteria -- not a basis for
-  // auto-clearing.
-  if (tier === 'A' && lateralityMismatch) {
-    tier = 'B';
-    tierReason = 'the image file and the technician disagree on which eye this is — '
-      + 'not auto-cleared until a human confirms the laterality';
-  }
-  if (tier === 'A' && foveaUnreliable === true) {
-    tier = 'B';
-    tierReason = 'fovea could not be located reliably, so lesion quadrants and '
-      + 'the quadrant-based severe-NPDR criteria are unreliable — not auto-cleared';
-  }
   if (tier === 'C') {
     console.log(`[gradingOrchestrator] case ${caseId}: Tier C — ${tierReason}`);
   }
@@ -880,8 +937,8 @@ async function processCase(caseId) {
     INSERT INTO grading_results
       (case_id, dr_grade_cnn, referable, confidence_score,
        conformal_tier, model_version, graded_at,
-       dr_grade_rule_engine, branch_agreement, uncertainty_score)
-    VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8, $9)
+       dr_grade_rule_engine, branch_agreement, uncertainty_score, tier_reason)
+    VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8, $9, $10)
     ON CONFLICT (case_id) DO UPDATE SET
       dr_grade_cnn         = EXCLUDED.dr_grade_cnn,
       referable            = EXCLUDED.referable,
@@ -891,9 +948,10 @@ async function processCase(caseId) {
       graded_at            = NOW(),
       dr_grade_rule_engine = EXCLUDED.dr_grade_rule_engine,
       branch_agreement     = EXCLUDED.branch_agreement,
-      uncertainty_score    = EXCLUDED.uncertainty_score
+      uncertainty_score    = EXCLUDED.uncertainty_score,
+      tier_reason          = EXCLUDED.tier_reason
   `, [caseId, grade, referable, confidenceScore, tier, MODEL_VERSION,
-      ruleEngineGrade, branchAgreement, uncertaintyScore]);
+      ruleEngineGrade, branchAgreement, uncertaintyScore, tierReason ?? null]);
 
   // ── Step 4: INSERT INTO explainability_outputs ─────────────────────────────
   // vessel_mask_path, lesion_red_path, lesion_bright_path stay NULL (Phase 3).
@@ -1069,7 +1127,54 @@ function caseRuleOpts(segResult) {
   if (vb) opts.venousBeadingQuadrants = vb;
   if (irma) opts.irmaQuadrants = irma;
   if (readFoveaUnreliable(segResult) === true) opts.foveaUnreliable = true;
+  Object.assign(opts, redLesionThresholds(segResult));
   return opts;
+}
+
+/**
+ * redLesionThresholds(segResult) -> { redFloor, grade3QuadMin, ... } or {}
+ *
+ * The thresholds that belong to the red-lesion model THIS RESULT came from.
+ *
+ * ── WHY THIS IS KEYED OFF THE RESULT AND NOT A CONSTANT ────────────────────
+ * The rule engine's thresholds are properties of the segmenter, not of the
+ * ICDR criteria: redFloor is a measured false-positive noise floor. v2 finds
+ * roughly 2.6x more red lesions than v1, so running v2 counts through v1's
+ * thresholds collapses referable specificity to 0.231 on IDRiD's test split --
+ * 30 of 39 healthy eyes flagged. Nothing errors; the grades are just wrong.
+ *
+ * So the pairing is made automatic. segInfer reports which model produced the
+ * counts (`redLesionModelVersion`), and the matching thresholds are attached
+ * here, in the ONE function both grading engines already take their rule
+ * options from. Flipping the model switch cannot leave stale thresholds
+ * behind, and the MATLAB path and the JS fallback cannot end up on different
+ * numbers -- the failure verify_fallback_parity.js exists to catch.
+ *
+ * Returns {} when the version is unknown or unlisted, which leaves
+ * ruleEngineGrade on its own documented defaults rather than guessing.
+ */
+let RULE_THRESHOLDS = null;
+function redLesionThresholds(segResult) {
+  if (RULE_THRESHOLDS === null) {
+    const p = path.join(__dirname, '..', 'ml-pipeline', 'models',
+                        'rule_thresholds_by_red_version.json');
+    try {
+      RULE_THRESHOLDS = JSON.parse(fs.readFileSync(p, 'utf8'));
+    } catch (err) {
+      RULE_THRESHOLDS = {};
+      console.warn('[gradingOrchestrator] could not read rule_thresholds_by_red_version.json '
+        + `(${err.code || err.message}) -- the rule engine will use its built-in `
+        + 'defaults, which are the v1 numbers');
+    }
+  }
+  const v = segResult && segResult.redLesionModelVersion;
+  const set = v && RULE_THRESHOLDS[v];
+  if (!set) return {};
+  const out = {};
+  for (const k of ['redFloor', 'grade3QuadMin', 'moderateRedCount', 'brightFloor']) {
+    if (Number.isFinite(set[k])) out[k] = set[k];
+  }
+  return out;
 }
 
 /**
@@ -1187,7 +1292,7 @@ async function runCasePipelineMatlab(input, caseId) {
 // not -- a comment quoting an old field would fail such a grep while the
 // generated input was perfectly correct.
 module.exports = {
-  processCase, assignTier, buildCasePipelineInput, caseRuleOpts, readFoveaUnreliable,
+  processCase, assignTier, decideTier, buildCasePipelineInput, caseRuleOpts, readFoveaUnreliable,
   runBranchAInference, runBranchAInferenceMatlab, INFERENCE_BACKEND,
   isCaptureUngradable, hasClearedCameraSiteProbation, CAMERA_PROBATION_MIN_CASES,
   segment,

@@ -121,6 +121,36 @@ async function main() {
         + '"irmaQuadrants":[false,false,false,false],"foveaUnreliable":true}',
     JSON.stringify(full.ruleOpts));
 
+  // ── Thresholds must travel with the counts, all the way into MATLAB ──────
+  // The rule engine's thresholds belong to the red-lesion model that produced
+  // the counts: v2 finds ~2.6x more lesions than v1, and v2 counts scored
+  // against v1 thresholds give referable specificity 0.231 instead of 0.872.
+  // So caseRuleOpts attaches the matching set, and BOTH engines must receive
+  // it -- the JS fallback passes ruleOpts straight through, while the MATLAB
+  // side re-validates it in runCasePipeline.m's reqRuleOpts, whose whitelist
+  // silently dropped these fields when they were first added.
+  console.log('\n--- Rule thresholds follow the red-lesion model version ---');
+  const v2opts = caseRuleOpts({ redLesionModelVersion: 'v2' });
+  const v1opts = caseRuleOpts({ redLesionModelVersion: 'v1' });
+  check('v2 counts carry the v2 thresholds',
+    v2opts.redFloor === 9 && v2opts.grade3QuadMin === 4
+      && v2opts.moderateRedCount === 11 && v2opts.brightFloor === 7,
+    JSON.stringify(v2opts));
+  check('v1 counts still carry the v1 thresholds',
+    v1opts.redFloor === 3 && v1opts.grade3QuadMin === 3,
+    JSON.stringify(v1opts));
+  check('an unknown version supplies none, leaving the documented defaults',
+    JSON.stringify(caseRuleOpts({ redLesionModelVersion: 'v9' })) === '{}');
+  check('a result with no version at all supplies none',
+    JSON.stringify(caseRuleOpts({})) === '{}');
+  check('the thresholds reach the MATLAB request, not just the JS side',
+    (() => {
+      const inp = buildCasePipelineInput('C:\\x.jpg', '', 'case-thr',
+        { redPerQuadrant: [1, 2, 3, 4], redLesionModelVersion: 'v2' }, null, null);
+      return inp.ruleOpts && inp.ruleOpts.grade3QuadMin === 4
+        && inp.ruleOpts.redFloor === 9;
+    })());
+
   console.log('\n--- The session protocol ---');
   check('no heartbeat file means no session', matlabSession.alive() === false);
   fs.writeFileSync(process.env.MATLAB_HEARTBEAT_PATH, 'now');
@@ -228,6 +258,90 @@ async function main() {
   check('M5\'s 3-class output fills the two null keys without a code change',
     withM5.microaneurysms === 18 && withM5.hemorrhages === 4,
     JSON.stringify(withM5));
+
+  // ── Tier floors: the one path a real case could not reach ───────────────
+  // A floor only acts on a Tier A case, which needs high confidence AND
+  // agreeing branches AND a flag raised. No image in the corpus is all three
+  // at once, so grading real images proved the flags REACH the decision and
+  // never proved the floors DO anything. decideTier is pure, so here they are.
+  console.log('\n--- Tier floors raise A, and never lower B or C ---');
+  const { decideTier } = orchestrator;
+  const agreeing = { branchAgreement: true, confidenceScore: 0.97 };
+
+  check('a clean high-confidence case stays Tier A',
+    decideTier({ ...agreeing, conformalTier: 'A' }).tier === 'A');
+
+  for (const [flag, label] of [
+    ['foveaUnreliable', 'an unreliable fovea'],
+    ['lateralityMismatch', 'an eye-laterality mismatch'],
+    ['cameraProbationOverride', 'a camera on probation'],
+    ['cameraNotValidated', 'an unvalidated camera'],
+  ]) {
+    const r = decideTier({ ...agreeing, conformalTier: 'A', [flag]: true });
+    check(`${label} floors Tier A to B`, r.tier === 'B', JSON.stringify(r));
+    check(`  ...and the reason says why, not "conformal prediction set"`,
+      !/conformal prediction set/.test(r.tierReason), r.tierReason);
+
+    // The regression this whole shape exists to prevent: these were once
+    // `tier = 'B'` INSIDE the chain, so a Tier C case came out as B and the
+    // floor cut the review requirement instead of raising it.
+    check(`  ...and a Tier C case with ${label} STAYS C`,
+      decideTier({ ...agreeing, conformalTier: 'C', [flag]: true }).tier === 'C');
+    check(`  ...and a Tier B case with ${label} stays B`,
+      decideTier({ ...agreeing, conformalTier: 'B', [flag]: true }).tier === 'B');
+  }
+
+  check('fovea null does NOT floor -- only a real true does',
+    decideTier({ ...agreeing, conformalTier: 'A', foveaUnreliable: null }).tier === 'A');
+
+  // ── unvalidated_camera: the config layer behind the floor above ──────────
+  // The floor is only as good as the answer it is given, and the question
+  // "is this camera validated here?" has exactly one dangerous wrong answer:
+  // saying yes when nobody checked. These assert it fails closed.
+  console.log('\n--- unvalidated_camera: the validated-camera list ---');
+  const vc = require('./central-system/backend/services/validatedCameras');
+
+  check('a listed camera is validated',
+    vc.isValidatedCamera('phc-anything', 'topcon_trc_nw400') === true);
+  check('an unlisted camera is NOT validated',
+    vc.isValidatedCamera('phc-1', 'some_unlisted_device') === false);
+  check('a camera reported as literally "unknown" is NOT validated',
+    vc.isValidatedCamera('phc-1', 'unknown') === false);
+
+  // The hole this whole task existed to close: camera/site probation treats a
+  // missing id as CLEARED (a blank field is a data-completeness problem, not
+  // evidence of a strange camera). For THIS check that is backwards -- an
+  // unidentified camera is the one we know least about.
+  check('a MISSING camera id does not auto-clear',
+    vc.cameraNotValidated('phc-1', null) === true
+      && vc.cameraNotValidated('phc-1', '') === true
+      && vc.cameraNotValidated('phc-1', '   ') === true);
+
+  check('matching ignores case and surrounding whitespace',
+    vc.isValidatedCamera('phc-1', '  Topcon_TRC_NW400 ') === true);
+
+  // End to end: the config answer actually reaches the tier.
+  check('an unlisted camera floors a Tier A case to B, with its own reason',
+    (() => {
+      const r = decideTier({ ...agreeing, conformalTier: 'A',
+        cameraNotValidated: vc.cameraNotValidated('phc-1', 'never_validated_cam') });
+      return r.tier === 'B' && /unvalidated_camera/.test(r.tierReason);
+    })());
+  check('a listed camera does not floor',
+    decideTier({ ...agreeing, conformalTier: 'A',
+      cameraNotValidated: vc.cameraNotValidated('phc-1', 'topcon_trc_nw400') }).tier === 'A');
+
+  // Escalation still beats everything, and disagreement is checked first.
+  check('branch disagreement is Tier C whatever the conformal set said',
+    decideTier({ branchAgreement: false, conformalTier: 'A', confidenceScore: 0.99 }).tier === 'C');
+  check('a CNN grade above the rule ceiling is Tier C',
+    decideTier({ ...agreeing, beyondRuleEngine: true, grade: 4, ruleMaxGrade: 3,
+      conformalTier: 'A' }).tier === 'C');
+  check('a quality-forced case is Tier C',
+    decideTier({ ...agreeing, qualityForced: true, conformalTier: 'A' }).tier === 'C');
+  check('with no conformal tier it falls back to the confidence thresholds',
+    decideTier({ ...agreeing, confidenceScore: 0.5 }).tier === 'C'
+      && decideTier({ ...agreeing, confidenceScore: 0.95 }).tier === 'A');
 
   console.log(failures === 0
     ? '\n===== The per-case MATLAB round trip is verified ====='

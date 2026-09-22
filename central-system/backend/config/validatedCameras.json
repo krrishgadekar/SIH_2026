@@ -1,0 +1,53 @@
+{
+  "_comment": [
+    "Cameras/sites that a human has VALIDATED against known-correct grades, and",
+    "which may therefore produce an auto-cleared (Tier A) case.",
+    "",
+    "WHY THIS FILE EXISTS. The classifier was trained and calibrated on a small",
+    "set of camera families. Measured on Messidor-2 (a manufacturer the model has",
+    "never seen): referable sensitivity falls from 95.0% in-domain to 75.2%, i.e.",
+    "roughly one referable patient in four is missed, while specificity holds.",
+    "Tier A is the only tier no human ever looks at, so that is exactly where an",
+    "unfamiliar camera does its damage -- silently. Source: Tanuj, ML Layer Final",
+    "Report 2026-09-21, section 3; the control was his request.",
+    "",
+    "WHAT COUNTS AS VALIDATED. Someone compared this camera's output at this site",
+    "against known-correct grades and signed off. It is NOT 'this camera has been",
+    "used here a while' -- that is the separate camera/site probation check, which",
+    "counts cases and cannot tell a working camera from one the model is quietly",
+    "wrong about. Both run; they answer different questions.",
+    "",
+    "A MISSING cameraDeviceId IS NOT VALIDATED. An unidentified camera is the one",
+    "we know least about. The probation check treats a missing id as cleared (a",
+    "blank field is a data-completeness problem, not evidence of a strange camera)",
+    "-- correct for that check, backwards for this one.",
+    "",
+    "phcId '*' means 'validated for every site'. Use it only for a camera MODEL",
+    "validated across sites, never as a shortcut for an unvalidated one: it drops",
+    "the site half of the check, and site conditions (lighting, operator, mounting)",
+    "are part of what shifts the input distribution."
+  ],
+
+  "enforce": true,
+
+  "_enforceNote": [
+    "false disables the Tier A floor entirely and logs once at startup. Intended",
+    "for local development against seed data, never for a deployment: with it off",
+    "an unvalidated camera can auto-clear again."
+  ],
+
+  "validated": [
+    {
+      "cameraDeviceId": "topcon_trc_nw400",
+      "phcId": "*",
+      "validatedBy": "DEMO SEED -- NOT A REAL VALIDATION",
+      "validatedAt": "2026-09-22",
+      "note": "Present so the demo corpus can still show a Tier A case. No clinical validation of this device has been performed at any site. Remove before any real deployment."
+    }
+  ],
+
+  "_todo": [
+    "Every real entry needs: who validated it, when, and against how many",
+    "locally-graded cases. An entry without that is a claim, not a record."
+  ]
+}
