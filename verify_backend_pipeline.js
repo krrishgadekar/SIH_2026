@@ -151,6 +151,30 @@ async function main() {
         && inp.ruleOpts.redFloor === 9;
     })());
 
+  // ── Model/capture provenance: every field a producer emits has a consumer ──
+  // These three were all "produced and dropped": the model that graded a case
+  // (hardcoded to branchA_v1 while branchA.modelVersion went unread), and the
+  // capture's own source format and DICOM device, which BOTH engines returned
+  // on every case and nothing stored -- while readFundusImage.m's header said
+  // the device "is recorded as evidence".
+  console.log('\n--- Capture and model provenance ---');
+  const fb = require('./central-system/backend/services/matlabFallback');
+
+  check('the JS fallback reports the same sourceFormat vocabulary as MATLAB',
+    (() => {
+      const r = fb.runMatlabFallback({ imagePath: 'C:\\x\\shot.JPG', segResult: null });
+      // readFundusImage.m: 'image' for non-DICOM, 'dicom' only when parsed.
+      return r.sourceFormat === 'image';
+    })());
+  check('  ...and never claims DICOM, which it cannot read',
+    (() => {
+      const r = fb.runMatlabFallback({ imagePath: 'C:\\x\\scan.dcm', segResult: null });
+      return r.sourceFormat !== 'dicom';
+    })());
+  check('the fallback reports no DICOM device rather than a blank one',
+    fb.runMatlabFallback({ imagePath: 'C:\\x\\a.jpg', segResult: null })
+      .dicomDeviceModel === null);
+
   console.log('\n--- The session protocol ---');
   check('no heartbeat file means no session', matlabSession.alive() === false);
   fs.writeFileSync(process.env.MATLAB_HEARTBEAT_PATH, 'now');
@@ -191,9 +215,22 @@ async function main() {
   // The defect this guards: left behind, the request is picked up minutes later
   // by a session that has just restarted, which then runs a case nobody is
   // waiting for and leaves an orphan response file next to it.
-  check('a timed-out request is TAKEN BACK, not left for a late session',
-    fs.readdirSync(matlabSession.REQUEST_DIR).filter((f) => f.startsWith('t_')).length === 0,
-    fs.readdirSync(matlabSession.REQUEST_DIR).join(', '));
+  // PRECONDITION: no live session. This assertion is about the CLIENT taking
+  // its request back, and a running session polls the same directory -- it
+  // will pick the request up, answer it and delete the file itself, racing the
+  // client's cleanup. The check then fails for a reason that has nothing to do
+  // with the defect it guards, which is exactly what happened once here.
+  // Reported as skipped rather than failed, so a red line always means the
+  // client actually left something behind.
+  if (matlabSession.alive()) {
+    console.log('  SKIP  a timed-out request is TAKEN BACK '
+      + '-- a live MATLAB session is polling the same directory and races '
+      + 'this check; stop it (manageMatlabSession.ps1 stop) to run it');
+  } else {
+    check('a timed-out request is TAKEN BACK, not left for a late session',
+      fs.readdirSync(matlabSession.REQUEST_DIR).filter((f) => f.startsWith('t_')).length === 0,
+      fs.readdirSync(matlabSession.REQUEST_DIR).join(', '));
+  }
 
   console.log('\n--- Branch B: the worker, and what happens without it ---');
   // Losing the segmentation worker must never lose a case. Branch B is the
