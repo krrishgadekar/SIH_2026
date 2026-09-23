@@ -67,6 +67,27 @@ const bad = (res, error, message) => res.status(400).json({ error, message });
  * bodies flat instead of a ladder of nested ifs -- but it does mean the caller
  * must return immediately on false, or it will try to send a second response.
  */
+/**
+ * numOrNull(v, min, max) -- an optional measured value, or null.
+ *
+ * Returns null for absent, blank, non-numeric OR out-of-range input rather
+ * than rejecting the whole capture. That is deliberate: these fields are
+ * optional lab values, and a worker mistyping an HbA1c must not block a
+ * fundus photograph from being recorded.
+ *
+ * null is not a soft failure here -- downstream it means the triage urgency
+ * score is NOT computed for this case, which is the correct outcome for a
+ * value nobody measured. The one thing that must never happen is a bad or
+ * missing value becoming a plausible number, so there is no clamping and no
+ * default: out-of-range is discarded, not squeezed into the valid interval.
+ */
+function numOrNull(v, min, max) {
+  if (v === undefined || v === null || v === '') return null;
+  const n = Number(v);
+  if (!Number.isFinite(n) || n < min || n > max) return null;
+  return n;
+}
+
 function checkEnum(res, field, value, allowed, { required = true } = {}) {
   if (value === undefined || value === null) {
     if (!required) return true;
@@ -108,6 +129,37 @@ router.post('/', upload.single('image'), async (req, res, next) => {
     if (err.message.startsWith('quality_gate_failed')) {
       // The capture row survives as 'pending' and the image is on disk, so this
       // is recoverable — say so, rather than implying the capture was lost.
+      return res.status(503).json({
+        error: 'quality_gate_failed',
+        message: 'The image was saved but the quality check could not run. '
+               + 'Check that MATLAB is available, then re-run the check.',
+      });
+    }
+    next(err);
+  }
+});
+
+// ── POST /captures/mobile ────────────────────────────────────────────────────
+// Dedicated endpoint for mobile lens captures. Forces the 'mobile_lens'
+// camera device preset so the MATLAB quality gate uses looser thresholds
+// appropriate for smartphone optics.
+router.post('/mobile', upload.single('image'), async (req, res, next) => {
+  const { patientId } = req.body || {};
+
+  if (!patientId)  return bad(res, 'patient_id_required', 'patientId is required.');
+  if (!req.file)   return bad(res, 'image_required', 'An image file is required.');
+
+  try {
+    const result = await handleCapture(patientId, req.file, 'mobile_lens');
+    res.status(201).json(result);
+  } catch (err) {
+    if (err.message.includes('patient_not_found')) {
+      return res.status(404).json({
+        error: 'patient_not_found',
+        message: `No patient with id ${patientId}`,
+      });
+    }
+    if (err.message.startsWith('quality_gate_failed')) {
       return res.status(503).json({
         error: 'quality_gate_failed',
         message: 'The image was saved but the quality check could not run. '
@@ -173,6 +225,18 @@ router.post('/:captureId/questionnaire', (req, res) => {
       glycemicControl:     riskFactors.glycemicControl,
       bloodPressure:       riskFactors.bloodPressure,
       pregnant:            pregnant === undefined ? null : pregnant,
+      // ── MEASURED VALUES, ALONGSIDE THE BUCKETS ABOVE ────────────────────
+      // The buckets are the long-standing contract and are untouched. These
+      // two are the real numbers the triage urgency score needs: it is
+      // computed ONLY when age, years diabetic and HbA1c are all present, and
+      // a bucket midpoint substituted for a lab value is recorded as
+      // "assumed" rather than passed off as measured.
+      //
+      // This object is an explicit whitelist -- anything not named here is
+      // dropped -- so adding a field to the intake form is not enough on its
+      // own. Both of these were being discarded here before they were added.
+      hba1c:         numOrNull(riskFactors.hba1c, 4, 20),
+      yearsDiabetic: numOrNull(riskFactors.yearsDiabetic, 0, 80),
     }),
     JSON.stringify(Object.fromEntries(SYMPTOM_FIELDS.map((f) => [f, symptoms[f]]))),
     language || null,

@@ -2,5 +2,9 @@
   "default": {
     "focusThreshold": 0.17,
     "illuminationThreshold": 0.4
+  },
+  "mobile_lens": {
+    "focusThreshold": 0.12,
+    "illuminationThreshold": 0.3
   }
 }

@@ -1,0 +1,301 @@
+{
+  "chase": {
+    "label": "CHASE_DB1 (training domain)",
+    "n": 28,
+    "aggregate": {
+      "sensitivity": 0.7986626021630807,
+      "specificity": 0.9856967743696108,
+      "precision": 0.8062099934780593,
+      "dice": 0.8024185508929272,
+      "iou": 0.6700325489270208,
+      "accuracy": 0.9727279735092235
+    },
+    "per_image_dice_mean": 0.7999875258726077,
+    "resize_to": null,
+    "calibre": [
+      {
+        "lo": 0.0,
+        "hi": 1,
+        "gt_px": 544250,
+        "recall": 0.5442296738631144
+      },
+      {
+        "lo": 1,
+        "hi": 2,
+        "gt_px": 405377,
+        "recall": 0.7946627460364056
+      },
+      {
+        "lo": 2,
+        "hi": 3,
+        "gt_px": 377353,
+        "recall": 0.9206419453403047
+      },
+      {
+        "lo": 3,
+        "hi": 4,
+        "gt_px": 231777,
+        "recall": 0.9649922123420357
+      },
+      {
+        "lo": 4,
+        "hi": 6,
+        "gt_px": 255189,
+        "recall": 0.9813079717385937
+      },
+      {
+        "lo": 6,
+        "hi": 99,
+        "gt_px": 48028,
+        "recall": 0.9841134338302657
+      }
+    ]
+  },
+  "drive": {
+    "label": "DRIVE (unseen domain), inside FOV",
+    "n": 20,
+    "aggregate": {
+      "sensitivity": 0.4629330101946735,
+      "specificity": 0.9951644064053927,
+      "precision": 0.932091256904026,
+      "dice": 0.6186212261842878,
+      "iou": 0.44782881995175156,
+      "accuracy": 0.9284257717342809
+    },
+    "per_image_dice_mean": 0.6172594615544266,
+    "resize_to": null,
+    "calibre": [
+      {
+        "lo": 0.0,
+        "hi": 1,
+        "gt_px": 290183,
+        "recall": 0.20306840855598018
+      },
+      {
+        "lo": 1,
+        "hi": 2,
+        "gt_px": 161003,
+        "recall": 0.6177710974329671
+      },
+      {
+        "lo": 2,
+        "hi": 3,
+        "gt_px": 89500,
+        "recall": 0.8766145251396648
+      },
+      {
+        "lo": 3,
+        "hi": 4,
+        "gt_px": 22069,
+        "recall": 0.9431329013548416
+      },
+      {
+        "lo": 4,
+        "hi": 6,
+        "gt_px": 6182,
+        "recall": 0.9069880297638305
+      },
+      {
+        "lo": 6,
+        "hi": 99,
+        "gt_px": 478,
+        "recall": 0.696652719665272
+      }
+    ]
+  },
+  "chase_downscaled": {
+    "label": "CHASE_DB1 downscaled to DRIVE size",
+    "n": 28,
+    "aggregate": {
+      "sensitivity": 0.785043185350601,
+      "specificity": 0.9861252861313363,
+      "precision": 0.8082666334895423,
+      "dice": 0.7964856615634763,
+      "iou": 0.6617998939656878,
+      "accuracy": 0.9721824130678297
+    },
+    "per_image_dice_mean": 0.7940034966941577,
+    "resize_to": [
+      565,
+      584
+    ],
+    "calibre": [
+      {
+        "lo": 0.0,
+        "hi": 1,
+        "gt_px": 544250,
+        "recall": 0.5237537896187414
+      },
+      {
+        "lo": 1,
+        "hi": 2,
+        "gt_px": 405377,
+        "recall": 0.7773899357881675
+      },
+      {
+        "lo": 2,
+        "hi": 3,
+        "gt_px": 377353,
+        "recall": 0.9098456882547641
+      },
+      {
+        "lo": 3,
+        "hi": 4,
+        "gt_px": 231777,
+        "recall": 0.9578603571536434
+      },
+      {
+        "lo": 4,
+        "hi": 6,
+        "gt_px": 255189,
+        "recall": 0.9756023966550282
+      },
+      {
+        "lo": 6,
+        "hi": 99,
+        "gt_px": 48028,
+        "recall": 0.9834887982010494
+      }
+    ]
+  },
+  "drive_upscaled": {
+    "label": "DRIVE upscaled to CHASE size, inside FOV",
+    "n": 20,
+    "aggregate": {
+      "sensitivity": 0.46222351009369267,
+      "specificity": 0.9951915995378174,
+      "precision": 0.9323506698690018,
+      "dice": 0.6180444259717814,
+      "iou": 0.44722452558316567,
+      "accuracy": 0.9283605879402054
+    },
+    "per_image_dice_mean": 0.6167873966415097,
+    "resize_to": [
+      999,
+      960
+    ],
+    "calibre": [
+      {
+        "lo": 0.0,
+        "hi": 1,
+        "gt_px": 290183,
+        "recall": 0.20207593139501626
+      },
+      {
+        "lo": 1,
+        "hi": 2,
+        "gt_px": 161003,
+        "recall": 0.6179884846866207
+      },
+      {
+        "lo": 2,
+        "hi": 3,
+        "gt_px": 89500,
+        "recall": 0.8755195530726257
+      },
+      {
+        "lo": 3,
+        "hi": 4,
+        "gt_px": 22069,
+        "recall": 0.9425438397752504
+      },
+      {
+        "lo": 4,
+        "hi": 6,
+        "gt_px": 6182,
+        "recall": 0.9005176318343578
+      },
+      {
+        "lo": 6,
+        "hi": 99,
+        "gt_px": 478,
+        "recall": 0.696652719665272
+      }
+    ]
+  },
+  "domains": {
+    "CHASE_DB1": {
+      "vessel_frac": 0.06933920527670527,
+      "green_mean": 41.80026049114591,
+      "green_std": 35.76312053980392,
+      "thin_gt_share": 0.29484397540273743
+    },
+    "DRIVE": {
+      "vessel_frac": 0.125391016139683,
+      "green_mean": 97.27210000102129,
+      "green_std": 20.217974093208603,
+      "thin_gt_share": 0.5110091309666711
+    }
+  },
+  "drive_intensity_matched": {
+    "label": "DRIVE, green channel matched to CHASE intensity",
+    "n": 20,
+    "aggregate": {
+      "sensitivity": 0.5437369932298939,
+      "specificity": 0.9766992623359253,
+      "precision": 0.7698860881306369,
+      "dice": 0.6373449928363223,
+      "iou": 0.46772293022496964,
+      "accuracy": 0.9224083826359181
+    },
+    "per_image_dice_mean": 0.6375977995020585,
+    "resize_to": null,
+    "calibre": [
+      {
+        "lo": 0.0,
+        "hi": 1,
+        "gt_px": 290183,
+        "recall": 0.3898815574999225
+      },
+      {
+        "lo": 1,
+        "hi": 2,
+        "gt_px": 161003,
+        "recall": 0.6811798537915442
+      },
+      {
+        "lo": 2,
+        "hi": 3,
+        "gt_px": 89500,
+        "recall": 0.7477094972067039
+      },
+      {
+        "lo": 3,
+        "hi": 4,
+        "gt_px": 22069,
+        "recall": 0.6999410938420408
+      },
+      {
+        "lo": 4,
+        "hi": 6,
+        "gt_px": 6182,
+        "recall": 0.6722743448722096
+      },
+      {
+        "lo": 6,
+        "hi": 99,
+        "gt_px": 478,
+        "recall": 0.5857740585774058
+      }
+    ]
+  },
+  "drive_thick_only": {
+    "label": "DRIVE, GT half-width <=1px excluded (don't-care)",
+    "n": 20,
+    "aggregate": {
+      "sensitivity": 0.7329890556956222,
+      "specificity": 0.9951644064053927,
+      "precision": 0.9142170547483238,
+      "dice": 0.8136335719155415,
+      "iou": 0.6858197877609009,
+      "accuracy": 0.9779423890385461
+    },
+    "per_image_dice_mean": 0.8140030879737765,
+    "resize_to": null
+  },
+  "attribution": {
+    "total_drop": 0.1837973247086394,
+    "scale_drop": 0.005932889329450908,
+    "scale_share_pct": 3.227951951344171
+  }
+}

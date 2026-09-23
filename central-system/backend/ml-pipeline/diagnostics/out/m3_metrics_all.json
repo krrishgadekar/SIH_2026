@@ -1,0 +1,149 @@
+{
+  "set": "all",
+  "n": 516,
+  "contaminated": true,
+  "accuracy": {
+    "od": {
+      "mean": 19.109974250225008,
+      "median": 17.15656284880904,
+      "sd": 17.24979249955866,
+      "max": 330.13435356874027,
+      "mean512": 2.8497419756521665,
+      "within1R": 99.8062015503876
+    },
+    "fovea": {
+      "mean": 52.99762815682547,
+      "median": 26.823014927671043,
+      "sd": 178.1879627692973,
+      "max": 2196.408596472034,
+      "mean512": 7.663907866202764,
+      "within1R": 98.25581395348837
+    }
+  },
+  "gross": {
+    "fovea": [
+      {
+        "id": "IDRiD_102",
+        "split": "test",
+        "err": 2196.408596472034,
+        "R": 7.820185557679281,
+        "peak": 0.08184213191270828,
+        "margin": 0.08190922439098358,
+        "dd_sep": 6.294384668819342
+      },
+      {
+        "id": "IDRiD_053",
+        "split": "test",
+        "err": 2129.5076198795346,
+        "R": 7.581988506464104,
+        "peak": 0.08751601725816727,
+        "margin": 0.08819878846406937,
+        "dd_sep": 2.644340330751042
+      },
+      {
+        "id": "IDRiD_077",
+        "split": "train",
+        "err": 1848.4190415392825,
+        "R": 6.581188908294699,
+        "peak": 0.09023093432188034,
+        "margin": 0.09033235162496567,
+        "dd_sep": 2.414095814177084
+      },
+      {
+        "id": "IDRiD_224",
+        "split": "train",
+        "err": 1649.5963758219766,
+        "R": 5.87329232590142,
+        "peak": 0.13965734839439392,
+        "margin": 0.13986825942993164,
+        "dd_sep": 0.5285268351755859
+      },
+      {
+        "id": "IDRiD_022",
+        "split": "train",
+        "err": 707.5364169072855,
+        "R": 2.5191424209129165,
+        "peak": 0.3644152283668518,
+        "margin": 0.3627895414829254,
+        "dd_sep": 3.300736975997476
+      }
+    ]
+  },
+  "detectors": {
+    "od": {
+      "peak": null,
+      "margin": null,
+      "geometry": null
+    },
+    "fovea": {
+      "peak": {
+        "auc": 0.9960861056751468,
+        "false_alarms_to_catch_all": 9,
+        "clean": 511
+      },
+      "margin": {
+        "auc": 0.9960861056751468,
+        "false_alarms_to_catch_all": 9,
+        "clean": 511
+      },
+      "geometry": {
+        "auc": 0.8825831702544031,
+        "false_alarms_to_catch_all": 283,
+        "clean": 511
+      }
+    }
+  },
+  "dd_true_median": 2.3327111834402237,
+  "dd_pred_median": 2.324247633769908,
+  "dd_true_p5_p95": [
+    2.0924055193964444,
+    2.568986669182921
+  ],
+  "peak_threshold_table": {
+    "0.1": {
+      "flagged": 3,
+      "caught": 3,
+      "false_alarms": 0
+    },
+    "0.15": {
+      "flagged": 6,
+      "caught": 4,
+      "false_alarms": 2
+    },
+    "0.2": {
+      "flagged": 8,
+      "caught": 4,
+      "false_alarms": 4
+    },
+    "0.25": {
+      "flagged": 10,
+      "caught": 4,
+      "false_alarms": 6
+    },
+    "0.3": {
+      "flagged": 10,
+      "caught": 4,
+      "false_alarms": 6
+    },
+    "0.35": {
+      "flagged": 13,
+      "caught": 4,
+      "false_alarms": 9
+    },
+    "0.4": {
+      "flagged": 15,
+      "caught": 5,
+      "false_alarms": 10
+    },
+    "0.45": {
+      "flagged": 19,
+      "caught": 5,
+      "false_alarms": 14
+    },
+    "0.5": {
+      "flagged": 25,
+      "caught": 5,
+      "false_alarms": 20
+    }
+  }
+}

@@ -249,53 +249,24 @@ function assessGlareMotionOcclusion(pixels, width, height, discMask, discArea) {
 /**
  * runQualityGateFallback(imageBuffer)
  *
- * Same signature/return shape as qualityGateClient.parseGateOutput():
- *   { status: 'pass'|'retake'|'borderline', reason: string|null, scores: {...} }
- *
- * The decision chain below is copied verbatim (order and thresholds) from
- * qualityGateMain.m — see that file for why the order matters.
+ * Explicitly refused: The JS algorithms diverged from the MATLAB path and 
+ * gave silently different decisions. It is safer to force a retake when 
+ * MATLAB is absent.
  */
 async function runQualityGateFallback(imageBuffer) {
-  const { pixels, width, height } = await loadGrayscale(imageBuffer);
-
-  const focus = assessFocus(pixels, width, height);
-  const illumination = assessIllumination(pixels);
-  const { discMask, discArea, totalPixels } = retinalDiscMask(pixels, width, height);
-  const fov = assessFOVFromDisc(discArea, totalPixels);
-  const gmo = assessGlareMotionOcclusion(pixels, width, height, discMask, discArea);
-
-  const scores = {
-    focusScore: focus.score,
-    illuminationScore: illumination.score,
-    fovScore: fov.score,
-    coveragePercent: fov.coveragePercent,
-    glareScore: gmo.glareScore,
-    motionScore: gmo.motionScore,
-    occlusionScore: gmo.occlusionScore,
+  return { 
+    status: 'retake', 
+    reason: 'MATLAB_UNAVAILABLE', 
+    scores: {
+      focusScore: 0,
+      illuminationScore: 0,
+      fovScore: 0,
+      coveragePercent: 0,
+      glareScore: 0,
+      motionScore: 0,
+      occlusionScore: 0
+    }
   };
-
-  const compositeScore = (focus.score + illumination.score + fov.score) / 3;
-
-  let status, reason;
-  if (fov.coveragePercent < 0.5) {
-    status = 'retake'; reason = 'insufficient_fov';
-  } else if (gmo.glareScore > 0.3) {
-    status = 'retake'; reason = 'glare';
-  } else if (gmo.motionScore > 0.3) {
-    status = 'retake'; reason = 'motion_artifact';
-  } else if (illumination.score < ILLUMINATION_THRESHOLD) {
-    status = 'retake'; reason = 'low_illumination';
-  } else if (focus.score < FOCUS_THRESHOLD) {
-    status = 'retake'; reason = 'blur';
-  } else if (gmo.occlusionScore > 0.18) {
-    status = 'retake'; reason = 'eyelash_occlusion';
-  } else if (compositeScore < 0.7) {
-    status = 'borderline'; reason = null;
-  } else {
-    status = 'pass'; reason = null;
-  }
-
-  return { status, reason, scores };
 }
 
 module.exports = { runQualityGateFallback };
