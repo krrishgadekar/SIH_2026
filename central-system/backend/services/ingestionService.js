@@ -503,7 +503,10 @@ async function getCaseDetail(caseId) {
       s.fovea_unreliable,
       p.patient_reference,
       g.dr_grade_cnn, g.dr_grade_rule_engine, g.branch_agreement,
+      c.source_format, c.dicom_device_model, c.camera_device_id,
+      c.camera_family_detected,
       g.confidence_score, g.uncertainty_score, g.conformal_tier, g.tier_reason,
+      g.model_version, g.urgency_score, g.urgency_factor, g.urgency_inputs,
       g.claimed_by, g.claimed_at, claimant.name AS claimed_by_name,
       g.claimed_at > now() - make_interval(mins => $2) AS claim_live,
       s.lesion_counts, s.nv_suspicion_score,
@@ -553,6 +556,37 @@ async function getCaseDetail(caseId) {
     drGradeCnn:        r.dr_grade_cnn ?? null,
     confidenceScore:   r.confidence_score ?? null,
     conformalTier:     r.conformal_tier ?? null,
+    // WHICH MODEL produced drGradeCnn. Read from the inference result per case,
+    // so it follows BRANCH_A_MODEL_VERSION rather than a constant. 'unknown'
+    // means the result did not report one; NULL means the row predates this
+    // being stored honestly, when every row claimed 'branchA_v1'.
+    modelVersion:      r.model_version ?? null,
+
+    // ── Triage urgency: a QUEUE ORDERING HINT, never a clinical statement ──
+    // The four fields travel together on purpose. urgencyScore is meaningless
+    // and potentially harmful without urgencyLimitation and urgencyBasis
+    // beside it -- the model behind it is trained on SYNTHETIC data and has
+    // never been validated against an outcome, so a bare number on a screen
+    // would read as evidence about a patient. Any surface showing the score
+    // MUST show the limitation.
+    //
+    // null means NOT COMPUTED (the clinical inputs were not all available),
+    // never "low urgency". 1 is a real score and must stay distinguishable.
+    urgencyScore:      Number.isFinite(r.urgency_score) ? r.urgency_score : null,
+    urgencyTopFactor:  r.urgency_factor ?? null,
+    urgencyBasis:      r.urgency_score == null ? null : 'synthetic-model',
+    urgencyLimitation: r.urgency_score == null ? null
+      : 'Trained on synthetic data, never validated against patient outcomes. '
+        + 'Use for queue ordering only -- not a clinical assessment.',
+    // What went in, each value tagged measured or assumed, so "HbA1c 9.5%"
+    // can be shown as the bucket midpoint it may be rather than a lab result.
+    urgencyInputs:     r.urgency_inputs ?? null,
+    // What the image FILE says about itself, next to what the worker reported.
+    // Deliberately separate fields -- a disagreement between them is the point.
+    sourceFormat:      r.source_format ?? null,
+    dicomDeviceModel:  r.dicom_device_model ?? null,
+    cameraDeviceReported: r.camera_device_id ?? null,
+    cameraFamilyDetected: r.camera_family_detected ?? null,
     // WHY this tier -- the escalation that fired, or the floor that raised it
     // from A. Five different situations produce a "B", and they call for
     // different things from the reviewer: "the model is unsure" is not the

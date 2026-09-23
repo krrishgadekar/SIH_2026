@@ -49,6 +49,8 @@ router.get('/queue', requireAuth, requireRole('ophthalmologist'), async (req, re
           g.branch_agreement,
           g.confidence_score,
           g.conformal_tier,
+          g.urgency_score,
+          g.urgency_factor,
           -- uncertainty_score is NULL until Phase 6 ships, so (1 - confidence)
           -- stands in for it. Same ordering, different scale -- it is a
           -- placeholder for RANKING only and is never reported as uncertainty.
@@ -62,6 +64,16 @@ router.get('/queue', requireAuth, requireRole('ophthalmologist'), async (req, re
               CASE WHEN g.conformal_tier = 'B'
                    THEN g.confidence_score
               END ASC NULLS LAST,
+              -- Triage urgency: a TIE-BREAK, deliberately placed AFTER the
+              -- calibrated keys above and never instead of them. The score
+              -- comes from a forest trained on SYNTHETIC data
+              -- (calculateUrgencyScore.m), while uncertainty and confidence
+              -- are calibrated on the model's own measured error. Letting the
+              -- synthetic signal outrank the calibrated one would be a real
+              -- downgrade dressed as a feature. Here it only separates cases
+              -- the calibrated keys cannot, which is what a hint should do.
+              -- NULLS LAST: "not computed" must not sort as urgent.
+              g.urgency_score DESC NULLS LAST,
               c.case_id                              -- deterministic tie-break
           ) AS tier_rank
         FROM cases c
@@ -106,6 +118,18 @@ router.get('/queue', requireAuth, requireRole('ophthalmologist'), async (req, re
       // already reviewing this case (§10.8), so the UI can show it before the
       // reviewer opens a case they cannot act on.
       eyeLaterality:     r.eye_laterality ?? null,
+      // Triage urgency -- an ordering HINT within the tier, never a clinical
+      // statement. Shipped with its limitation because a bare 1-100 number on
+      // a queue row reads as evidence about a patient, and this one is not:
+      // the model behind it is trained on synthetic data. A surface that shows
+      // urgencyScore must show urgencyLimitation. null = not computed (the
+      // clinical inputs were incomplete), never low urgency.
+      urgencyScore:      Number.isFinite(r.urgency_score) ? r.urgency_score : null,
+      urgencyTopFactor:  r.urgency_factor ?? null,
+      urgencyBasis:      r.urgency_score == null ? null : 'synthetic-model',
+      urgencyLimitation: r.urgency_score == null ? null
+        : 'Trained on synthetic data, never validated against patient outcomes. '
+          + 'Queue ordering hint only -- not a clinical assessment.',
       claimedBy:         r.claim_live
         ? { userId: r.claimed_by, name: r.claimed_by_name ?? null }
         : null,

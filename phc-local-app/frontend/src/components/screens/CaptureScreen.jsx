@@ -154,7 +154,22 @@ export const CaptureScreen = () => {
             : Number(q.yearsSinceDiagnosis) >= 1 ? '1to5' : 'lt1'),
       glycemicControl: ['good', 'moderate', 'poor'].includes(q.glycemicControl) ? q.glycemicControl : 'moderate',
       bloodPressure: ['normal', 'high', 'unknown'].includes(q.bloodPressure) ? q.bloodPressure : 'unknown',
-      pregnant: q.pregnancy === 'yes' ? true : (q.pregnancy === 'no' ? false : null),
+      pregnant: null,
+      // ── REAL NUMBERS, ADDITIVE TO THE BUCKETS ABOVE ────────────────────
+      // yearsSinceDiagnosis is collected as an actual year count and then
+      // bucketed above for the existing contract; the bucket loses precision
+      // the triage urgency score needs, so the number is carried through as
+      // well. hba1c is new and has no bucket equivalent.
+      //
+      // Both are null when not collected, and null is load-bearing: the
+      // backend computes NO urgency score unless age, years and HbA1c are all
+      // present, rather than imputing one. Sending 0 here instead of null
+      // would turn "never tested" into a real-looking score.
+      yearsDiabetic: Number.isFinite(Number(q.yearsSinceDiagnosis))
+        && String(q.yearsSinceDiagnosis).trim() !== ''
+        ? Number(q.yearsSinceDiagnosis) : null,
+      hba1c: Number.isFinite(Number(q.hba1c)) && String(q.hba1c).trim() !== ''
+        ? Number(q.hba1c) : null,
     },
     symptoms: {
       blurredVision: !!q.blurredVision,

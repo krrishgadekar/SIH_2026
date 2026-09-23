@@ -92,7 +92,16 @@ const CAMERA_CAL_DIR    = path.join(ML_ROOT, 'cameraCalibration');
 const SEGMENTATION_DIR  = path.join(ML_ROOT, 'segmentation');
 const MODELS_DIR        = path.join(ML_ROOT, 'models');
 
-const MODEL_VERSION     = 'branchA_v1';
+// LAST-RESORT fallback only. The version that actually graded a case comes
+// from the inference result itself (branchA.modelVersion) -- see the write to
+// grading_results.model_version.
+//
+// This used to BE the stored value, hardcoded, while branchA.modelVersion was
+// never read. Every row in grading_results therefore said 'branchA_v1'
+// regardless of what ran, and the day the default moved to branchA_v2c that
+// column became silently, uniformly wrong -- the one field whose whole job is
+// to say which model produced a grade.
+const MODEL_VERSION_FALLBACK = 'unknown';
 const MATLAB_EXE        = process.env.MATLAB_EXECUTABLE || 'matlab';
 const TIMEOUT_MS        = parseInt(process.env.MATLAB_TIMEOUT_MS || '120000', 10);
 
@@ -657,8 +666,14 @@ async function hasClearedCameraSiteProbation(phcId, cameraDeviceId, excludeCaseI
  */
 async function processCase(caseId) {
   // ── Step 1: fetch case row ─────────────────────────────────────────────────
+  // Joined to patients for age, which the urgency score needs and the cases
+  // table does not carry. LEFT JOIN, not INNER: a case whose patient row is
+  // somehow missing must still be graded -- it just gets no urgency score.
   const caseRes = await pool.query(
-    'SELECT * FROM cases WHERE case_id = $1', [caseId]);
+    `SELECT c.*, p.age AS patient_age
+       FROM cases c
+       LEFT JOIN patients p ON p.patient_id = c.patient_id
+      WHERE c.case_id = $1`, [caseId]);
   if (caseRes.rows.length === 0)
     throw new Error(`processCase: case '${caseId}' not found in cases table`);
 
@@ -727,7 +742,8 @@ async function processCase(caseId) {
   try {
     mlResult = await runCasePipelineMatlab(
       buildCasePipelineInput(imagePath, cameraDeviceId, caseId, segResult,
-                             branchA.drGradeCnn, branchA.gradcamMap),
+                             branchA.drGradeCnn, branchA.gradcamMap,
+                             caseClinicalInputs(caseRow.patient_age, caseRow.questionnaire_data)),
       caseId);
   } catch (err) {
     if (ALLOW_MATLAB_FALLBACK && err.code === 'matlab_unavailable') {
@@ -928,6 +944,45 @@ async function processCase(caseId) {
   // array here and the INSERT below would fail against a FLOAT column. The
   // Python backend's real `null` passes through fromMatlab unchanged.
   const uncertaintyScore = fromMatlab(branchA.uncertaintyScore);
+
+  // WHICH MODEL GRADED THIS CASE -- from the inference result, not a constant.
+  // Both engines report it (branchAInferMatlab.m's out.modelVersion and
+  // branchAInfer.py's "modelVersion"), and both honour BRANCH_A_MODEL_VERSION,
+  // so this follows a version switch automatically instead of needing a code
+  // edit nobody remembers to make. Falls back to 'unknown' rather than to a
+  // guess: a row that cannot say what produced it must not claim a version.
+  const modelVersion = (typeof branchA.modelVersion === 'string'
+    && branchA.modelVersion.trim())
+    ? branchA.modelVersion.trim()
+    : MODEL_VERSION_FALLBACK;
+
+  // grading_results.model_version is a FOREIGN KEY into model_versions, so an
+  // unregistered model does not produce a wrong row -- it produces a raw
+  // "violates foreign key constraint" from deep inside the insert, which says
+  // nothing about what to do. Checked here so the message names the actual
+  // problem and the fix. The constraint itself is correct and stays: a grade
+  // may only cite a model someone registered, with the validation numbers
+  // that justified using it.
+  await assertModelRegistered(modelVersion);
+
+  // ── Triage urgency: stored, but it decides nothing ────────────────────────
+  // A QUEUE ORDERING HINT from a forest trained on SYNTHETIC data. It is
+  // deliberately read here and nowhere near decideTier, the referral logic or
+  // the SMS -- see migration 0018 and calculateUrgencyScore.m's header.
+  //
+  // Absent when MATLAB skipped the score because the clinical inputs were not
+  // all there. NULL is stored, never a 1: 1 is a real low-urgency score, so an
+  // imputed one could not be told apart from a measured one.
+  const urgency = {
+    score: Number.isFinite(fromMatlab(mlResult.urgencyScore))
+      ? Math.round(fromMatlab(mlResult.urgencyScore)) : null,
+    factor: blankToNull(fromMatlab(mlResult.urgencyFactor)),
+    inputs: fromMatlabDeep(mlResult.urgencyInputs) ?? null,
+  };
+  if (mlResult.urgencyError) {
+    console.warn(`[gradingOrchestrator] case ${caseId}: urgency score not `
+      + `computed: ${mlResult.urgencyError}`);
+  }
   if (branchA.uncertaintyError) {
     console.warn(`[gradingOrchestrator] case ${caseId}: `
       + `MC-dropout failed: ${branchA.uncertaintyError}`);
@@ -937,8 +992,9 @@ async function processCase(caseId) {
     INSERT INTO grading_results
       (case_id, dr_grade_cnn, referable, confidence_score,
        conformal_tier, model_version, graded_at,
-       dr_grade_rule_engine, branch_agreement, uncertainty_score, tier_reason)
-    VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8, $9, $10)
+       dr_grade_rule_engine, branch_agreement, uncertainty_score, tier_reason,
+       urgency_score, urgency_factor, urgency_inputs)
+    VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8, $9, $10, $11, $12, $13)
     ON CONFLICT (case_id) DO UPDATE SET
       dr_grade_cnn         = EXCLUDED.dr_grade_cnn,
       referable            = EXCLUDED.referable,
@@ -949,9 +1005,13 @@ async function processCase(caseId) {
       dr_grade_rule_engine = EXCLUDED.dr_grade_rule_engine,
       branch_agreement     = EXCLUDED.branch_agreement,
       uncertainty_score    = EXCLUDED.uncertainty_score,
-      tier_reason          = EXCLUDED.tier_reason
-  `, [caseId, grade, referable, confidenceScore, tier, MODEL_VERSION,
-      ruleEngineGrade, branchAgreement, uncertaintyScore, tierReason ?? null]);
+      tier_reason          = EXCLUDED.tier_reason,
+      urgency_score        = EXCLUDED.urgency_score,
+      urgency_factor       = EXCLUDED.urgency_factor,
+      urgency_inputs       = EXCLUDED.urgency_inputs
+  `, [caseId, grade, referable, confidenceScore, tier, modelVersion,
+      ruleEngineGrade, branchAgreement, uncertaintyScore, tierReason ?? null,
+      urgency.score, urgency.factor, urgency.inputs]);
 
   // ── Step 4: INSERT INTO explainability_outputs ─────────────────────────────
   // vessel_mask_path, lesion_red_path, lesion_bright_path stay NULL (Phase 3).
@@ -1053,9 +1113,17 @@ async function processCase(caseId) {
 
   // ── Step 5: mark case as graded ────────────────────────────────────────────
   await pool.query(
+    // source_format / dicom_device_model: what the IMAGE FILE says about
+    // itself, kept apart from the worker-reported camera_device_id on purpose
+    // -- see migration 0016. Both engines have always returned these; until
+    // now nothing stored them, while readFundusImage.m's header claimed the
+    // device "is recorded as evidence".
     `UPDATE cases SET status = 'graded', camera_family_detected = $2,
-       eye_laterality_detected = $3
-     WHERE case_id = $1`, [caseId, fromMatlab(mlResult.cameraFamily), detectedLaterality]);
+       eye_laterality_detected = $3, source_format = $4, dicom_device_model = $5
+     WHERE case_id = $1`,
+    [caseId, fromMatlab(mlResult.cameraFamily), detectedLaterality,
+     blankToNull(fromMatlab(mlResult.sourceFormat)),
+     blankToNull(fromMatlab(mlResult.dicomDeviceModel))]);
 
   console.log(`[gradingOrchestrator] case ${caseId}: grade=${grade}, `
     + `confidence=${confidenceScore.toFixed(4)}, tier=${tier}, `
@@ -1120,6 +1188,110 @@ function flags4(arr) {
  * rule engine a supplied array -- even an all-false one -- means that criterion
  * WAS assessed, and drops the "not assessed" caveat from the evidence text.
  */
+/**
+ * assertModelRegistered(versionId)
+ *
+ * A grade must be able to say which model produced it, and model_versions is
+ * where that claim is anchored -- version, training date, and the validation
+ * sensitivity/specificity/kappa that justified deploying it.
+ *
+ * Cached after the first successful lookup: the registry changes by migration,
+ * not during a run, and this sits on the per-case path.
+ *
+ * Deliberately FAILS the case rather than storing NULL or a fallback string.
+ * A case graded by a model nobody registered has no provenance, and quietly
+ * accepting it is how the old hardcoded constant survived -- every row claimed
+ * branchA_v1 whatever actually ran. The error names the migration to add.
+ */
+/**
+ * blankToNull(v) -- MATLAB's '' is "not stated", and must not be stored as a
+ * value. readFundusImage.m initialises deviceModel and laterality to '' and
+ * fills them only from a DICOM tag, so a JPEG capture arrives with empty
+ * strings. Stored raw, the column then holds '' for "no DICOM device" and
+ * NULL for "graded before this was recorded" -- two different unknowns that
+ * read as different things while meaning the same one.
+ */
+function blankToNull(v) {
+  if (typeof v !== 'string') return v ?? null;
+  const t = v.trim();
+  return t === '' ? null : t;
+}
+
+const REGISTERED_MODELS = new Set();
+async function assertModelRegistered(versionId) {
+  if (REGISTERED_MODELS.has(versionId)) return;
+  const { rows } = await pool.query(
+    'SELECT 1 FROM model_versions WHERE version_id = $1', [versionId]);
+  if (rows.length === 0) {
+    const err = new Error(
+      `model '${versionId}' is not registered in model_versions, so a grade `
+      + 'citing it cannot be stored (grading_results.model_version is a foreign '
+      + 'key into that table). Add it in a migration with its validation '
+      + 'sensitivity, specificity and kappa -- see '
+      + 'db/migrations/0017_register_classifier_v2_family.sql.');
+    err.code = 'model_not_registered';
+    throw err;
+  }
+  REGISTERED_MODELS.add(versionId);
+}
+
+/**
+ * caseClinicalInputs(patientAge, questionnaire) -> clinical block or null
+ *
+ * What calculateUrgencyScore.m needs: age, years diabetic, HbA1c. Returns
+ * null unless ALL THREE are genuinely available, which makes MATLAB skip the
+ * score entirely.
+ *
+ * ── THE PART THAT MATTERS: WHAT COUNTS AS "AVAILABLE" ──────────────────────
+ * The PHC questionnaire has historically carried BUCKETS -- glycemicControl
+ * 'good'|'moderate'|'poor' and yearsSinceDiagnosis 'lt1'|'1to5'|... -- while
+ * the function wants a lab HbA1c and an integer year count. The intake form
+ * now collects the real numbers, so a bucket is only ever a fallback for an
+ * older capture.
+ *
+ * Bucket midpoints ARE used, but never silently: each value is tagged
+ * 'measured' or 'assumed' in `provenance`, that tag is stored in
+ * urgency_inputs, and the case detail is expected to show it. A screen must
+ * be able to say "HbA1c 9.5% (assumed from 'poor')" rather than implying a
+ * test the patient never had -- which is the specific failure
+ * calculateUrgencyScore.m's wiring notes call out.
+ *
+ * A bucket with no defensible midpoint (an unrecognised value) yields null
+ * rather than a guess, and null means no score at all.
+ */
+const HBA1C_FROM_BUCKET = { good: 6.2, moderate: 7.5, poor: 9.5 };
+const YEARS_FROM_BUCKET = { lt1: 0.5, '1to5': 3, '5to10': 7.5, gt10: 15 };
+
+function caseClinicalInputs(patientAge, questionnaire) {
+  const age = Number(patientAge);
+  if (!Number.isFinite(age) || age < 1 || age > 120) return null;
+
+  const rf = (questionnaire && questionnaire.riskFactors) || {};
+  const provenance = { patientAge: 'measured' };
+
+  // HbA1c: the real lab value when the form collected one, else the bucket.
+  let hba1c = Number(rf.hba1c);
+  if (Number.isFinite(hba1c)) {
+    provenance.hba1c = 'measured';
+  } else {
+    hba1c = HBA1C_FROM_BUCKET[String(rf.glycemicControl || '').toLowerCase()];
+    provenance.hba1c = hba1c === undefined ? 'missing'
+      : `assumed from glycemicControl='${rf.glycemicControl}'`;
+  }
+
+  let years = Number(rf.yearsDiabetic);
+  if (Number.isFinite(years)) {
+    provenance.yearsDiabetic = 'measured';
+  } else {
+    years = YEARS_FROM_BUCKET[String(rf.yearsSinceDiagnosis || '').toLowerCase()];
+    provenance.yearsDiabetic = years === undefined ? 'missing'
+      : `assumed from yearsSinceDiagnosis='${rf.yearsSinceDiagnosis}'`;
+  }
+
+  if (!Number.isFinite(hba1c) || !Number.isFinite(years)) return null;
+  return { patientAge: age, yearsDiabetic: years, hba1c, provenance };
+}
+
 function caseRuleOpts(segResult) {
   const opts = {};
   const vb = flags4(segResult && segResult.venousBeadingQuadrants);
@@ -1196,7 +1368,7 @@ function redLesionThresholds(segResult) {
  * isCaptureUngradable() on this side.
  */
 function buildCasePipelineInput(imagePath, cameraDeviceId, caseIdForReport,
-                                segResult, branchAGrade, gradcamMap) {
+                                segResult, branchAGrade, gradcamMap, clinical) {
   const fwd = (v) => (v ? String(v).replace(/\\/g, '/') : '');
   const masks = (segResult && segResult.masks) || {};
   return {
@@ -1218,6 +1390,9 @@ function buildCasePipelineInput(imagePath, cameraDeviceId, caseIdForReport,
     camMap: camMatrix(gradcamMap),
     lesion384Path: fwd(masks.lesion384),
     roi384Path: fwd(masks.roi384),
+    // Urgency-score inputs, or null. null makes runCasePipeline skip the score
+    // outright rather than impute one -- see caseClinicalInputs.
+    clinical: clinical || null,
   };
 }
 
@@ -1293,6 +1468,7 @@ async function runCasePipelineMatlab(input, caseId) {
 // generated input was perfectly correct.
 module.exports = {
   processCase, assignTier, decideTier, buildCasePipelineInput, caseRuleOpts, readFoveaUnreliable,
+  caseClinicalInputs,
   runBranchAInference, runBranchAInferenceMatlab, INFERENCE_BACKEND,
   isCaptureUngradable, hasClearedCameraSiteProbation, CAMERA_PROBATION_MIN_CASES,
   segment,

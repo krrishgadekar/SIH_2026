@@ -108,11 +108,8 @@ addpath(fullfile(mlRoot, 'models'));
 % the environment (or spawning process) to restore the previous model with
 % no code change -- every v1 code path in this file is untouched and still
 % fully supported.
-% TEMP REVERT (2026-09-21): back to branchA_v1 until the v2c binaries are
-% distributed to the deployment targets. See docs/flip_default_v2c.patch to
-% restore v2c once they are.
 BRANCH_A_MODEL_VERSION = getenv('BRANCH_A_MODEL_VERSION');
-if isempty(BRANCH_A_MODEL_VERSION), BRANCH_A_MODEL_VERSION = 'branchA_v1'; end
+if isempty(BRANCH_A_MODEL_VERSION), BRANCH_A_MODEL_VERSION = 'branchA_v2c'; end
 
 versionCfg = struct( ...
     'branchA_v1', struct( ...

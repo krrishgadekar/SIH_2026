@@ -1,6 +1,6 @@
 # Backend plan: status against `implementation-plan-backend-saad (1).md`
 
-Status as of 2026-09-23. Sections marked "Since 2026-09-22" and the "Waiting on other people" list are the current ones; earlier sections are kept as the record of when each thing was verified. Every item below was verified by running it, not by reading code. The test scripts named in the table can be re-run.
+Status as of 2026-09-23 (late). Sections marked "Since 2026-09-22" and the "Waiting on other people" list are the current ones; earlier sections are kept as the record of when each thing was verified. Every item below was verified by running it, not by reading code. The test scripts named in the table can be re-run.
 
 ## Where each section stands
 
@@ -156,7 +156,7 @@ The plan's own corrected guidance: self-hosted Postgres has no built-in transpar
 | M5 v2 (3-class red lesions) | Merged behind `RED_LESION_MODEL_VERSION`, still **v1**. The orchestrator stores the MA/HE split when it appears; the API mapper already reads it |
 | 512 px classifier (v2a) | Merged, **not** the default. Tanuj has not finalised v2a vs v2b/v2c |
 | Tier floors (A -> B) | **Now tested.** `decideTier` extracted as a pure function; 18 checks in `verify_backend_pipeline.js` |
-| Parallel Computing Toolbox | 4 uses shipped (`sweepDistrictScenarios`, `monteCarloQueueing`, `calibrateQualityThresholds`, `batchGenerateReports`); `runTask92` measured and left serial on purpose |
+| Parallel Computing Toolbox | 5 uses shipped (`sweepDistrictScenarios` via `parsim`, `monteCarloQueueing`, `calibrateQualityThresholds`, `batchGenerateReports`, and the `optimizeRuleThresholds` search); `runTask92` measured and left serial on purpose. **The threshold search only started using it on 2026-09-23** -- its gate accepted a pool that already existed, and `matlab -batch` starts with none, so it was wired in and ran serial. Now starts a pool above 2e5 evaluations: the v2 refit went from ~24 min to 215 s on 6 workers, byte-identical result |
 | Live SimEvents model `netraSetuPipeline.slx` | Done. Whole pipeline, live sliders and outage switches, calibrated by `scripts/exportSimCalibration.js` |
 
 **Not wired, waiting on a decision:** `models/rule_thresholds_red_v2.json`. It recalibrates `redFloor`/`grade3QuadMin`/`brightFloor` for BOTH model versions -- v1 moves from 3/3/1 to 8/2/5 -- so it changes grading today, switch or no switch. Measured on the 52-case held-out split: 15 of 52 grades change (14 down, 13 of them 2 -> 0), exact agreement with ground truth moves 28/52 -> 29/52, and branch disagreements fall from 23 to 17, i.e. six fewer cases escalated to a human. Accuracy-neutral, materially different behaviour.
@@ -174,9 +174,182 @@ The plan's own corrected guidance: self-hosted Postgres has no built-in transpar
 | `tier_reason` persisted (migration 0015) | Done. `decideTier` always returned a reason; it was used for one log line and discarded. Five different situations produce a "B" and a reviewer could not tell which. Not backfilled -- NULL means "not recorded", never "no reason" |
 | Evidence prose ignored `ruleOpts` (JS fallback) | **Fixed.** `evidenceSummaryText` re-ran the rule engine without the opts, so a fovea-unreliable case was graded Moderate NPDR while the text under it said "Severe NPDR, ETDRS 4-2-1(a)". The 720-case parity never saw it because it compares the rule engine's output fields, not the prose. 2880 evidence-text checks added |
 | `vesselSegmentationUnet.m` | **Fixed, four defects.** It was still written for the MATLAB-trained 3-channel U-Net; the file is now the ONNX import of Tanuj's 1-channel PyTorch model. Missing `models/` on the path (this was his `verifyPhase4.m` crash), RGB instead of green, no `[-1,1]` normalisation, no sigmoid, and `imresize` antialiasing on. Now matches `segInfer.py` to four decimals (0.0564 both) |
-| Rule-threshold optimiser (`grading/optimizeRuleThresholds.m`) | Done. Optimization-Toolbox brief plus Statistics & ML (`perfcurve` Youden's J, `cvpartition` stratified folds, `bootci`). Refuses to run unless its fast evaluator matches `ruleEngineGrade` exactly. 18/18 selftest |
-| M5 v2 binaries | **Arrived 2026-09-23** (manually, not via git -- they are gitignored). `red_lesion_unet_v2.mat` loads, `[512 512 3]`, and the full contract verified end to end: `maPerQuadrant` + `hePerQuadrant` sum to `redPerQuadrant`. Still **v1** by default |
-| Classifier v2a/v2b/v2c binaries | **Still absent.** Calibration JSONs, layer packages and parity fixtures are all present; the weight files are not. `docs/flip_default_v2c.patch` stays unapplied |
+| Rule-threshold optimiser (`grading/optimizeRuleThresholds.m`) | Done. Statistics & ML Toolbox (`perfcurve` Youden's J, `cvpartition` stratified folds, `bootci`). Refuses to run unless its fast evaluator matches `ruleEngineGrade` exactly. 18/18 selftest. **NOT Optimization Toolbox** -- see the toolbox note below |
+| M5 v2 binaries | **Arrived 2026-09-23** (manually, not via git -- they are gitignored). `red_lesion_unet_v2.mat` loads, `[512 512 3]`, contract verified end to end: `maPerQuadrant` + `hePerQuadrant` sum to `redPerQuadrant`. **Now the default** |
+| Classifier v2a/v2b/v2c checkpoints | **Arrived 2026-09-23** (`branchA_v2*.pt`, manually). v2c is **now the default** -- see below |
+
+### Classifier: branchA_v1 (384 px) -> branchA_v2c (512 px)
+
+Tanuj's go-ahead. `docs/flip_default_v2c.patch` applied unchanged -- his patch, not a
+hand edit -- so both the Python and MATLAB defaults are `branchA_v2c`. Rollback is
+still one env var.
+
+He delivered the PyTorch checkpoint only, so the MATLAB artifact was derived here:
+
+    branchA_v2c.pt -> export_to_onnx.py --only m1_v2c -> branchA_v2c.onnx
+                   -> importModelsV2c()               -> models/branchA_v2c.mat
+
+**Verified, not assumed:** `parityCheckV2c` against his own reference fixtures
+(`parity_data/branchA_v2c_{input,torch_output}.mat`) gives max|diff| **1e-6**
+against a 0.01 threshold and **10/10 argmax agreement** on real images -- the
+same standard as the other eight artifacts. The net loads clean: 242 layers,
+input `[512 512 3]`, output `[5 1]` summing to 1.
+
+**Why v2c and not v2b, stated plainly.** The pre-declared promotion rule selects
+**v2b** (selection-half AUC gain -0.0089, CI crosses zero). v2c is a DISCLOSED
+override on a more decision-relevant metric: under domain shift v2b's Tier-A
+share nearly doubles (48% -> 66%) and its false auto-clear of truly referable
+cases rises to **12.84%**, against v2c's **2.29%**. A model that stops deferring
+exactly when it is out of its depth is the dangerous one. In-domain, v2c trades
+~2 points of specificity for ~8 of referable sensitivity (0.849 -> 0.927).
+Known cost: v2c's grade-1 recall is worse (0.633 -> 0.550). Say this as a
+disclosed deviation, never as "v2c won".
+
+**384 -> 512 is now complete across classification and segmentation.** Most of
+the pipeline followed automatically: `preprocessBranchATensor.py` delegates to
+`branchAInfer.preprocess` and follows the checkpoint (verified emitting
+512x512), and `segInfer.py` has been `INPUT_SIZE = 512` throughout. One thing
+WAS hardcoded and is fixed: the MATLAB session's warm-up tensor was a literal
+384, which against a 512 network fails the warm-up outright -- non-fatal, since
+the caller catches it, but it silently hands the first real request the model
+load the warm-up existed to absorb. It now reads `imgSize` from
+`branchAInferMatlab.m`'s own version registry.
+
+Left over, neither on the live path: `experiments/explainabilityValidation.py`
+still hardcodes `CAM_SIZE = 384`, and the `lesion384` / `roi384` key names no
+longer describe their contents (the code reads whatever is at the path and
+rescales, so nothing assumes a size).
+
+**Grades move with the model.** On the two `verify_fovea_e2e` images:
+`cnn=4 rule=2 tier=C` / `cnn=3 rule=3 tier=B` under v1 became
+`cnn=3 rule=2 tier=C` / `cnn=2 rule=3 tier=C` under v2c -- the second now
+routing to Tier C on branch disagreement rather than sitting at B. Any demo
+screenshot or slide figure captured before 2026-09-23 shows v1 grades.
+
+### MATLAB toolboxes actually used -- checked, not assumed
+
+Ten in active use: **Deep Learning** (all 9 imported networks), **Image
+Processing** (heaviest -- quality gate, preprocessing, segmentation
+post-processing), **Statistics & ML** (urgency score, threshold refit),
+**Parallel Computing** (6 files), **Simulink** + **SimEvents** (district
+model), **MATLAB Compiler** (both `deploy/` and the PHC quality gate),
+**Report Generator** (clinical PDF), **Computer Vision** (`insertShape` /
+`insertObjectAnnotation` in the evidence report, `unetLayers` /
+`pixelLabelDatastore` in `trainVesselUnet.m`), **Medical Imaging**
+(`medicalImage` for DICOM capture), and **Global Optimization Toolbox**
+(`surrogateopt`, `ga`, `patternsearch` in `optimizeRuleThresholds.m` --
+installed 2026-09-23; previously fell back to exhaustive search).
+
+**Optimization Toolbox is licensed but NOT used** -- zero calls to `fmincon`,
+`intlinprog`, `linprog` or `lsqnonlin`. The solvers in `optimizeRuleThresholds.m`
+(`surrogateopt`, `ga`, `patternsearch`) belong to the **Global** Optimization
+Toolbox (now installed), not the plain Optimization Toolbox. Do not conflate
+the two on a slide.
+
+Also not available: MATLAB Production Server, MATLAB Compiler SDK,
+MATLAB Web App Server (all `license=0`). MPS was considered for the central
+system and rejected: missing licences, and it is an RPC endpoint for compiled
+MATLAB functions, not a web server -- no cookie sessions, CSRF, multipart
+upload or static hosting, so Node would still be needed in front of it.
+
+#### Global Optimization Toolbox: installed, tested, and it does NOT win
+
+Installed 2026-09-23; `surrogateopt`, `ga`, `patternsearch` and `particleswarm`
+all resolve. `optimizeRuleThresholds.m` supports all three solvers, so the open
+question -- would a global solver beat the plain-MATLAB exhaustive search? --
+was settled by running it rather than argued. Same data, same objective,
+fit on the v2 train split:
+
+| solver | thresholds | train QWK | evals | wall |
+|---|---|---|---|---|
+| **exhaustive + local refine** | **9 / 8 / 11 / 7** | **0.8780** | 1.12 M | 215 s (6 workers) |
+| `ga` | 12 / 2 / 102 / 1 | 0.8739 | 2 589 | 82 s |
+| `surrogateopt` | 9 / 8 / 64 / 3 | 0.8726 | 600 | 121 s |
+
+Both global solvers returned a WORSE optimum, and `verifyExhaustive` reports
+`exhaustiveAgrees = 0` for each -- enumeration beat them outright. That is the
+expected shape, not a surprise: the objective is a step function riddled with
+plateaus (poor ground for a smooth surrogate) and each evaluation is ~30 us,
+so there is nothing for a sampling strategy to economise on. `ga` is the
+fastest of the three and stays wired as the `solver: 'auto'` fallback for a
+grid too large to enumerate.
+
+**So do not claim the Global Optimization Toolbox produced the deployed
+thresholds.** It is installed and supported; the numbers in production came
+from exhaustive search. Note also that `ga`'s 12 / 2 is inside the wide tied
+plateau the exhaustive search reports, which is why it looks close to Tanuj's
+independently fitted values without being a second confirmation of them.
+
+### Model/backend integration audit (2026-09-23)
+
+Every field each side emits, cross-referenced against what the other reads.
+The case-pipeline contract is symmetric (12 in, 12 read). Three real defects,
+all fixed:
+
+1. **The recorded model was a constant.** `grading_results.model_version` was
+   written from a hardcoded `'branchA_v1'` while `branchA.modelVersion` -- which
+   both engines report -- was never read. All 67 rows said `branchA_v1`, and the
+   moment the default became `branchA_v2c` that column was uniformly false.
+   Writing the truth then hit a foreign key: `model_version` references
+   `model_versions`, which held one row, so the schema made recording the truth
+   *impossible* -- almost certainly why the constant existed. The constraint is
+   correct and stays; **migration 0017** registers the v2 family with each
+   model's own delivered metrics (n=628), v2c promoted. An unregistered model
+   now fails the case with a message naming the fix.
+2. **`sourceFormat` and `dicomDeviceModel` were computed and dropped** on every
+   case since DICOM landed, while `readFundusImage.m`'s header states the device
+   "is recorded as evidence". **Migration 0016** adds
+   `cases.source_format` / `cases.dicom_device_model`, kept separate from the
+   worker-reported `camera_device_id` for the same reported-vs-detected reason
+   the schema already splits `camera_family_detected`.
+3. **The two engines disagreed on `sourceFormat`'s vocabulary** -- MATLAB
+   `'image'`/`'dicom'`, the JS fallback the file extension. Harmless while the
+   field was dropped, wrong the moment it is stored. The fallback now matches
+   MATLAB and never claims `'dicom'`, which it cannot read. Empty strings
+   normalise to NULL.
+
+Left unconsumed by design: `venousBeadingQuadrants` / `irmaQuadrants` are read
+but never emitted (detectors cut; absent correctly means "not assessed"), and
+segInfer's static `verified` / `verificationNote` provenance block is dropped
+-- worth surfacing on the case detail later, since its own comment says it
+exists to be shown.
+
+### Triage urgency score, wired (2026-09-23)
+
+`calculateUrgencyScore.m` existed and was called by nothing. Now computed per
+case, stored (**migration 0018**: `urgency_score` CHECK 1..100 NULL-allowed,
+`urgency_factor`, `urgency_inputs` JSONB), exposed on the case detail and the
+queue, and shown in the central review queue.
+
+Under the constraints its own header sets, because the forest is trained on
+SYNTHETIC data and has never been validated against an outcome:
+
+- **Missing data means no score.** MATLAB skips the call entirely unless age,
+  years diabetic AND HbA1c are all present and in range. NULL, never 1 -- 1 is
+  a legitimate low-urgency result, so an imputed 1 could not be told apart from
+  a measured one. Verified: complete data scores, missing HbA1c skips, absent
+  clinical block skips, out-of-range HbA1c skips.
+- **Bucket midpoints are allowed, silent ones are not.** `glycemicControl:
+  'poor'` may stand in as 9.5, but it is tagged `assumed from ...`, the tag is
+  stored in `urgency_inputs`, and the API returns it. An unrecognised bucket
+  yields no score at all.
+- **Ordering only.** In the queue it is a TIE-BREAK placed *after* the
+  calibrated keys (uncertainty for Tier C, confidence for Tier B), never ahead
+  of them -- a synthetic-data signal must not outrank one calibrated on the
+  model's own measured error. It does not touch `decideTier`, the referral
+  decision or the patient SMS.
+- **Never the number alone.** `urgencyScore` ships with `urgencyBasis` and
+  `urgencyLimitation` everywhere, and the queue renders a visible footnote
+  rather than hiding the caveat in a tooltip. `--` marks not-computed.
+
+PHC intake now collects a real HbA1c (optional, "leave blank if not tested")
+and carries the year count through as a number alongside the existing bucket,
+which the old mapping discarded.
+
+**Capture formats:** jpg, jpeg, png, bmp, tif and DICOM are accepted and were
+verified through `readFundusImage` itself, not inferred from the allow-lists.
+The one format that genuinely fails is **`.webp`** -- MATLAB's `imread` has no
+WebP support, which is why `verifyPhase4` skips those files.
 
 ### The M5 v2 threshold question, now measured
 
@@ -200,11 +373,14 @@ Caveat: 5-fold CV said QWK 0.863, the held-out test said 0.692. Trust the held-o
 
 ## Waiting on other people
 
-- **Tanuj** — updated 2026-09-23. Most of the 2026-09-20 list has now landed or been closed; what is left is short:
-  1. **`models/branchA_v2c.mat`** (and the `.pt`/`.onnx` for the Python path). This is the ONE missing file blocking the classifier flip. Everything around it is already here: `calibration_branchA_v2c.json`, `models/+branchA_v2c/`, and the parity fixtures. `branchAInferMatlab.m:139` looks for that exact filename, and `docs/flip_default_v2c.patch` cannot be applied without it. His own commit 2762f3f says the same thing from his side.
-  2. **Go-ahead to flip `RED_LESION_MODEL_VERSION=v2`.** The binaries arrived and work; our side is wired and verified end to end. His instruction was "not until I say so", so it stays at v1.
-  3. **Which `grade3QuadMin` is right for v2 counts** — his Youden fit says 4, our joint search says 8, on the same data. See the threshold section above. This needs his view before anything ships.
-  4. **Confirmation that `unvalidated_camera` satisfies his request** — he asked twice and has it logged as unconfirmed; it is built and tested now, so he can close it.
+- **Tanuj** — updated 2026-09-23 (evening). The list is now down to one open item.
+  1. **Confirmation that `unvalidated_camera` satisfies his request** — he asked twice and has it logged as unconfirmed; it is built and tested, so he can close it.
+
+  Everything else on the morning's list closed the same day:
+  - `models/branchA_v2c.mat` — **no longer needed from him.** He delivered `branchA_v2c.pt`; the `.onnx` and `.mat` were derived here (see below) and parity-verified against his own reference fixtures.
+  - Go-ahead to flip `RED_LESION_MODEL_VERSION=v2` — **given, and done.**
+  - Go-ahead to switch the classifier to v2c — **given, and done.**
+  - `grade3QuadMin` for v2 counts — **settled on evidence**, 4 not 8; see the threshold section above. Worth him knowing our joint search preferred 8 on train and that the held-out split is what decided it.
 
   **Closed since 2026-09-20, no longer waiting:**
   - §R rename — done; he deliberately kept the wire keys (`brightLesions`/`brightPerQuadrant`) and renamed only internal model identifiers, so the JS layer needed no change.

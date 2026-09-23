@@ -151,6 +151,69 @@ async function main() {
         && inp.ruleOpts.redFloor === 9;
     })());
 
+  // ── Model/capture provenance: every field a producer emits has a consumer ──
+  // These three were all "produced and dropped": the model that graded a case
+  // (hardcoded to branchA_v1 while branchA.modelVersion went unread), and the
+  // capture's own source format and DICOM device, which BOTH engines returned
+  // on every case and nothing stored -- while readFundusImage.m's header said
+  // the device "is recorded as evidence".
+  // ── Urgency score: the constraints that keep it safe ────────────────────
+  // The score comes from a forest trained on SYNTHETIC data. Two properties
+  // must hold or it stops being a queue hint and becomes a fabricated
+  // clinical statement: a missing input yields NO score (never 1, which is a
+  // real low-urgency value and would be indistinguishable), and a bucket
+  // midpoint is never presented as a measured lab value.
+  console.log('\n--- Urgency score: missing data, and provenance ---');
+  const { caseClinicalInputs } = orchestrator;
+
+  check('complete clinical data produces a clinical block',
+    (() => {
+      const c = caseClinicalInputs(58, { riskFactors: { hba1c: 8.2, yearsDiabetic: 6 } });
+      return c && c.hba1c === 8.2 && c.yearsDiabetic === 6
+        && c.provenance.hba1c === 'measured';
+    })());
+  check('a missing HbA1c yields NO clinical block, so no score is computed',
+    caseClinicalInputs(58, { riskFactors: { yearsDiabetic: 6 } }) === null);
+  check('a missing years-diabetic yields no block either',
+    caseClinicalInputs(58, { riskFactors: { hba1c: 8.2 } }) === null);
+  check('a missing patient age yields no block',
+    caseClinicalInputs(null, { riskFactors: { hba1c: 8.2, yearsDiabetic: 6 } }) === null);
+  check('an empty questionnaire yields no block',
+    caseClinicalInputs(58, {}) === null);
+
+  // Buckets may stand in, but the substitution must be VISIBLE -- a screen has
+  // to be able to say "assumed from 'poor'" rather than implying a lab test.
+  check('a bucket is used but labelled assumed, never as measured',
+    (() => {
+      const c = caseClinicalInputs(58, {
+        riskFactors: { glycemicControl: 'poor', yearsSinceDiagnosis: '1to5' },
+      });
+      return c && c.hba1c === 9.5
+        && /assumed/.test(c.provenance.hba1c)
+        && /poor/.test(c.provenance.hba1c)
+        && /assumed/.test(c.provenance.yearsDiabetic);
+    })());
+  check('an unrecognised bucket is not guessed at',
+    caseClinicalInputs(58, { riskFactors: { glycemicControl: 'somethingelse' } }) === null);
+
+  console.log('\n--- Capture and model provenance ---');
+  const fb = require('./central-system/backend/services/matlabFallback');
+
+  check('the JS fallback reports the same sourceFormat vocabulary as MATLAB',
+    (() => {
+      const r = fb.runMatlabFallback({ imagePath: 'C:\\x\\shot.JPG', segResult: null });
+      // readFundusImage.m: 'image' for non-DICOM, 'dicom' only when parsed.
+      return r.sourceFormat === 'image';
+    })());
+  check('  ...and never claims DICOM, which it cannot read',
+    (() => {
+      const r = fb.runMatlabFallback({ imagePath: 'C:\\x\\scan.dcm', segResult: null });
+      return r.sourceFormat !== 'dicom';
+    })());
+  check('the fallback reports no DICOM device rather than a blank one',
+    fb.runMatlabFallback({ imagePath: 'C:\\x\\a.jpg', segResult: null })
+      .dicomDeviceModel === null);
+
   console.log('\n--- The session protocol ---');
   check('no heartbeat file means no session', matlabSession.alive() === false);
   fs.writeFileSync(process.env.MATLAB_HEARTBEAT_PATH, 'now');
@@ -191,9 +254,22 @@ async function main() {
   // The defect this guards: left behind, the request is picked up minutes later
   // by a session that has just restarted, which then runs a case nobody is
   // waiting for and leaves an orphan response file next to it.
-  check('a timed-out request is TAKEN BACK, not left for a late session',
-    fs.readdirSync(matlabSession.REQUEST_DIR).filter((f) => f.startsWith('t_')).length === 0,
-    fs.readdirSync(matlabSession.REQUEST_DIR).join(', '));
+  // PRECONDITION: no live session. This assertion is about the CLIENT taking
+  // its request back, and a running session polls the same directory -- it
+  // will pick the request up, answer it and delete the file itself, racing the
+  // client's cleanup. The check then fails for a reason that has nothing to do
+  // with the defect it guards, which is exactly what happened once here.
+  // Reported as skipped rather than failed, so a red line always means the
+  // client actually left something behind.
+  if (matlabSession.alive()) {
+    console.log('  SKIP  a timed-out request is TAKEN BACK '
+      + '-- a live MATLAB session is polling the same directory and races '
+      + 'this check; stop it (manageMatlabSession.ps1 stop) to run it');
+  } else {
+    check('a timed-out request is TAKEN BACK, not left for a late session',
+      fs.readdirSync(matlabSession.REQUEST_DIR).filter((f) => f.startsWith('t_')).length === 0,
+      fs.readdirSync(matlabSession.REQUEST_DIR).join(', '));
+  }
 
   console.log('\n--- Branch B: the worker, and what happens without it ---');
   // Losing the segmentation worker must never lose a case. Branch B is the

@@ -98,10 +98,18 @@ end
 % above -- branchA_v1 briefly exists in two places at startup; harmless,
 % just not deduplicated). Call it once now on a dummy tensor so the first
 % REAL request doesn't pay that load cost.
+% SIZE FOLLOWS THE SELECTED MODEL, it is not 384. branchA_v1 is a 384 px
+% network and the v2 family is 512, so a hardcoded 384 tensor fails the
+% warm-up outright once BRANCH_A_MODEL_VERSION is a v2 tag -- non-fatal
+% (the catch below logs and continues) but it silently costs the first real
+% request the load it was meant to pay for. Asked of the same registry
+% branchAInferMatlab.m uses, so the two cannot disagree.
 warmupTensor = fullfile(tempdir, 'matlab_session_warmup.mat');
-x = zeros(384, 384, 3, 1, 'single'); %#ok<NASGU>
-display = zeros(384, 384, 3, 'uint8'); %#ok<NASGU>
+warmupSize = branchAInputSize();
+x = zeros(warmupSize, warmupSize, 3, 1, 'single'); %#ok<NASGU>
+display = zeros(warmupSize, warmupSize, 3, 'uint8'); %#ok<NASGU>
 save(warmupTensor, 'x', 'display');
+logMsg(logFile, sprintf('  warmup tensor %dx%d', warmupSize, warmupSize));
 try
     branchAInferMatlab(warmupTensor, '');
     logMsg(logFile, '  warmup inference call OK');
@@ -242,4 +250,32 @@ disp(line);
 fid = fopen(logFile, 'a');
 fprintf(fid, '%s\n', line);
 fclose(fid);
+end
+
+function sz = branchAInputSize()
+% The selected Branch A model's input size, read from branchAInferMatlab.m's
+% own version registry rather than duplicated here.
+%
+% Parsed from the source instead of being asked of the function, because
+% branchAInferMatlab keeps the registry local to its body and exposes no
+% accessor. Parsing is ugly but it has one virtue over a second copy of the
+% numbers: when a new version is added there, this cannot silently disagree.
+% Falls back to 384 (branchA_v1) if anything about the parse changes, and the
+% warm-up is best-effort anyway -- its caller already tolerates failure.
+sz = 384;
+try
+    version = getenv('BRANCH_A_MODEL_VERSION');
+    if isempty(version), version = 'branchA_v2c'; end   % same default as that file
+    src = fileread(fullfile(fileparts(mfilename('fullpath')), '..', ...
+                            'branchAInferMatlab.m'));
+    % Find this version's struct( ... ) and read its imgSize.
+    pat = ['''' version ''''  '\s*,\s*struct\(.*?''imgSize''\s*,\s*(\d+)'];
+    tok = regexp(src, pat, 'tokens', 'once');
+    if ~isempty(tok)
+        sz = str2double(tok{1});
+    end
+    if ~isfinite(sz) || sz < 32, sz = 384; end
+catch
+    sz = 384;
+end
 end

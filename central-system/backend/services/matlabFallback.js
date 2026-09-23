@@ -349,8 +349,24 @@ function classifyCameraFamily() {
 
 // ── readFundusImage.m metadata (non-DICOM path only) ───────────────────────
 function readFundusImageMetaFallback(imagePath) {
+  // ── SAME VOCABULARY AS readFundusImage.m, NOT THE FILE EXTENSION ─────────
+  // This used to return the extension ('jpg', 'png', 'unknown'), while the
+  // MATLAB path reports 'image' for anything non-DICOM and 'dicom' when it
+  // actually parsed one. Both feed cases.source_format, so the column would
+  // have held 'image' or 'jpg' for identical captures depending only on which
+  // engine happened to run -- the same divergence class verify_fallback_parity
+  // exists to catch, in a field it does not cover.
+  //
+  // Always 'image': this fallback has no DICOM reader at all (see the header),
+  // so it must never claim 'dicom'. A .dcm capture reaching here fails earlier
+  // on imread, which is the honest outcome.
   const ext = path.extname(imagePath).replace('.', '').toLowerCase() || 'unknown';
-  return { sourceFormat: ext, dicomDeviceModel: null, imageLaterality: null };
+  return {
+    sourceFormat: 'image',
+    sourceFileExtension: ext,   // kept as detail; not the contract field
+    dicomDeviceModel: null,
+    imageLaterality: null,
+  };
 }
 
 /**
