@@ -1,6 +1,6 @@
 # Backend plan: status against `implementation-plan-backend-saad (1).md`
 
-Status as of 2026-09-23 (evening). Sections marked "Since 2026-09-22" and the "Waiting on other people" list are the current ones; earlier sections are kept as the record of when each thing was verified. Every item below was verified by running it, not by reading code. The test scripts named in the table can be re-run.
+Status as of 2026-09-23 (late). Sections marked "Since 2026-09-22" and the "Waiting on other people" list are the current ones; earlier sections are kept as the record of when each thing was verified. Every item below was verified by running it, not by reading code. The test scripts named in the table can be re-run.
 
 ## Where each section stands
 
@@ -228,29 +228,128 @@ screenshot or slide figure captured before 2026-09-23 shows v1 grades.
 
 ### MATLAB toolboxes actually used -- checked, not assumed
 
-Nine in active use: **Deep Learning** (all 9 imported networks), **Image
+Ten in active use: **Deep Learning** (all 9 imported networks), **Image
 Processing** (heaviest -- quality gate, preprocessing, segmentation
 post-processing), **Statistics & ML** (urgency score, threshold refit),
 **Parallel Computing** (6 files), **Simulink** + **SimEvents** (district
 model), **MATLAB Compiler** (both `deploy/` and the PHC quality gate),
 **Report Generator** (clinical PDF), **Computer Vision** (`insertShape` /
 `insertObjectAnnotation` in the evidence report, `unetLayers` /
-`pixelLabelDatastore` in `trainVesselUnet.m`), and **Medical Imaging**
-(`medicalImage` for DICOM capture).
+`pixelLabelDatastore` in `trainVesselUnet.m`), **Medical Imaging**
+(`medicalImage` for DICOM capture), and **Global Optimization Toolbox**
+(`surrogateopt`, `ga`, `patternsearch` in `optimizeRuleThresholds.m` --
+installed 2026-09-23; previously fell back to exhaustive search).
 
 **Optimization Toolbox is licensed but NOT used** -- zero calls to `fmincon`,
-`intlinprog`, `linprog` or `lsqnonlin`. `optimizeRuleThresholds.m` was written
-to an Optimization-Toolbox brief, but the solvers it names (`surrogateopt`,
-`ga`, `patternsearch`) belong to the **Global** Optimization Toolbox, which is
-not installed; it runs a plain-MATLAB exhaustive search. Do not claim
-Optimization Toolbox on a slide.
+`intlinprog`, `linprog` or `lsqnonlin`. The solvers in `optimizeRuleThresholds.m`
+(`surrogateopt`, `ga`, `patternsearch`) belong to the **Global** Optimization
+Toolbox (now installed), not the plain Optimization Toolbox. Do not conflate
+the two on a slide.
 
-Also not available: Global Optimization Toolbox, MATLAB Production Server,
-MATLAB Compiler SDK, MATLAB Web App Server (all `license=0`). MPS was
-considered for the central system and rejected: two missing licences, and it
-is an RPC endpoint for compiled MATLAB functions, not a web server -- no
-cookie sessions, CSRF, multipart upload or static hosting, so Node would still
-be needed in front of it.
+Also not available: MATLAB Production Server, MATLAB Compiler SDK,
+MATLAB Web App Server (all `license=0`). MPS was considered for the central
+system and rejected: missing licences, and it is an RPC endpoint for compiled
+MATLAB functions, not a web server -- no cookie sessions, CSRF, multipart
+upload or static hosting, so Node would still be needed in front of it.
+
+#### Global Optimization Toolbox: installed, tested, and it does NOT win
+
+Installed 2026-09-23; `surrogateopt`, `ga`, `patternsearch` and `particleswarm`
+all resolve. `optimizeRuleThresholds.m` supports all three solvers, so the open
+question -- would a global solver beat the plain-MATLAB exhaustive search? --
+was settled by running it rather than argued. Same data, same objective,
+fit on the v2 train split:
+
+| solver | thresholds | train QWK | evals | wall |
+|---|---|---|---|---|
+| **exhaustive + local refine** | **9 / 8 / 11 / 7** | **0.8780** | 1.12 M | 215 s (6 workers) |
+| `ga` | 12 / 2 / 102 / 1 | 0.8739 | 2 589 | 82 s |
+| `surrogateopt` | 9 / 8 / 64 / 3 | 0.8726 | 600 | 121 s |
+
+Both global solvers returned a WORSE optimum, and `verifyExhaustive` reports
+`exhaustiveAgrees = 0` for each -- enumeration beat them outright. That is the
+expected shape, not a surprise: the objective is a step function riddled with
+plateaus (poor ground for a smooth surrogate) and each evaluation is ~30 us,
+so there is nothing for a sampling strategy to economise on. `ga` is the
+fastest of the three and stays wired as the `solver: 'auto'` fallback for a
+grid too large to enumerate.
+
+**So do not claim the Global Optimization Toolbox produced the deployed
+thresholds.** It is installed and supported; the numbers in production came
+from exhaustive search. Note also that `ga`'s 12 / 2 is inside the wide tied
+plateau the exhaustive search reports, which is why it looks close to Tanuj's
+independently fitted values without being a second confirmation of them.
+
+### Model/backend integration audit (2026-09-23)
+
+Every field each side emits, cross-referenced against what the other reads.
+The case-pipeline contract is symmetric (12 in, 12 read). Three real defects,
+all fixed:
+
+1. **The recorded model was a constant.** `grading_results.model_version` was
+   written from a hardcoded `'branchA_v1'` while `branchA.modelVersion` -- which
+   both engines report -- was never read. All 67 rows said `branchA_v1`, and the
+   moment the default became `branchA_v2c` that column was uniformly false.
+   Writing the truth then hit a foreign key: `model_version` references
+   `model_versions`, which held one row, so the schema made recording the truth
+   *impossible* -- almost certainly why the constant existed. The constraint is
+   correct and stays; **migration 0017** registers the v2 family with each
+   model's own delivered metrics (n=628), v2c promoted. An unregistered model
+   now fails the case with a message naming the fix.
+2. **`sourceFormat` and `dicomDeviceModel` were computed and dropped** on every
+   case since DICOM landed, while `readFundusImage.m`'s header states the device
+   "is recorded as evidence". **Migration 0016** adds
+   `cases.source_format` / `cases.dicom_device_model`, kept separate from the
+   worker-reported `camera_device_id` for the same reported-vs-detected reason
+   the schema already splits `camera_family_detected`.
+3. **The two engines disagreed on `sourceFormat`'s vocabulary** -- MATLAB
+   `'image'`/`'dicom'`, the JS fallback the file extension. Harmless while the
+   field was dropped, wrong the moment it is stored. The fallback now matches
+   MATLAB and never claims `'dicom'`, which it cannot read. Empty strings
+   normalise to NULL.
+
+Left unconsumed by design: `venousBeadingQuadrants` / `irmaQuadrants` are read
+but never emitted (detectors cut; absent correctly means "not assessed"), and
+segInfer's static `verified` / `verificationNote` provenance block is dropped
+-- worth surfacing on the case detail later, since its own comment says it
+exists to be shown.
+
+### Triage urgency score, wired (2026-09-23)
+
+`calculateUrgencyScore.m` existed and was called by nothing. Now computed per
+case, stored (**migration 0018**: `urgency_score` CHECK 1..100 NULL-allowed,
+`urgency_factor`, `urgency_inputs` JSONB), exposed on the case detail and the
+queue, and shown in the central review queue.
+
+Under the constraints its own header sets, because the forest is trained on
+SYNTHETIC data and has never been validated against an outcome:
+
+- **Missing data means no score.** MATLAB skips the call entirely unless age,
+  years diabetic AND HbA1c are all present and in range. NULL, never 1 -- 1 is
+  a legitimate low-urgency result, so an imputed 1 could not be told apart from
+  a measured one. Verified: complete data scores, missing HbA1c skips, absent
+  clinical block skips, out-of-range HbA1c skips.
+- **Bucket midpoints are allowed, silent ones are not.** `glycemicControl:
+  'poor'` may stand in as 9.5, but it is tagged `assumed from ...`, the tag is
+  stored in `urgency_inputs`, and the API returns it. An unrecognised bucket
+  yields no score at all.
+- **Ordering only.** In the queue it is a TIE-BREAK placed *after* the
+  calibrated keys (uncertainty for Tier C, confidence for Tier B), never ahead
+  of them -- a synthetic-data signal must not outrank one calibrated on the
+  model's own measured error. It does not touch `decideTier`, the referral
+  decision or the patient SMS.
+- **Never the number alone.** `urgencyScore` ships with `urgencyBasis` and
+  `urgencyLimitation` everywhere, and the queue renders a visible footnote
+  rather than hiding the caveat in a tooltip. `--` marks not-computed.
+
+PHC intake now collects a real HbA1c (optional, "leave blank if not tested")
+and carries the year count through as a number alongside the existing bucket,
+which the old mapping discarded.
+
+**Capture formats:** jpg, jpeg, png, bmp, tif and DICOM are accepted and were
+verified through `readFundusImage` itself, not inferred from the allow-lists.
+The one format that genuinely fails is **`.webp`** -- MATLAB's `imread` has no
+WebP support, which is why `verifyPhase4` skips those files.
 
 ### The M5 v2 threshold question, now measured
 
