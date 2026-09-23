@@ -8,16 +8,16 @@ import { InfoBanner } from '../shared/InfoBanner';
 const SortHeader = ({ label, sortKey, currentSort, onRequestSort, width }) => {
   const active = currentSort.key === sortKey;
   const direction = currentSort.direction;
-  
+
   return (
     <th onClick={() => onRequestSort(sortKey)} style={{ cursor: 'pointer', userSelect: 'none', width: width, transition: 'background 0.2s' }}>
       <div style={{ display: 'inline-flex', alignItems: 'center' }}>
         {label}
-        <svg 
-          width="16" height="16" viewBox="0 0 24 24" 
+        <svg
+          width="16" height="16" viewBox="0 0 24 24"
           fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-          style={{ 
-            marginLeft: '6px', 
+          style={{
+            marginLeft: '6px',
             opacity: active ? 1 : 0.3,
             transition: 'opacity 0.2s',
           }}
@@ -51,21 +51,45 @@ const SeverityBadge = ({ grade }) => {
 };
 
 const InfoModal = ({ onClose, t }) => (
-  <div style={{
-    position: 'absolute', top: '100%', left: 0, width: '360px', zIndex: 100,
-    background: 'var(--bg-panel)', border: 'var(--border)', boxShadow: '4px 4px 0px #000',
-    padding: 'var(--sp-4)', marginTop: '8px'
-  }}>
-    <div className="u-flex u-justify-between u-items-center u-mb-3">
-      <h3 className="t-h3" style={{ margin: 0 }}>{t('central.queue.modal.title', 'CLINICAL GUIDANCE')}</h3>
-      <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>✕</button>
+  <>
+    {/* Backdrop — click outside to dismiss */}
+    <div
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 9998, background: 'rgba(0,0,0,0.4)' }}
+    />
+    {/* Centered panel */}
+    <div style={{
+      position: 'fixed',
+      top: '50%', left: '50%',
+      transform: 'translate(-50%, -50%)',
+      width: '480px', maxWidth: '92vw',
+      zIndex: 9999,
+      backgroundColor: '#FFF8F0',
+      border: '2px solid var(--c-crimson)',
+      boxShadow: '12px 12px 0px rgba(0,0,0,0.18)',
+      padding: 'var(--sp-5)',
+      maxHeight: '80vh', overflowY: 'auto',
+    }}>
+      <div className="u-flex u-justify-between u-items-center u-mb-4" style={{ borderBottom: '2px solid var(--c-crimson)', paddingBottom: 'var(--sp-3)' }}>
+        <h3 className="t-h3" style={{ margin: 0, color: 'var(--c-crimson)', letterSpacing: '1px' }}>
+          {t('central.queue.modal.title', 'CLINICAL GUIDANCE')}
+        </h3>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold', fontSize: '20px', color: 'var(--c-crimson)', lineHeight: 1 }}>✕</button>
+      </div>
+      <div className="t-mono" style={{ fontSize: '11.5px', display: 'flex', flexDirection: 'column', gap: '13px', lineHeight: '1.6' }}>
+        <div><strong style={{ color: 'var(--c-crimson)' }}># PRIORITY:</strong> AI-assigned urgency rank. Cases with higher grades and lower confidence are ranked first.</div>
+        <div><strong style={{ color: 'var(--c-crimson)' }}>CAPTURED:</strong> Time elapsed since the fundus image was taken at the PHC. Hover for exact timestamp.</div>
+        <div><strong style={{ color: 'var(--c-crimson)' }}>PATIENT REF:</strong> Anonymised patient identifier with age. Used to look up the patient's history.</div>
+        <div><strong style={{ color: 'var(--c-crimson)' }}>PHC:</strong> Primary Health Centre — the facility that conducted the screening.</div>
+        <div><strong style={{ color: 'var(--c-crimson)' }}>TIER:</strong> Conformal prediction confidence band — <em>A</em> (high certainty, auto-clearable), <em>B</em> (moderate, routine review), <em>C</em> (low certainty, priority manual review).</div>
+        <div><strong style={{ color: 'var(--c-crimson)' }}>SEVERITY:</strong> Clinical urgency — LOW (Grade 0: No DR), MID (Grades 1–2: Mild/Moderate NPDR), HIGH (Grades 3–4: Severe NPDR or PDR).</div>
+        <div><strong style={{ color: 'var(--c-crimson)' }}>CNN GRADE:</strong> DR grade (0–4) predicted by the holistic deep-learning branch (CNN model trained end-to-end).</div>
+        <div><strong style={{ color: 'var(--c-crimson)' }}>RULE ENGINE:</strong> DR grade predicted by counting discrete lesion features (microaneurysms, haemorrhages, exudates) against clinical thresholds.</div>
+        <div><strong style={{ color: 'var(--c-crimson)' }}>AGREEMENT:</strong> Whether both AI branches agree. A <em>DISAGREE</em> flag means grades differ — mandatory manual review required before confirming.</div>
+        <div><strong style={{ color: 'var(--c-crimson)' }}>CONFIDENCE:</strong> Model certainty score (0–100%). Below 70% warrants extra clinical scrutiny before sign-off.</div>
+      </div>
     </div>
-    <div className="t-body" style={{ fontSize: 'var(--fs-small)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      <div><strong>SEVERITY:</strong> {t('central.queue.modal.severity', 'Severity indicates clinical urgency. High (Red) for PDR and Severe NPDR. Mid (Yellow) for Mild/Moderate NPDR. Low (Green) for No DR.')}</div>
-      <div><strong>CONFIDENCE:</strong> {t('central.queue.modal.confidence', 'The confidence score shows the model\'s certainty. Lower scores should be scrutinized closely.')}</div>
-      <div><strong>AGREEMENT:</strong> {t('central.queue.modal.agreement', 'A mismatch means the holistic CNN and explicit rule engine produced different grades. You must resolve this manually.')}</div>
-    </div>
-  </div>
+  </>
 );
 
 const ConfidenceBar = ({ value }) => {
@@ -209,17 +233,17 @@ export const ReviewQueuePage = () => {
         let bValue = b[sortConfig.key];
 
         if (sortConfig.key === 'drGradeCnn' || sortConfig.key === 'drGradeRuleEngine') {
-            aValue = aValue !== null ? aValue : -1;
-            bValue = bValue !== null ? bValue : -1;
+          aValue = aValue !== null ? aValue : -1;
+          bValue = bValue !== null ? bValue : -1;
         } else if (sortConfig.key === 'branchAgreement') {
-            aValue = aValue === true ? 2 : aValue === false ? 1 : 0;
-            bValue = bValue === true ? 2 : bValue === false ? 1 : 0;
+          aValue = aValue === true ? 2 : aValue === false ? 1 : 0;
+          bValue = bValue === true ? 2 : bValue === false ? 1 : 0;
         } else if (sortConfig.key === 'confidenceScore') {
-            aValue = aValue || 0;
-            bValue = bValue || 0;
+          aValue = aValue || 0;
+          bValue = bValue || 0;
         } else if (typeof aValue === 'string') {
-            aValue = aValue.toLowerCase();
-            bValue = (bValue || '').toLowerCase();
+          aValue = aValue.toLowerCase();
+          bValue = (bValue || '').toLowerCase();
         }
 
         if (aValue < bValue) {
@@ -275,14 +299,31 @@ export const ReviewQueuePage = () => {
           <p className="section__subtitle">{t('central.queue.subtitle', 'OPHTHALMOLOGIST INTERFACE')}</p>
           <div className="u-flex u-items-center u-gap-3">
             <h1 className="section__title" style={{ marginBottom: 0 }}>{t('central.queue.title', 'CASES')}</h1>
-            <div style={{ position: 'relative' }}>
-              <button 
-                className="btn btn--outline" 
-                style={{ padding: '4px 8px', fontSize: '12px', borderRadius: '50%' }}
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <button
                 onClick={() => setShowInfoModal(!showInfoModal)}
                 title="Clinical Guidance Info"
+                style={{
+                  background: 'transparent',
+                  border: '2px solid var(--c-crimson)',
+                  color: 'var(--c-crimson)',
+                  borderRadius: '50%',
+                  width: '28px',
+                  height: '28px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  fontFamily: 'serif',
+                  cursor: 'pointer',
+                  marginLeft: '4px',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(204, 0, 0, 0.1)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
               >
-                ℹ
+                i
               </button>
               {showInfoModal && <InfoModal onClose={() => setShowInfoModal(false)} t={t} />}
             </div>
@@ -348,8 +389,8 @@ export const ReviewQueuePage = () => {
             <span style={{ fontSize: 'var(--fs-tiny)', fontWeight: 600, opacity: 0.7 }}>TIERS:</span>
             {['A', 'B', 'C'].map(tier => (
               <label key={tier} className="u-flex u-items-center u-gap-1" style={{ fontSize: 'var(--fs-tiny)', cursor: 'pointer', margin: 0 }}>
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={tierFilter.includes(tier)}
                   onChange={(e) => {
                     if (e.target.checked) setTierFilter([...tierFilter, tier]);
@@ -417,77 +458,77 @@ export const ReviewQueuePage = () => {
             {sortedQueue.map((item, idx) => {
               const isNew = item.capturedAt && (now - new Date(item.capturedAt).getTime()) < NEW_BADGE_WINDOW_MS;
               return (
-              <tr
-                key={item.caseId}
-                className="clickable"
-                onClick={() => navigate(`/ophth/case/${item.caseId}`)}
-                style={{
-                  ...(item.branchAgreement === false ? { borderLeft: '3px solid var(--c-crimson-dark)' } : {}),
-                  ...(isNew ? { background: 'rgba(46, 160, 67, 0.08)' } : {}),
-                }}
-              >
-                <td className="t-mono" style={{ opacity: 0.4 }}>{item.priorityRank}</td>
-                <td title={new Date(item.capturedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}>
-                  <div className="u-flex u-items-center u-gap-2">
-                    <span className="t-mono" style={{ fontWeight: 700 }}>{relativeTime(item.capturedAt, now)}</span>
-                    {isNew && (
-                      <span
-                        className="badge badge--pass"
-                        style={{ fontSize: '10px', padding: '1px 6px', animation: 'pulse-badge 1.6s ease-in-out infinite' }}
-                      >
-                        NEW
-                      </span>
+                <tr
+                  key={item.caseId}
+                  className="clickable"
+                  onClick={() => navigate(`/ophth/case/${item.caseId}`)}
+                  style={{
+                    ...(item.branchAgreement === false ? { borderLeft: '3px solid var(--c-crimson-dark)' } : {}),
+                    ...(isNew ? { background: 'rgba(46, 160, 67, 0.08)' } : {}),
+                  }}
+                >
+                  <td className="t-mono" style={{ opacity: 0.4 }}>{item.priorityRank}</td>
+                  <td title={new Date(item.capturedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}>
+                    <div className="u-flex u-items-center u-gap-2">
+                      <span className="t-mono" style={{ fontWeight: 700 }}>{relativeTime(item.capturedAt, now)}</span>
+                      {isNew && (
+                        <span
+                          className="badge badge--pass"
+                          style={{ fontSize: '10px', padding: '1px 6px', animation: 'pulse-badge 1.6s ease-in-out infinite' }}
+                        >
+                          NEW
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-h)' }}>
+                      {item.patientName || item.patientReference}
+                    </div>
+                    <div className="t-mono" style={{ fontSize: '11px', opacity: 0.6 }}>
+                      {item.patientReference} {item.patientAge ? `• ${item.patientAge}Y` : ''}
+                    </div>
+                  </td>
+                  <td className="t-mono">{item.phcName}</td>
+                  <td className="t-mono" style={{ fontWeight: 700 }}>
+                    {item.conformalTier ? `Tier ${item.conformalTier}` : '—'}
+                  </td>
+                  <td><SeverityBadge grade={item.drGradeCnn} /></td>
+                  <td>
+                    <span className="t-mono" style={{ fontWeight: 700 }}>
+                      {t('central.queue.table.grade', 'Grade')} {item.drGradeCnn}
+                    </span>
+                    <br />
+                    <span className="t-label" style={{ opacity: 0.5 }}>
+                      {drGradeLabels[item.drGradeCnn] || '—'}
+                    </span>
+                  </td>
+                  <td>
+                    {item.drGradeRuleEngine !== null ? (
+                      <>
+                        <span className="t-mono" style={{ fontWeight: 700 }}>
+                          {t('central.queue.table.grade', 'Grade')} {item.drGradeRuleEngine}
+                        </span>
+                        <br />
+                        <span className="t-label" style={{ opacity: 0.5 }}>
+                          {drGradeLabels[item.drGradeRuleEngine] || '—'}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="t-mono" style={{ opacity: 0.3 }}>{t('central.queue.table.notAvailable', 'NOT YET AVAILABLE')}</span>
                     )}
-                  </div>
-                </td>
-                <td>
-                  <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-h)' }}>
-                    {item.patientName || item.patientReference}
-                  </div>
-                  <div className="t-mono" style={{ fontSize: '11px', opacity: 0.6 }}>
-                    {item.patientReference} {item.patientAge ? `• ${item.patientAge}Y` : ''}
-                  </div>
-                </td>
-                <td className="t-mono">{item.phcName}</td>
-                <td className="t-mono" style={{ fontWeight: 700 }}>
-                  {item.conformalTier ? `Tier ${item.conformalTier}` : '—'}
-                </td>
-                <td><SeverityBadge grade={item.drGradeCnn} /></td>
-                <td>
-                  <span className="t-mono" style={{ fontWeight: 700 }}>
-                    {t('central.queue.table.grade', 'Grade')} {item.drGradeCnn}
-                  </span>
-                  <br />
-                  <span className="t-label" style={{ opacity: 0.5 }}>
-                    {drGradeLabels[item.drGradeCnn] || '—'}
-                  </span>
-                </td>
-                <td>
-                  {item.drGradeRuleEngine !== null ? (
-                    <>
-                      <span className="t-mono" style={{ fontWeight: 700 }}>
-                        {t('central.queue.table.grade', 'Grade')} {item.drGradeRuleEngine}
-                      </span>
-                      <br />
-                      <span className="t-label" style={{ opacity: 0.5 }}>
-                        {drGradeLabels[item.drGradeRuleEngine] || '—'}
-                      </span>
-                    </>
-                  ) : (
-                    <span className="t-mono" style={{ opacity: 0.3 }}>{t('central.queue.table.notAvailable', 'NOT YET AVAILABLE')}</span>
-                  )}
-                </td>
-                <td>
-                  {item.branchAgreement === null ? (
-                    <span className="t-mono" style={{ opacity: 0.3 }}>{t('central.queue.table.na', 'N/A')}</span>
-                  ) : item.branchAgreement ? (
-                    <span className="badge badge--pass">{t('central.queue.table.agree', '✓ AGREE')}</span>
-                  ) : (
-                    <span className="badge badge--fail">{t('central.queue.table.disagree', '⚠ DISAGREE')}</span>
-                  )}
-                </td>
-                <td><ConfidenceBar value={item.confidenceScore} /></td>
-              </tr>
+                  </td>
+                  <td>
+                    {item.branchAgreement === null ? (
+                      <span className="t-mono" style={{ opacity: 0.3 }}>{t('central.queue.table.na', 'N/A')}</span>
+                    ) : item.branchAgreement ? (
+                      <span className="badge badge--pass">{t('central.queue.table.agree', '✓ AGREE')}</span>
+                    ) : (
+                      <span className="badge badge--fail">{t('central.queue.table.disagree', '⚠ DISAGREE')}</span>
+                    )}
+                  </td>
+                  <td><ConfidenceBar value={item.confidenceScore} /></td>
+                </tr>
               );
             })}
           </tbody>

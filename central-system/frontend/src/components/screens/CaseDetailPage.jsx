@@ -131,10 +131,15 @@ export const CaseDetailPage = () => {
         </div>
       </div>
 
-      <InfoBanner 
-        title={t('central.caseDetail.banner.title', 'CLINICAL REVIEW GUIDANCE')}
-        text={t('central.caseDetail.banner.text', "Review both the holistic CNN branch and the explicit Rule Engine branch. Use the Grad-CAM toggle to verify lesion attention. Press 'C' to Confirm the AI grade, or 'O' to Override and provide a manual clinical reason.")}
-      />
+      <InfoBanner title={t('central.caseDetail.banner.title', 'CLINICAL REVIEW GUIDANCE')}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div><strong style={{ color: 'var(--c-crimson)' }}>CONFIDENCE:</strong> The confidence score shows the model's certainty. Lower scores should be scrutinized closely.</div>
+          <div><strong style={{ color: 'var(--c-crimson)' }}>UNCERTAINTY:</strong> Measures the model's epistemic uncertainty regarding the grade.</div>
+          <div><strong style={{ color: 'var(--c-crimson)' }}>CONSISTENCY:</strong> Lesion-attention consistency ensures the model is looking at valid physiological features (like microaneurysms) rather than artifacts.</div>
+          <div><strong style={{ color: 'var(--c-crimson)' }}>BRANCH MISMATCH:</strong> If the CNN and Rule Engine disagree, you must resolve this manually by providing a clinical reason.</div>
+          <div><strong style={{ color: 'var(--c-crimson)' }}>GRAD-CAM:</strong> Use the Grad-CAM toggle to verify where the model is placing its attention on the fundus image.</div>
+        </div>
+      </InfoBanner>
 
       {/* Main Content Grid */}
       <div className="case-detail__grid">
