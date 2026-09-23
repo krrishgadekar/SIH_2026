@@ -139,6 +139,7 @@ export const ReviewQueuePage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [phcFilter, setPhcFilter] = useState('all');
   const [gradeFilter, setGradeFilter] = useState('all');
+  const [tierFilter, setTierFilter] = useState(['A', 'B', 'C']);
 
   useEffect(() => {
     let cancelled = false;
@@ -179,6 +180,11 @@ export const ReviewQueuePage = () => {
     // Grade filter
     if (gradeFilter !== 'all') {
       list = list.filter(item => String(item.drGradeCnn) === String(gradeFilter));
+    }
+
+    // Tier filter
+    if (tierFilter.length < 3) {
+      list = list.filter(item => tierFilter.includes(item.conformalTier));
     }
 
     // Text search
@@ -240,13 +246,14 @@ export const ReviewQueuePage = () => {
   const overriddenCount = queue.filter(q => q.reviewStatus === 'overridden').length;
   const pendingCount = queue.filter(q => q.reviewStatus === 'pending' || !q.reviewStatus).length;
 
-  const hasActiveFilters = searchQuery.trim() !== '' || phcFilter !== 'all' || gradeFilter !== 'all' || filter !== 'all';
+  const hasActiveFilters = searchQuery.trim() !== '' || phcFilter !== 'all' || gradeFilter !== 'all' || filter !== 'all' || tierFilter.length < 3;
 
   const handleResetFilters = useCallback(() => {
     setSearchQuery('');
     setPhcFilter('all');
     setGradeFilter('all');
     setFilter('all');
+    setTierFilter(['A', 'B', 'C']);
     setSortConfig({ key: null, direction: 'asc' });
   }, []);
 
@@ -336,6 +343,25 @@ export const ReviewQueuePage = () => {
             </select>
           </div>
 
+          {/* Tier Filter Checkboxes */}
+          <div className="u-flex u-items-center u-gap-2" style={{ padding: '0 12px', border: '1px solid var(--border)', borderRadius: '4px', height: '38px', background: 'var(--bg-panel)' }}>
+            <span style={{ fontSize: 'var(--fs-tiny)', fontWeight: 600, opacity: 0.7 }}>TIERS:</span>
+            {['A', 'B', 'C'].map(tier => (
+              <label key={tier} className="u-flex u-items-center u-gap-1" style={{ fontSize: 'var(--fs-tiny)', cursor: 'pointer', margin: 0 }}>
+                <input 
+                  type="checkbox" 
+                  checked={tierFilter.includes(tier)}
+                  onChange={(e) => {
+                    if (e.target.checked) setTierFilter([...tierFilter, tier]);
+                    else setTierFilter(tierFilter.filter(t => t !== tier));
+                  }}
+                  style={{ cursor: 'pointer', accentColor: 'var(--c-crimson)' }}
+                />
+                {tier}
+              </label>
+            ))}
+          </div>
+
           {/* Mismatch Chip removed as per request */}
 
           {/* Reset Filters */}
@@ -379,6 +405,7 @@ export const ReviewQueuePage = () => {
               <SortHeader label={t('central.queue.table.colCaptured', 'CAPTURED')} sortKey="capturedAt" currentSort={sortConfig} onRequestSort={requestSort} />
               <th>{t('central.queue.table.colPatientRef', 'PATIENT REF')}</th>
               <th>{t('central.queue.table.colPhc', 'PHC')}</th>
+              <SortHeader label={t('central.queue.table.colTier', 'TIER')} sortKey="conformalTier" currentSort={sortConfig} onRequestSort={requestSort} />
               <SortHeader label={t('central.queue.table.colSeverity', 'SEVERITY')} sortKey="drGradeCnn" currentSort={sortConfig} onRequestSort={requestSort} />
               <SortHeader label={t('central.queue.table.colCnnGrade', 'CNN GRADE')} sortKey="drGradeCnn" currentSort={sortConfig} onRequestSort={requestSort} />
               <SortHeader label={t('central.queue.table.colRuleEngine', 'RULE ENGINE')} sortKey="drGradeRuleEngine" currentSort={sortConfig} onRequestSort={requestSort} />
@@ -422,6 +449,9 @@ export const ReviewQueuePage = () => {
                   </div>
                 </td>
                 <td className="t-mono">{item.phcName}</td>
+                <td className="t-mono" style={{ fontWeight: 700 }}>
+                  {item.conformalTier ? `Tier ${item.conformalTier}` : '—'}
+                </td>
                 <td><SeverityBadge grade={item.drGradeCnn} /></td>
                 <td>
                   <span className="t-mono" style={{ fontWeight: 700 }}>
