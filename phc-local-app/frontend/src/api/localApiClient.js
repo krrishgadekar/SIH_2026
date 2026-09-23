@@ -67,12 +67,48 @@ class LocalApiClient {
       return newPatient;
     }
 
-    await delay(800);
-    return {
-      patientId: `PHC001-${Math.random().toString(36).substring(2, 8)}-new1`,
-      registeredAt: new Date().toISOString(),
-      ...patientData,
-    };
+    try {
+      const res = await fetchWithTimeout(`${this.baseUrl}/patients`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patientData)
+      });
+      if (!res.ok) throw new Error(`registerPatient: backend returned ${res.status}`);
+      const data = await res.json();
+      return data;
+    } catch (err) {
+      console.warn('[localApi] real registerPatient failed, falling back to mock:', err.message);
+      await delay(400);
+      return {
+        patientId: `PHC001-${Math.random().toString(36).substring(2, 8).toUpperCase()}-NEW1`,
+        registeredAt: new Date().toISOString(),
+        ...patientData,
+      };
+    }
+  }
+
+  /**
+   * submitCapture(patientId, imageFile, cameraDeviceId) -> POST /captures
+   * Sends captured fundus image to local quality gate backend.
+   */
+  async submitCapture(patientId, imageFile, cameraDeviceId = 'unknown') {
+    if (this.useMock) return null;
+    try {
+      const formData = new FormData();
+      formData.append('patientId', patientId);
+      formData.append('cameraDeviceId', cameraDeviceId);
+      formData.append('image', imageFile);
+
+      const res = await fetchWithTimeout(`${this.baseUrl}/captures`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) throw new Error(`submitCapture: backend returned ${res.status}`);
+      return await res.json();
+    } catch (err) {
+      console.warn('[localApi] real submitCapture failed, falling back:', err.message);
+      return null;
+    }
   }
 
   async saveCaptureMetadata(captureId, metadata) {

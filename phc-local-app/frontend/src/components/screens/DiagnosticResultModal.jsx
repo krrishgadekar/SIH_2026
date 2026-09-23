@@ -11,30 +11,6 @@ export const DiagnosticResultModal = React.memo(({ isOpen, onClose, item, predic
     return (prediction?.severity?.label || "Mild NPDR").toUpperCase();
   }, [prediction]);
 
-  const confidenceScore = useMemo(() => {
-    return prediction?.confidence?.score 
-      ? `${(prediction.confidence.score * 100).toFixed(1)}%` 
-      : "92.4%";
-  }, [prediction]);
-
-  const focusScore = useMemo(() => {
-    return prediction?.imageQuality?.metrics?.focusScore 
-      ? (prediction.imageQuality.metrics.focusScore).toFixed(2) 
-      : "0.94";
-  }, [prediction]);
-
-  const illuminationScore = useMemo(() => {
-    return prediction?.imageQuality?.metrics?.illuminationScore 
-      ? (prediction.imageQuality.metrics.illuminationScore).toFixed(2) 
-      : "0.88";
-  }, [prediction]);
-
-  const coverageScore = useMemo(() => {
-    return prediction?.imageQuality?.metrics?.retinalCoverageScore 
-      ? `${Math.round(prediction.imageQuality.metrics.retinalCoverageScore * 100)}%` 
-      : "98%";
-  }, [prediction]);
-
   const captureTime = useMemo(() => {
     if (!item?.capturedAt) return "02:35 PM";
     try {
@@ -154,19 +130,6 @@ export const DiagnosticResultModal = React.memo(({ isOpen, onClose, item, predic
           </div>
 
           <div className="verdict-stats">
-            <div className="verdict-stat-card">
-              <span className="stat-label t-mono">MODEL CONFIDENCE</span>
-              <span className="stat-value stat-value--green">{confidenceScore}</span>
-              <span className="stat-sub t-mono">EFFICIENTNET-B0 V1.2</span>
-            </div>
-
-            <div className="verdict-stat-card">
-              <span className="stat-label t-mono">RECOMMENDED ACTION</span>
-              <span className="stat-value stat-value--warn" style={{ fontSize: '13px', lineHeight: 1.2 }}>
-                ROUTINE FOLLOW-UP (6 MOS)
-              </span>
-              <span className="stat-sub t-mono">PHC PROTOCOL LEVEL 2</span>
-            </div>
           </div>
         </div>
 
@@ -194,17 +157,7 @@ export const DiagnosticResultModal = React.memo(({ isOpen, onClose, item, predic
               <div className="scan-fovea-reticle"></div>
             </div>
 
-            <div className="scan-quality-bar">
-              <div className="quality-pill">
-                <span>FOCUS:</span> <strong>{focusScore}</strong>
-              </div>
-              <div className="quality-pill">
-                <span>ILLUM:</span> <strong>{illuminationScore}</strong>
-              </div>
-              <div className="quality-pill">
-                <span>COVERAGE:</span> <strong>{coverageScore}</strong>
-              </div>
-            </div>
+
           </div>
 
           {/* Lesion & Verification Checklist */}

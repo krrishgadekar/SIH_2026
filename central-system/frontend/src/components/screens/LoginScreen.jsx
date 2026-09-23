@@ -189,6 +189,16 @@ export const LoginScreen = ({ onLogin }) => {
     <div className="login-screen">
       <RetinalWaveCanvas />
       
+      {/* Floating decorative particles */}
+      <div className="login-particles">
+        <div className="login-particle" />
+        <div className="login-particle" />
+        <div className="login-particle" />
+        <div className="login-particle" />
+        <div className="login-particle" />
+        <div className="login-particle" />
+      </div>
+      
       <div className="login-screen__content" style={{ position: 'relative', zIndex: 1 }}>
         {/* Top Header branding */}
         <div className={`login-hero ${isTransitioning ? 'login-hero--exit' : ''}`} style={{ marginBottom: activeAuthRole ? 'var(--sp-6)' : 'var(--sp-8)' }}>
