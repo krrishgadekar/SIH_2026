@@ -7,8 +7,6 @@ import { CaseDetailPage } from './components/screens/CaseDetailPage';
 import { DashboardPage } from './components/screens/DashboardPage';
 import { ReferralTrackerPage } from './components/screens/ReferralTrackerPage';
 import { PhcHealthPage } from './components/screens/PhcHealthPage';
-import { PatientTimelinePage } from './components/screens/PatientTimelinePage';
-import { ProgramHealthPage } from './components/screens/ProgramHealthPage';
 import { ResourceRecommendationsPanel } from './components/screens/ResourceRecommendationsPanel';
 
 class ErrorBoundary extends Component {
@@ -122,8 +120,6 @@ const RoleRouter = () => {
         <Route index element={<Navigate to="queue" replace />} />
         <Route path="queue" element={<ReviewQueuePage />} />
         <Route path="case/:caseId" element={<CaseDetailPage />} />
-        <Route path="timeline" element={<PatientTimelinePage />} />
-        <Route path="health" element={<ProgramHealthPage />} />
       </Route>
 
       {/* Admin Routes */}

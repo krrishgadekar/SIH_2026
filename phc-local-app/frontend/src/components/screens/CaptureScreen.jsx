@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { QualityResultPanel } from './QualityResultPanel';
 import { CaptureMetadataForm } from './CaptureMetadataForm';
-import { PatientQuestionnaireForm } from './PatientQuestionnaireForm';
+// PatientQuestionnaireForm removed — questionnaire is now collected at registration
 import { RetinalImageViewer } from './RetinalImageViewer';
 import { localApi } from '../../api/localApiClient';
 import { USE_MOCK_DATA } from '../../config';
@@ -27,16 +27,16 @@ export const CaptureScreen = () => {
       return p?.age;
     } catch (e) { return null; }
   })() || '20';
-  
+
   const [activeStep, setActiveStep] = useState(1);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
   const [qualityResult, setQualityResult] = useState(null);
   const [metadata, setMetadata] = useState({ eye: 'right' });
-  const [questionnaire, setQuestionnaire] = useState({});
+  // questionnaire is now collected during patient registration (PatientRegistrationForm)
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [mockScenario, setMockScenario] = useState('pass');
-  
+
   const fileInputRef = useRef(null);
 
   const handleCaptureClick = () => {
@@ -151,7 +151,7 @@ export const CaptureScreen = () => {
         ? q.yearsSinceDiagnosis
         : (Number(q.yearsSinceDiagnosis) >= 10 ? 'gt10'
           : Number(q.yearsSinceDiagnosis) >= 5 ? '5to10'
-          : Number(q.yearsSinceDiagnosis) >= 1 ? '1to5' : 'lt1'),
+            : Number(q.yearsSinceDiagnosis) >= 1 ? '1to5' : 'lt1'),
       glycemicControl: ['good', 'moderate', 'poor'].includes(q.glycemicControl) ? q.glycemicControl : 'moderate',
       bloodPressure: ['normal', 'high', 'unknown'].includes(q.bloodPressure) ? q.bloodPressure : 'unknown',
       pregnant: q.pregnancy === 'yes' ? true : (q.pregnancy === 'no' ? false : null),
@@ -171,7 +171,7 @@ export const CaptureScreen = () => {
     lightingEnvironment: 'indoor_clinic',
     observedIssues: Array.isArray(m.issuesNoticed) && m.issuesNoticed.length
       ? m.issuesNoticed.filter((i) =>
-          ['glare', 'blink_or_moved', 'out_of_focus', 'media_opacity', 'eyelash_obstruction'].includes(i))
+        ['glare', 'blink_or_moved', 'out_of_focus', 'media_opacity', 'eyelash_obstruction'].includes(i))
       : ['none_noticed'],
     workerUsabilityRating: 'clear',
   });
@@ -242,7 +242,7 @@ export const CaptureScreen = () => {
           {activeStep === 1 && (
             <div className="cs-img-strip">
               <span className="cs-img-strip__label cs-img-strip__label--active">
-                {t('capture.preview', 'LIVE FEED / PREVIEW')}
+                {t('capture.liveFeed', 'LIVE FEED')}
               </span>
               <span className="cs-img-strip__label">
                 {t('capture.statusCaptured', 'CAPTURED')}
@@ -299,29 +299,9 @@ export const CaptureScreen = () => {
             {!imageFile && <div className="capture-zone__crosshair" />}
           </div>
 
-          {/* Bottom controls — step 1 only: matches reference image 3 layout */}
+          {/* Bottom controls — step 1 only */}
           {imageFile && activeStep === 1 && (
             <div className="cs-bottom-bar">
-              <div className="cs-bottom-bar__scenarios">
-                <span className="cs-scenario-label">{t('capture.mockScenario', 'MOCK TEST SCENARIO:')}</span>
-                <div className="cs-scenario-btn-group">
-                  {[
-                    { id: 'pass', label: t('capture.scenarioPass', 'PASS (GRADE 1)') },
-                    { id: 'borderline', label: t('capture.scenarioBorderline', 'BORDERLINE (GRADE 2)') },
-                    { id: 'retake', label: t('capture.scenarioRetake', 'RETAKE (POOR)') },
-                  ].map(s => (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => setMockScenario(s.id)}
-                      className={`cs-scenario-btn ${mockScenario === s.id ? 'cs-scenario-btn--active' : ''}`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               <div className="cs-bottom-bar__actions">
                 <button className="btn btn--outline cs-retake-btn" onClick={handleRetake} disabled={isAnalyzing}>
                   {t('capture.btnRetake', 'RETAKE')}
@@ -372,11 +352,6 @@ export const CaptureScreen = () => {
               <CaptureMetadataForm
                 value={metadata}
                 onChange={(newMeta) => setMetadata(newMeta)}
-              />
-              <PatientQuestionnaireForm
-                value={questionnaire}
-                onChange={(newQ) => setQuestionnaire(newQ)}
-                patientAge={patientAge}
               />
               <div className="cs-meta-footer">
                 <button className="btn cs-sync-btn" onClick={handleSubmit}>
