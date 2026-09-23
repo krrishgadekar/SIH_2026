@@ -91,11 +91,7 @@ V2_FAMILY_VERSIONS = ("branchA_v2a", "branchA_v2b", "branchA_v2c")
 # environment (or spawning process) to restore the previous model with no
 # code change -- every v1 code path in this file is untouched and still
 # fully supported.
-# TEMP REVERT (2026-09-21): back to branchA_v1 until the v2c binaries are
-# distributed to the deployment targets (they are not yet present outside
-# this dev checkout). See docs/flip_default_v2c.patch to restore v2c once
-# they are.
-BRANCH_A_MODEL_VERSION = os.environ.get("BRANCH_A_MODEL_VERSION", "branchA_v1")
+BRANCH_A_MODEL_VERSION = os.environ.get("BRANCH_A_MODEL_VERSION", "branchA_v2c")
 if BRANCH_A_MODEL_VERSION not in BRANCH_A_MODEL_VERSIONS:
     raise ValueError(
         f"BRANCH_A_MODEL_VERSION={BRANCH_A_MODEL_VERSION!r} is not one of "
