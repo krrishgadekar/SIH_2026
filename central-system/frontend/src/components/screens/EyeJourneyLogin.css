@@ -1,0 +1,665 @@
+.eye-journey {
+  /* No overflow:hidden — the .track div creates 700vh of scroll space. */
+  position: relative;
+  width: 100%;
+  background: var(--c-surface, #1a1008);
+  font-family: var(--f-display, 'Inter', sans-serif);
+  color: var(--c-cream, #f5ede0);
+}
+
+.eye-journey .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ── skip link — Brutalist pill ──────────────────────────────────────── */
+.eye-journey .skip {
+  position: fixed;
+  z-index: 30;
+  top: max(18px, env(safe-area-inset-top));
+  right: var(--sp-6, 1.5rem);
+  padding: 7px 16px;
+  border-radius: 0;
+  font-family: var(--f-mono, 'JetBrains Mono', monospace);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--c-cream, #f5ede0);
+  border: 1px solid rgba(196, 43, 43, 0.35);
+  background: rgba(26, 16, 8, 0.6);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  opacity: var(--skip-o, 0);
+  transition: opacity 0.6s ease, background 0.3s ease, border-color 0.3s ease;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px rgba(196, 43, 43, 0.2);
+}
+
+.eye-journey .skip:hover,
+.eye-journey .skip:focus-visible {
+  opacity: 1 !important;
+  background: rgba(196, 43, 43, 0.15);
+  border-color: var(--c-crimson, #C42B2B);
+  box-shadow: 3px 3px 0px var(--c-crimson, #C42B2B);
+}
+
+/* ── stage (fixed viewport overlay) ──────────────────────────────────── */
+.eye-journey .stage {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+  background: var(--c-surface, #1a1008);
+}
+
+/* Subtle grid overlay for cybernetic feel */
+.eye-journey .stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(196, 43, 43, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(196, 43, 43, 0.03) 1px, transparent 1px);
+  background-size: 60px 60px;
+  opacity: var(--grid-o, 0.4);
+  pointer-events: none;
+  animation: ej-grid-drift 30s linear infinite;
+}
+
+@keyframes ej-grid-drift {
+  from { transform: translate(0, 0); }
+  to { transform: translate(60px, 60px); }
+}
+
+/* Crimson vignette border */
+.eye-journey .stage::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(196, 43, 43, 0.04) 80%, rgba(26, 16, 8, 0.3) 100%);
+  pointer-events: none;
+}
+
+.eye-journey .layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 2;
+}
+
+.eye-journey #gl-host {
+  opacity: 0;
+}
+
+.eye-journey #gl-host canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.eye-journey #leaders,
+.eye-journey #labels,
+.eye-journey .retina-veil {
+  pointer-events: none;
+}
+
+.eye-journey .retina-veil {
+  opacity: 0;
+}
+
+/* ── brand (title) — Premium serif typography ────────────────────────── */
+.eye-journey .brand {
+  position: fixed;
+  z-index: 5;
+  left: 0;
+  top: 0;
+  width: 100%;
+  text-align: center;
+  pointer-events: none;
+  color: var(--c-cream, #f5ede0);
+  opacity: var(--brand-o, 1);
+  transform: translate3d(0, var(--by, 56vh), 0);
+}
+
+.eye-journey .brand__name {
+  margin: 0;
+  font: 400 var(--brand-size, clamp(36px, 6vw, 72px)) / 1 'Instrument Serif', Georgia, serif;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 80px rgba(196, 43, 43, 0.15), 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Crimson diamond accent in the title */
+.eye-journey .brand__name .accent {
+  color: var(--c-crimson, #C42B2B);
+  text-shadow: 0 0 20px rgba(196, 43, 43, 0.4);
+}
+
+.eye-journey .brand__tagline {
+  margin: 1.2em 0 0;
+  font-family: var(--f-mono, 'JetBrains Mono', monospace);
+  font-size: clamp(9px, 0.85vw, 11px);
+  font-weight: 400;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(196, 43, 43, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.eye-journey .brand__tagline::before,
+.eye-journey .brand__tagline::after {
+  content: '';
+  width: clamp(20px, 6vw, 60px);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(196, 43, 43, 0.4), transparent);
+}
+
+/* ── status line ─────────────────────────────────────────────────────── */
+.eye-journey .status {
+  position: fixed;
+  z-index: 5;
+  left: 50%;
+  top: calc(50% + min(34vh, 250px));
+  margin: 0;
+  transform: translateX(-50%);
+  font-family: var(--f-mono, monospace);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(196, 43, 43, 0.6);
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+
+.eye-journey .status.is-visible {
+  opacity: 1;
+}
+
+/* ── scroll cue — Elegant animated indicator ─────────────────────────── */
+.eye-journey .cue {
+  position: fixed;
+  z-index: 5;
+  left: 50%;
+  bottom: max(28px, env(safe-area-inset-bottom));
+  margin: 0;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--f-mono, monospace);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: rgba(196, 43, 43, 0.65);
+  opacity: var(--cue-o, 0);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.eye-journey .cue__line {
+  position: relative;
+  width: 1px;
+  height: 40px;
+  overflow: hidden;
+  background: rgba(196, 43, 43, 0.15);
+}
+
+.eye-journey .cue__line::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 1px;
+  height: 14px;
+  background: var(--c-crimson, #C42B2B);
+  box-shadow: 0 0 6px rgba(196, 43, 43, 0.5);
+  animation: ej-cue 2.8s cubic-bezier(0.5, 0, 0.3, 1) infinite;
+}
+
+@keyframes ej-cue {
+  from { transform: translateY(-16px); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  to { transform: translateY(42px); opacity: 0; }
+}
+
+/* ── anatomy labels — Medical mono style ─────────────────────────────── */
+.eye-journey .label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-family: var(--f-mono, monospace);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--c-cream, #f5ede0);
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+.eye-journey .label--retina {
+  color: #ffe2d0;
+}
+
+.eye-journey .label--retina .label__name {
+  padding: 6px 16px;
+  border: 1px solid rgba(196, 43, 43, 0.7);
+  background: rgba(196, 43, 43, 0.12);
+  box-shadow: 0 0 16px rgba(196, 43, 43, 0.2), inset 0 0 12px rgba(196, 43, 43, 0.08);
+  animation: ej-retina-glow 3.2s ease-in-out infinite;
+}
+
+@keyframes ej-retina-glow {
+  0%, 100% { box-shadow: 0 0 10px 0 rgba(196, 43, 43, 0.16), inset 0 0 8px rgba(196, 43, 43, 0.05); }
+  50% { box-shadow: 0 0 28px 4px rgba(196, 43, 43, 0.35), inset 0 0 16px rgba(196, 43, 43, 0.12); }
+}
+
+.eye-journey #leaders .halo {
+  fill: none;
+  stroke: var(--c-crimson, #C42B2B);
+  stroke-width: 1;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ej-retina-halo 3.2s ease-out infinite;
+}
+
+@keyframes ej-retina-halo {
+  from { transform: scale(1); opacity: 0.9; }
+  to { transform: scale(5); opacity: 0; }
+}
+
+.eye-journey #labels.is-live .label {
+  pointer-events: auto;
+  cursor: help;
+}
+
+.eye-journey .label__name {
+  display: block;
+  padding: 4px 2px;
+  transition: color 0.3s ease, letter-spacing 0.3s ease;
+}
+
+.eye-journey .label.is-active .label__name {
+  color: var(--c-crimson-light, #D94444);
+  letter-spacing: 0.24em;
+}
+
+.eye-journey .label__desc {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 6px);
+  width: 22ch;
+  font-family: var(--f-display, 'Inter', sans-serif);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: normal;
+  text-align: center;
+  color: rgba(239, 232, 220, 0.6);
+  opacity: 0;
+  transform: translate(-50%, -4px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.eye-journey .label--up .label__desc {
+  top: auto;
+  bottom: calc(100% + 6px);
+  transform: translate(-50%, 4px);
+}
+
+.eye-journey .label.is-active .label__desc {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.eye-journey #leaders line {
+  stroke: rgba(196, 43, 43, 0.3);
+  stroke-width: 1;
+}
+
+.eye-journey #leaders circle {
+  fill: var(--c-crimson, #C42B2B);
+}
+
+/* ── story container ─────────────────────────────────────────────────── */
+.eye-journey #story {
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* ── Auth Overlay — Glassmorphic Brutalist ────────────────────────────── */
+.eye-journey .enter {
+  position: fixed;
+  z-index: 6;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-6, 1.5rem);
+  text-align: center;
+  color: var(--c-cream, #f5ede0);
+  opacity: var(--enter-o, 0);
+  visibility: hidden;
+  pointer-events: none;
+  background: radial-gradient(circle at center, rgba(26, 16, 8, 0.3) 0%, rgba(26, 16, 8, 0.7) 100%);
+  transition: opacity 0.5s ease;
+}
+
+.eye-journey .enter.is-open {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.eye-journey .enter__content {
+  width: 100%;
+  max-width: 1000px;
+  transform: translateY(calc((1 - var(--enter-o, 0)) * 20px));
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* Role selection title */
+.eye-journey .enter__title {
+  font-family: var(--f-mono, monospace);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(196, 43, 43, 0.7);
+  margin-bottom: var(--sp-8, 2rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.eye-journey .enter__title::before,
+.eye-journey .enter__title::after {
+  content: '';
+  width: 40px;
+  height: 1px;
+  background: rgba(196, 43, 43, 0.3);
+}
+
+/* Role cards — Brutalist glass panels */
+.eye-journey .enter__roles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 0;
+}
+
+.eye-journey .enter__role {
+  all: unset;
+  display: flex;
+  flex-direction: column;
+  padding: var(--sp-8, 2rem) var(--sp-6, 1.5rem);
+  border: 1px solid rgba(196, 43, 43, 0.2);
+  background: rgba(26, 16, 8, 0.65);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  cursor: pointer;
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.eye-journey .enter__role::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--c-crimson, #C42B2B);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.eye-journey .enter__role:hover {
+  background: rgba(196, 43, 43, 0.08);
+  border-color: rgba(196, 43, 43, 0.5);
+  box-shadow: 4px 4px 0px rgba(196, 43, 43, 0.3);
+  transform: translate(-2px, -2px);
+}
+
+.eye-journey .enter__role:hover::before {
+  transform: scaleX(1);
+}
+
+.eye-journey .enter__role-icon {
+  font-size: 28px;
+  margin-bottom: var(--sp-4, 1rem);
+  color: var(--c-crimson, #C42B2B);
+  filter: drop-shadow(0 0 8px rgba(196, 43, 43, 0.3));
+}
+
+.eye-journey .enter__role-title {
+  font-family: var(--f-display, 'Inter', sans-serif);
+  font-weight: 800;
+  font-size: clamp(1rem, 2vw, 1.3rem);
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  color: var(--c-cream, #f5ede0);
+  margin-bottom: var(--sp-1, 0.25rem);
+}
+
+.eye-journey .enter__role-sub {
+  font-family: var(--f-mono, monospace);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--c-crimson-light, #D94444);
+  margin-bottom: var(--sp-4, 1rem);
+}
+
+.eye-journey .enter__role-desc {
+  font-family: var(--f-display, 'Inter', sans-serif);
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(245, 237, 224, 0.6);
+  margin-bottom: var(--sp-4, 1rem);
+}
+
+.eye-journey .enter__role-stats {
+  font-family: var(--f-mono, monospace);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: rgba(196, 43, 43, 0.65);
+  padding-top: var(--sp-3, 0.75rem);
+  border-top: 1px solid rgba(196, 43, 43, 0.12);
+}
+
+.eye-journey .enter__role-arrow {
+  position: absolute;
+  right: var(--sp-6, 1.5rem);
+  bottom: var(--sp-6, 1.5rem);
+  font-size: 20px;
+  color: var(--c-crimson, #C42B2B);
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.eye-journey .enter__role:hover .enter__role-arrow {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Platform badge at the bottom */
+.eye-journey .enter__fine {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--f-mono, monospace);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(196, 43, 43, 0.3);
+}
+
+/* ── scroll track — creates 700vh of scroll space ──────────────────────── */
+.eye-journey .track {
+  height: 700vh;
+  pointer-events: none;
+}
+
+/* ── Fallback ─────────────────────────────────────────────────────────── */
+.no-js .eye-journey .stage,
+.no-js .eye-journey .cue,
+.no-js .eye-journey .track {
+  display: none;
+}
+
+.no-js .eye-journey .brand {
+  position: static;
+  transform: none;
+  margin: 0 auto;
+  padding: 10vh var(--sp-4, 1rem) 5vh;
+  --brand-size: clamp(56px, 10vw, 120px);
+}
+
+.no-js .eye-journey .enter {
+  position: static;
+  min-height: 100vh;
+  visibility: visible;
+  opacity: 1;
+  background: var(--c-surface, #1a1008);
+}
+
+/* ── Progress rail — Brutalist dots ──────────────────────────────────── */
+.eye-journey .rail {
+  position: fixed;
+  z-index: 7;
+  right: var(--sp-4, 1rem);
+  top: 50%;
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+  transform: translateY(-50%);
+  opacity: var(--rail-o, 0);
+  visibility: hidden;
+  transition: opacity 0.6s ease, visibility 0s linear 0.6s;
+}
+
+.eye-journey .rail.is-on {
+  visibility: visible;
+  transition: opacity 0.6s ease;
+}
+
+.eye-journey .rail button {
+  all: unset;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 6px;
+  cursor: pointer;
+  font-family: var(--f-mono, monospace);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(196, 43, 43, 0.5);
+}
+
+.eye-journey .rail__label {
+  opacity: 0;
+  transform: translateX(6px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.eye-journey .rail__dot {
+  width: 5px;
+  height: 5px;
+  border: 1px solid rgba(196, 43, 43, 0.5);
+  transition: background 0.35s ease, transform 0.35s ease, border-color 0.35s ease;
+}
+
+.eye-journey .rail button:hover .rail__label,
+.eye-journey .rail button:focus-visible .rail__label,
+.eye-journey .rail button[aria-current='step'] .rail__label {
+  opacity: 1;
+  transform: none;
+  color: var(--c-crimson, #C42B2B);
+}
+
+.eye-journey .rail button:hover .rail__dot,
+.eye-journey .rail button[aria-current='step'] .rail__dot {
+  background: var(--c-crimson, #C42B2B);
+  border-color: var(--c-crimson, #C42B2B);
+  transform: scale(1.5);
+  box-shadow: 0 0 8px rgba(196, 43, 43, 0.4);
+}
+
+/* ── Corner decorations — Cybernetic frame ───────────────────────────── */
+.eye-journey .frame-corner {
+  position: fixed;
+  z-index: 4;
+  width: 24px;
+  height: 24px;
+  pointer-events: none;
+  opacity: 0.25;
+}
+
+.eye-journey .frame-corner--tl {
+  top: 16px;
+  left: 16px;
+  border-top: 1px solid var(--c-crimson, #C42B2B);
+  border-left: 1px solid var(--c-crimson, #C42B2B);
+}
+
+.eye-journey .frame-corner--tr {
+  top: 16px;
+  right: 16px;
+  border-top: 1px solid var(--c-crimson, #C42B2B);
+  border-right: 1px solid var(--c-crimson, #C42B2B);
+}
+
+.eye-journey .frame-corner--bl {
+  bottom: 16px;
+  left: 16px;
+  border-bottom: 1px solid var(--c-crimson, #C42B2B);
+  border-left: 1px solid var(--c-crimson, #C42B2B);
+}
+
+.eye-journey .frame-corner--br {
+  bottom: 16px;
+  right: 16px;
+  border-bottom: 1px solid var(--c-crimson, #C42B2B);
+  border-right: 1px solid var(--c-crimson, #C42B2B);
+}
+
+/* ── Timestamp / system HUD ──────────────────────────────────────────── */
+.eye-journey .hud {
+  position: fixed;
+  z-index: 4;
+  bottom: 18px;
+  left: 18px;
+  font-family: var(--f-mono, monospace);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: rgba(196, 43, 43, 0.25);
+  pointer-events: none;
+  line-height: 1.6;
+}
