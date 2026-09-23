@@ -1,10 +1,11 @@
 import React, { useState, Component } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { LoginScreen } from './components/screens/LoginScreen';
+import { EyeJourneyLogin } from './components/screens/EyeJourneyLogin';
 import { CentralLayout } from './components/layout/CentralLayout';
 import { ReviewQueuePage } from './components/screens/ReviewQueuePage';
 import { CaseDetailPage } from './components/screens/CaseDetailPage';
 import { DashboardPage } from './components/screens/DashboardPage';
+import { AdminScrollDashboard } from './components/screens/AdminScrollDashboard';
 import { ReferralTrackerPage } from './components/screens/ReferralTrackerPage';
 import { PhcHealthPage } from './components/screens/PhcHealthPage';
 import { ResourceRecommendationsPanel } from './components/screens/ResourceRecommendationsPanel';
@@ -111,7 +112,7 @@ const RoleRouter = () => {
 
   return (
     <Routes>
-      <Route path="/" element={<LoginScreen onLogin={handleLogin} />} />
+      <Route path="/" element={<EyeJourneyLogin onLogin={handleLogin} />} />
       
       {/* Ophthalmologist Routes */}
       <Route path="/ophth" element={
@@ -127,7 +128,8 @@ const RoleRouter = () => {
         role === 'admin' ? <CentralLayout role={role} userProfile={userProfile} onUpdateProfile={handleUpdateProfile} onLogout={handleLogout} /> : <Navigate to="/" replace />
       }>
         <Route index element={<Navigate to="dashboard" replace />} />
-        <Route path="dashboard" element={<DashboardPage />} />
+        <Route path="dashboard" element={<AdminScrollDashboard />} />
+        <Route path="dashboard/detailed" element={<DashboardPage />} />
         <Route path="referrals" element={<ReferralTrackerPage />} />
         <Route path="phc-health" element={<PhcHealthPage />} />
         <Route path="resources" element={<ResourceRecommendationsPanel />} />
