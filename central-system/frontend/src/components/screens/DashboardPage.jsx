@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { centralApi } from '../../api/centralApiClient';
 import { Chart, registerables } from 'chart.js';
@@ -36,13 +36,62 @@ const SortHeader = React.memo(({ label, field, sortKey, sortDir, onSort, alignRi
 });
 SortHeader.displayName = 'SortHeader';
 
-const StatCard = React.memo(({ label, value, delta, suffix = '' }) => (
-  <div className="stat hash-fill">
-    <div className="stat__label">{label}</div>
-    <div className="stat__value">{value}{suffix}</div>
-    {delta && <div className="stat__delta" style={{ color: delta.startsWith('+') ? 'var(--c-success)' : 'var(--c-warning)' }}>{delta}</div>}
-  </div>
-));
+// Animated number counter hook
+const useCountUp = (target, duration = 1200) => {
+  const [display, setDisplay] = useState('0');
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    // Parse numeric value from string (handles "1,234" and "92.1")
+    const cleanStr = String(target).replace(/,/g, '');
+    const numericTarget = parseFloat(cleanStr);
+    if (isNaN(numericTarget)) {
+      setDisplay(String(target));
+      return;
+    }
+
+    const isFloat = cleanStr.includes('.');
+    const decimals = isFloat ? (cleanStr.split('.')[1] || '').length : 0;
+    const startTime = performance.now();
+
+    const animate = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const current = numericTarget * eased;
+      
+      if (isFloat) {
+        setDisplay(current.toFixed(decimals));
+      } else {
+        setDisplay(Math.round(current).toLocaleString());
+      }
+
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    rafRef.current = requestAnimationFrame(animate);
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [target, duration]);
+
+  return display;
+};
+
+const StatCard = React.memo(({ label, value, delta, suffix = '' }) => {
+  const animatedValue = useCountUp(value, 1000);
+  return (
+    <div className="stat hash-fill">
+      <div className="stat-shimmer" />
+      <div className="stat__label">{label}</div>
+      <div className="stat__value">{animatedValue}{suffix}</div>
+      {delta && <div className="stat__delta" style={{ color: delta.startsWith('+') || delta.startsWith('-') ? (delta.startsWith('+') ? 'var(--c-success)' : 'var(--c-warning)') : 'var(--c-text-muted)' }}>{delta}</div>}
+    </div>
+  );
+});
 StatCard.displayName = 'StatCard';
 
 const PALETTE = ['#14B8A6', '#EAB308', '#F97316', '#A82222', '#7F1D1D'];
@@ -282,7 +331,7 @@ export const DashboardPage = () => {
       {/* Charts */}
       <div className="dashboard-charts-grid">
         {/* Weekly Trend */}
-        <div style={{ border: 'var(--border)', padding: 'var(--sp-6)' }}>
+        <div className="chart-container" style={{ border: 'var(--border)', padding: 'var(--sp-6)' }}>
           <h3 className="t-h3 u-mb-4">{t('central.dashboard.charts.weeklyTrend', 'WEEKLY SCREENING TREND')}</h3>
           <div style={{ height: '280px' }}>
             <Line data={weeklyChartData} options={{
@@ -296,7 +345,7 @@ export const DashboardPage = () => {
         </div>
 
         {/* PHC Distribution */}
-        <div style={{ border: 'var(--border)', padding: 'var(--sp-6)' }}>
+        <div className="chart-container" style={{ border: 'var(--border)', padding: 'var(--sp-6)' }}>
           <h3 className="t-h3 u-mb-4">{t('central.dashboard.charts.casesByPhc', 'CASES BY PHC')}</h3>
           <div style={{ height: '280px' }}>
             <Bar data={phcBarData} options={chartOptions} />
@@ -306,7 +355,7 @@ export const DashboardPage = () => {
 
       {/* DR Grade Distribution — Upgraded Donut Chart with Center KPI */}
       <div className="dashboard-breakdown-grid">
-        <div style={{ border: 'var(--border)', padding: 'var(--sp-6)', position: 'relative' }}>
+        <div className="chart-container" style={{ border: 'var(--border)', padding: 'var(--sp-6)', position: 'relative' }}>
           <h3 className="t-h3 u-mb-4">{t('central.dashboard.charts.drGradeDist', 'DR GRADE DISTRIBUTION')}</h3>
           <div style={{ height: '270px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Doughnut data={gradeChartData} options={donutOptions} />

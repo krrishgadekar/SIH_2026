@@ -297,7 +297,7 @@ export const ReviewQueuePage = () => {
       </div>
 
       {/* Search & Multi-Filter Bar (matching ReferralTrackerPage) */}
-      <div className="panel u-mb-4" style={{ padding: 'var(--sp-4)', border: 'var(--border)' }}>
+      <div className="panel panel--premium u-mb-4" style={{ padding: 'var(--sp-4)', border: 'var(--border)' }}>
         <div className="u-flex u-items-center u-gap-3" style={{ flexWrap: 'wrap' }}>
           {/* Search Input */}
           <div style={{ flex: '1 1 200px', minWidth: '180px' }}>
@@ -432,8 +432,8 @@ export const ReviewQueuePage = () => {
                     <span className="t-mono" style={{ fontWeight: 700 }}>{relativeTime(item.capturedAt, now)}</span>
                     {isNew && (
                       <span
-                        className="badge badge--pass"
-                        style={{ fontSize: '10px', padding: '1px 6px', animation: 'pulse-badge 1.6s ease-in-out infinite' }}
+                        className="badge badge--pass badge--new-pulse"
+                        style={{ fontSize: '10px', padding: '1px 6px' }}
                       >
                         NEW
                       </span>

@@ -297,7 +297,7 @@ export const ReferralTrackerPage = () => {
       </div>
 
       {/* Scale-Ready Search & Multi-Filter Bar with Urgent Lost Filter */}
-      <div className="panel u-mb-4" style={{ padding: 'var(--sp-4)', border: 'var(--border)' }}>
+      <div className="panel panel--premium u-mb-4" style={{ padding: 'var(--sp-4)', border: 'var(--border)' }}>
         <div className="u-flex u-items-center u-gap-3" style={{ flexWrap: 'wrap' }}>
           {/* Search Input */}
           <div style={{ flex: '1 1 200px', minWidth: '180px' }}>
