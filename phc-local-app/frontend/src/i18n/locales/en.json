@@ -2,7 +2,7 @@
   "header": {
     "title": "NetraSetu",
     "nav": {
-      "register": "Register",
+      "register": "New Patient",
       "capture": "Capture",
       "queue": "Queue"
     },
@@ -65,7 +65,7 @@
       "quality": "2. QUALITY GATE",
       "metadata": "3. METADATA & SYNC"
     },
-    "preview": "LIVE FEED / PREVIEW",
+    "liveFeed": "LIVE FEED",
     "statusCaptured": "CAPTURED",
     "statusReady": "READY",
     "clickToInitiate": "CLICK TO INITIATE CAPTURE SEQUENCE",
