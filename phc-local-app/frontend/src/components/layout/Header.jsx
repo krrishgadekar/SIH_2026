@@ -54,9 +54,6 @@ export const Header = ({ auth, onLogout }) => {
         <NavLink to="/register" className={({isActive}) => isActive ? "app-nav__link active" : "app-nav__link"}>
           {t('header.nav.register')}
         </NavLink>
-        <NavLink to="/capture" className={({isActive}) => isActive ? "app-nav__link active" : "app-nav__link"}>
-          {t('header.nav.capture')}
-        </NavLink>
         <NavLink to="/queue" className={({isActive}) => isActive ? "app-nav__link active" : "app-nav__link"}>
           {t('header.nav.queue')}
         </NavLink>

@@ -123,8 +123,32 @@ export const mockCaseDetail = {
     workerUsabilityRating: 'clear',
   },
   priorAssessments: [
-    { caseId: 'prev-case-001', gradedAt: '2026-06-01T10:00:00.000Z', drGradeCnn: 1 },
-    { caseId: 'prev-case-002', gradedAt: '2026-03-15T09:30:00.000Z', drGradeCnn: 0 },
+    { 
+      caseId: 'prev-case-001', 
+      gradedAt: '2026-06-01T10:00:00.000Z', 
+      drGradeCnn: 1,
+      status: 'CONFIRMED',
+      referralStatus: 'Seen',
+      lesions: {
+        microaneurysms: 2,
+        hemorrhages: 0,
+        hardExudates: 0,
+        softExudates: 0
+      }
+    },
+    { 
+      caseId: 'prev-case-002', 
+      gradedAt: '2026-03-15T09:30:00.000Z', 
+      drGradeCnn: 0,
+      status: 'OVERRIDDEN (AI: 0)',
+      referralStatus: 'Seen',
+      lesions: {
+        microaneurysms: 0,
+        hemorrhages: 0,
+        hardExudates: 0,
+        softExudates: 0
+      }
+    },
   ],
 };
 
@@ -167,9 +191,30 @@ export const mockCaseDetails = {
       symptoms: { blurredVision: true, floaters: true, suddenVisionChange: true, eyePain: false },
     },
     priorAssessments: [
-      { caseId: 'prev-case-010', gradedAt: '2026-07-01T10:00:00.000Z', drGradeCnn: 3 },
-      { caseId: 'prev-case-011', gradedAt: '2026-04-01T10:00:00.000Z', drGradeCnn: 2 },
-      { caseId: 'prev-case-012', gradedAt: '2025-12-01T10:00:00.000Z', drGradeCnn: 1 },
+      { 
+        caseId: 'prev-case-010', 
+        gradedAt: '2026-07-01T10:00:00.000Z', 
+        drGradeCnn: 3,
+        status: 'CONFIRMED',
+        referralStatus: 'Seen',
+        lesions: { microaneurysms: 10, hemorrhages: 4, hardExudates: 2, softExudates: 1 }
+      },
+      { 
+        caseId: 'prev-case-011', 
+        gradedAt: '2026-04-01T10:00:00.000Z', 
+        drGradeCnn: 2,
+        status: 'CONFIRMED',
+        referralStatus: 'Seen',
+        lesions: { microaneurysms: 5, hemorrhages: 1, hardExudates: 0, softExudates: 0 }
+      },
+      { 
+        caseId: 'prev-case-012', 
+        gradedAt: '2025-12-01T10:00:00.000Z', 
+        drGradeCnn: 1,
+        status: 'CONFIRMED',
+        referralStatus: 'Seen',
+        lesions: { microaneurysms: 1, hemorrhages: 0, hardExudates: 0, softExudates: 0 }
+      },
     ],
   },
 };
