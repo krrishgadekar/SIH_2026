@@ -6,6 +6,11 @@ export const PatientQuestionnaireForm = ({ value, onChange }) => {
   const [data, setData] = useState({
     knownDiabetic: value?.knownDiabetic || false,
     yearsSinceDiagnosis: value?.yearsSinceDiagnosis || '',
+    // Lab HbA1c, optional. Left blank when the patient has not had the test --
+    // blank means the triage urgency score is not computed at all, which is
+    // correct. It must never be filled with a default: a guessed HbA1c would
+    // produce a real-looking urgency number for a patient who was never tested.
+    hba1c: value?.hba1c || '',
     bloodPressure: value?.bloodPressure || 'none',
   });
 
@@ -37,17 +42,38 @@ export const PatientQuestionnaireForm = ({ value, onChange }) => {
         </div>
 
         {data.knownDiabetic && (
-          <div className="meta-field">
-            <label className="meta-label">YEARS SINCE DIAGNOSIS</label>
-            <input
-              type="number"
-              className="input meta-input"
-              min="0"
-              placeholder="e.g. 5"
-              value={data.yearsSinceDiagnosis}
-              onChange={(e) => handleChange('yearsSinceDiagnosis', e.target.value)}
-            />
-          </div>
+          <>
+            <div className="meta-field">
+              <label className="meta-label">YEARS SINCE DIAGNOSIS</label>
+              <input
+                type="number"
+                className="input meta-input"
+                min="0"
+                max="80"
+                placeholder="e.g. 5"
+                value={data.yearsSinceDiagnosis}
+                onChange={(e) => handleChange('yearsSinceDiagnosis', e.target.value)}
+              />
+            </div>
+
+            <div className="meta-field">
+              <label className="meta-label">HbA1c % (IF TESTED)</label>
+              <input
+                type="number"
+                className="input meta-input"
+                min="4"
+                max="20"
+                step="0.1"
+                placeholder="e.g. 8.2 — leave blank if not tested"
+                value={data.hba1c}
+                onChange={(e) => handleChange('hba1c', e.target.value)}
+              />
+              <small className="meta-hint">
+                Leave blank if the patient has not had the test. A blank field
+                is recorded as &quot;not measured&quot;; it is never guessed.
+              </small>
+            </div>
+          </>
         )}
 
         {/* Blood Pressure History */}

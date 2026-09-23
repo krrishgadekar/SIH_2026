@@ -666,8 +666,14 @@ async function hasClearedCameraSiteProbation(phcId, cameraDeviceId, excludeCaseI
  */
 async function processCase(caseId) {
   // ── Step 1: fetch case row ─────────────────────────────────────────────────
+  // Joined to patients for age, which the urgency score needs and the cases
+  // table does not carry. LEFT JOIN, not INNER: a case whose patient row is
+  // somehow missing must still be graded -- it just gets no urgency score.
   const caseRes = await pool.query(
-    'SELECT * FROM cases WHERE case_id = $1', [caseId]);
+    `SELECT c.*, p.age AS patient_age
+       FROM cases c
+       LEFT JOIN patients p ON p.patient_id = c.patient_id
+      WHERE c.case_id = $1`, [caseId]);
   if (caseRes.rows.length === 0)
     throw new Error(`processCase: case '${caseId}' not found in cases table`);
 
@@ -736,7 +742,8 @@ async function processCase(caseId) {
   try {
     mlResult = await runCasePipelineMatlab(
       buildCasePipelineInput(imagePath, cameraDeviceId, caseId, segResult,
-                             branchA.drGradeCnn, branchA.gradcamMap),
+                             branchA.drGradeCnn, branchA.gradcamMap,
+                             caseClinicalInputs(caseRow.patient_age, caseRow.questionnaire_data)),
       caseId);
   } catch (err) {
     if (ALLOW_MATLAB_FALLBACK && err.code === 'matlab_unavailable') {
@@ -957,6 +964,25 @@ async function processCase(caseId) {
   // may only cite a model someone registered, with the validation numbers
   // that justified using it.
   await assertModelRegistered(modelVersion);
+
+  // ── Triage urgency: stored, but it decides nothing ────────────────────────
+  // A QUEUE ORDERING HINT from a forest trained on SYNTHETIC data. It is
+  // deliberately read here and nowhere near decideTier, the referral logic or
+  // the SMS -- see migration 0018 and calculateUrgencyScore.m's header.
+  //
+  // Absent when MATLAB skipped the score because the clinical inputs were not
+  // all there. NULL is stored, never a 1: 1 is a real low-urgency score, so an
+  // imputed one could not be told apart from a measured one.
+  const urgency = {
+    score: Number.isFinite(fromMatlab(mlResult.urgencyScore))
+      ? Math.round(fromMatlab(mlResult.urgencyScore)) : null,
+    factor: blankToNull(fromMatlab(mlResult.urgencyFactor)),
+    inputs: fromMatlabDeep(mlResult.urgencyInputs) ?? null,
+  };
+  if (mlResult.urgencyError) {
+    console.warn(`[gradingOrchestrator] case ${caseId}: urgency score not `
+      + `computed: ${mlResult.urgencyError}`);
+  }
   if (branchA.uncertaintyError) {
     console.warn(`[gradingOrchestrator] case ${caseId}: `
       + `MC-dropout failed: ${branchA.uncertaintyError}`);
@@ -966,8 +992,9 @@ async function processCase(caseId) {
     INSERT INTO grading_results
       (case_id, dr_grade_cnn, referable, confidence_score,
        conformal_tier, model_version, graded_at,
-       dr_grade_rule_engine, branch_agreement, uncertainty_score, tier_reason)
-    VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8, $9, $10)
+       dr_grade_rule_engine, branch_agreement, uncertainty_score, tier_reason,
+       urgency_score, urgency_factor, urgency_inputs)
+    VALUES ($1, $2, $3, $4, $5, $6, NOW(), $7, $8, $9, $10, $11, $12, $13)
     ON CONFLICT (case_id) DO UPDATE SET
       dr_grade_cnn         = EXCLUDED.dr_grade_cnn,
       referable            = EXCLUDED.referable,
@@ -978,9 +1005,13 @@ async function processCase(caseId) {
       dr_grade_rule_engine = EXCLUDED.dr_grade_rule_engine,
       branch_agreement     = EXCLUDED.branch_agreement,
       uncertainty_score    = EXCLUDED.uncertainty_score,
-      tier_reason          = EXCLUDED.tier_reason
+      tier_reason          = EXCLUDED.tier_reason,
+      urgency_score        = EXCLUDED.urgency_score,
+      urgency_factor       = EXCLUDED.urgency_factor,
+      urgency_inputs       = EXCLUDED.urgency_inputs
   `, [caseId, grade, referable, confidenceScore, tier, modelVersion,
-      ruleEngineGrade, branchAgreement, uncertaintyScore, tierReason ?? null]);
+      ruleEngineGrade, branchAgreement, uncertaintyScore, tierReason ?? null,
+      urgency.score, urgency.factor, urgency.inputs]);
 
   // ── Step 4: INSERT INTO explainability_outputs ─────────────────────────────
   // vessel_mask_path, lesion_red_path, lesion_bright_path stay NULL (Phase 3).
@@ -1204,6 +1235,63 @@ async function assertModelRegistered(versionId) {
   REGISTERED_MODELS.add(versionId);
 }
 
+/**
+ * caseClinicalInputs(patientAge, questionnaire) -> clinical block or null
+ *
+ * What calculateUrgencyScore.m needs: age, years diabetic, HbA1c. Returns
+ * null unless ALL THREE are genuinely available, which makes MATLAB skip the
+ * score entirely.
+ *
+ * ── THE PART THAT MATTERS: WHAT COUNTS AS "AVAILABLE" ──────────────────────
+ * The PHC questionnaire has historically carried BUCKETS -- glycemicControl
+ * 'good'|'moderate'|'poor' and yearsSinceDiagnosis 'lt1'|'1to5'|... -- while
+ * the function wants a lab HbA1c and an integer year count. The intake form
+ * now collects the real numbers, so a bucket is only ever a fallback for an
+ * older capture.
+ *
+ * Bucket midpoints ARE used, but never silently: each value is tagged
+ * 'measured' or 'assumed' in `provenance`, that tag is stored in
+ * urgency_inputs, and the case detail is expected to show it. A screen must
+ * be able to say "HbA1c 9.5% (assumed from 'poor')" rather than implying a
+ * test the patient never had -- which is the specific failure
+ * calculateUrgencyScore.m's wiring notes call out.
+ *
+ * A bucket with no defensible midpoint (an unrecognised value) yields null
+ * rather than a guess, and null means no score at all.
+ */
+const HBA1C_FROM_BUCKET = { good: 6.2, moderate: 7.5, poor: 9.5 };
+const YEARS_FROM_BUCKET = { lt1: 0.5, '1to5': 3, '5to10': 7.5, gt10: 15 };
+
+function caseClinicalInputs(patientAge, questionnaire) {
+  const age = Number(patientAge);
+  if (!Number.isFinite(age) || age < 1 || age > 120) return null;
+
+  const rf = (questionnaire && questionnaire.riskFactors) || {};
+  const provenance = { patientAge: 'measured' };
+
+  // HbA1c: the real lab value when the form collected one, else the bucket.
+  let hba1c = Number(rf.hba1c);
+  if (Number.isFinite(hba1c)) {
+    provenance.hba1c = 'measured';
+  } else {
+    hba1c = HBA1C_FROM_BUCKET[String(rf.glycemicControl || '').toLowerCase()];
+    provenance.hba1c = hba1c === undefined ? 'missing'
+      : `assumed from glycemicControl='${rf.glycemicControl}'`;
+  }
+
+  let years = Number(rf.yearsDiabetic);
+  if (Number.isFinite(years)) {
+    provenance.yearsDiabetic = 'measured';
+  } else {
+    years = YEARS_FROM_BUCKET[String(rf.yearsSinceDiagnosis || '').toLowerCase()];
+    provenance.yearsDiabetic = years === undefined ? 'missing'
+      : `assumed from yearsSinceDiagnosis='${rf.yearsSinceDiagnosis}'`;
+  }
+
+  if (!Number.isFinite(hba1c) || !Number.isFinite(years)) return null;
+  return { patientAge: age, yearsDiabetic: years, hba1c, provenance };
+}
+
 function caseRuleOpts(segResult) {
   const opts = {};
   const vb = flags4(segResult && segResult.venousBeadingQuadrants);
@@ -1280,7 +1368,7 @@ function redLesionThresholds(segResult) {
  * isCaptureUngradable() on this side.
  */
 function buildCasePipelineInput(imagePath, cameraDeviceId, caseIdForReport,
-                                segResult, branchAGrade, gradcamMap) {
+                                segResult, branchAGrade, gradcamMap, clinical) {
   const fwd = (v) => (v ? String(v).replace(/\\/g, '/') : '');
   const masks = (segResult && segResult.masks) || {};
   return {
@@ -1302,6 +1390,9 @@ function buildCasePipelineInput(imagePath, cameraDeviceId, caseIdForReport,
     camMap: camMatrix(gradcamMap),
     lesion384Path: fwd(masks.lesion384),
     roi384Path: fwd(masks.roi384),
+    // Urgency-score inputs, or null. null makes runCasePipeline skip the score
+    // outright rather than impute one -- see caseClinicalInputs.
+    clinical: clinical || null,
   };
 }
 
@@ -1377,6 +1468,7 @@ async function runCasePipelineMatlab(input, caseId) {
 // generated input was perfectly correct.
 module.exports = {
   processCase, assignTier, decideTier, buildCasePipelineInput, caseRuleOpts, readFoveaUnreliable,
+  caseClinicalInputs,
   runBranchAInference, runBranchAInferenceMatlab, INFERENCE_BACKEND,
   isCaptureUngradable, hasClearedCameraSiteProbation, CAMERA_PROBATION_MIN_CASES,
   segment,

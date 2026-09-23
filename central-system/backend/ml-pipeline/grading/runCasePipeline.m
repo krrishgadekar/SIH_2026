@@ -181,6 +181,54 @@ out.nvSuspicionScore = nvScore;
 out.ruleIsLowerBound = ruleIsLowerBound;
 out.ruleMaxGrade     = ruleMaxGrade;
 out.lesionAttentionConsistency = lesionAttention;
+
+% ── Triage urgency (grading/calculateUrgencyScore.m) ───────────────────────
+% A QUEUE ORDERING HINT. The forest behind it is trained on SYNTHETIC data --
+% read that file's header -- so the score orders a review queue and must never
+% touch the referral decision, the conformal tier, or the patient SMS.
+%
+% SKIPPED ENTIRELY when the clinical inputs are not there. No imputation, no
+% bucket midpoint substituted silently, and above all no 1: 1 is a legitimate
+% low-urgency score, so a missing HbA1c becoming 1 would be indistinguishable
+% from a real result and would be a fabricated clinical statement about a real
+% patient. Absent fields leave out.urgencyScore empty, which the Node side
+% stores as NULL meaning "not computed".
+%
+% Runs inside this existing per-case call rather than as a new MATLAB spawn;
+% the forest is cached per session, so only the first case pays its ~0.25 s.
+[clin, clinOk] = reqClinical(req);
+if clinOk
+    gradeForUrgency = branchAGrade;
+    if isempty(gradeForUrgency), gradeForUrgency = ruleGrade; end
+    if ~isempty(gradeForUrgency)
+        try
+            u = calculateUrgencyScore(gradeForUrgency, clin.patientAge, ...
+                                      clin.yearsDiabetic, clin.hba1c);
+            out.urgencyScore      = u.urgencyScore;
+            out.urgencyFactor     = u.topRiskFactor;
+            out.urgencyLimitation = u.limitation;
+            % Exactly what went in, so the number can be explained later --
+            % including which values were measured rather than assumed, which
+            % the caller states and this passes through unchanged.
+            out.urgencyInputs = struct( ...
+                'drGrade',       gradeForUrgency, ...
+                'patientAge',    clin.patientAge, ...
+                'yearsDiabetic', clin.yearsDiabetic, ...
+                'hba1c',         clin.hba1c, ...
+                'provenance',    clin.provenance, ...
+                'gradeSource',   ternaryStr(~isempty(branchAGrade), 'branchA', 'ruleEngine'), ...
+                'model',         u.model);
+        catch ME
+            % A scoring failure must not fail the case: the grade is already
+            % computed and is the clinical output. Reported, not swallowed.
+            out.urgencyError = ME.message;
+        end
+    end
+end
+end
+
+function s = ternaryStr(cond, a, b)
+if cond, s = a; else, s = b; end
 end
 
 % ── Reading the request ─────────────────────────────────────────────────────
@@ -277,4 +325,57 @@ for name = {'redFloor', 'grade3QuadMin', 'moderateRedCount', 'brightFloor'}
         opts.(key) = double(v);
     end
 end
+end
+
+function [clin, ok] = reqClinical(req)
+% The clinical inputs the urgency score needs, or ok = false.
+%
+% ── THE RULE: ALL OR NOTHING ───────────────────────────────────────────────
+% calculateUrgencyScore refuses impossible inputs itself, but it cannot know
+% that a value was invented to satisfy it. So the decision is made here, once:
+% unless age, yearsDiabetic AND hba1c are all present and in range, there is
+% no score. Two of three is not "mostly enough" -- the missing one is exactly
+% the input whose absence the score would be hiding.
+%
+% provenance travels with the values and is NOT interpreted here. The Node
+% side says whether each number is a measured lab value or a bucket midpoint,
+% because only it knows where the questionnaire got it; this passes that
+% statement through to urgency_inputs unchanged so the case detail can show
+% "HbA1c 9.5% (assumed from 'poor')" rather than implying a test happened.
+clin = struct(); ok = false;
+if ~isfield(req, 'clinical') || ~isstruct(req.clinical) || isempty(req.clinical)
+    return;
+end
+c = req.clinical;
+
+age   = numOrEmpty(c, 'patientAge');
+years = numOrEmpty(c, 'yearsDiabetic');
+hba1c = numOrEmpty(c, 'hba1c');
+if isempty(age) || isempty(years) || isempty(hba1c)
+    return;
+end
+
+% Ranges mirror calculateUrgencyScore's own guards, checked here so an
+% out-of-range value is "no score" rather than an error that fails the case.
+if age < 1 || age > 120 || years < 0 || years > 80 || hba1c < 4 || hba1c > 20
+    return;
+end
+
+clin.patientAge    = age;
+clin.yearsDiabetic = years;
+clin.hba1c         = hba1c;
+clin.provenance    = 'not stated';
+if isfield(c, 'provenance') && (ischar(c.provenance) || isstring(c.provenance))
+    clin.provenance = char(c.provenance);
+elseif isfield(c, 'provenance') && isstruct(c.provenance)
+    clin.provenance = c.provenance;
+end
+ok = true;
+end
+
+function v = numOrEmpty(s, name)
+v = [];
+if ~isfield(s, name), return; end
+x = s.(name);
+if isnumeric(x) && isscalar(x) && isfinite(x), v = double(x); end
 end

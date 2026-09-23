@@ -157,6 +157,45 @@ async function main() {
   // capture's own source format and DICOM device, which BOTH engines returned
   // on every case and nothing stored -- while readFundusImage.m's header said
   // the device "is recorded as evidence".
+  // ── Urgency score: the constraints that keep it safe ────────────────────
+  // The score comes from a forest trained on SYNTHETIC data. Two properties
+  // must hold or it stops being a queue hint and becomes a fabricated
+  // clinical statement: a missing input yields NO score (never 1, which is a
+  // real low-urgency value and would be indistinguishable), and a bucket
+  // midpoint is never presented as a measured lab value.
+  console.log('\n--- Urgency score: missing data, and provenance ---');
+  const { caseClinicalInputs } = orchestrator;
+
+  check('complete clinical data produces a clinical block',
+    (() => {
+      const c = caseClinicalInputs(58, { riskFactors: { hba1c: 8.2, yearsDiabetic: 6 } });
+      return c && c.hba1c === 8.2 && c.yearsDiabetic === 6
+        && c.provenance.hba1c === 'measured';
+    })());
+  check('a missing HbA1c yields NO clinical block, so no score is computed',
+    caseClinicalInputs(58, { riskFactors: { yearsDiabetic: 6 } }) === null);
+  check('a missing years-diabetic yields no block either',
+    caseClinicalInputs(58, { riskFactors: { hba1c: 8.2 } }) === null);
+  check('a missing patient age yields no block',
+    caseClinicalInputs(null, { riskFactors: { hba1c: 8.2, yearsDiabetic: 6 } }) === null);
+  check('an empty questionnaire yields no block',
+    caseClinicalInputs(58, {}) === null);
+
+  // Buckets may stand in, but the substitution must be VISIBLE -- a screen has
+  // to be able to say "assumed from 'poor'" rather than implying a lab test.
+  check('a bucket is used but labelled assumed, never as measured',
+    (() => {
+      const c = caseClinicalInputs(58, {
+        riskFactors: { glycemicControl: 'poor', yearsSinceDiagnosis: '1to5' },
+      });
+      return c && c.hba1c === 9.5
+        && /assumed/.test(c.provenance.hba1c)
+        && /poor/.test(c.provenance.hba1c)
+        && /assumed/.test(c.provenance.yearsDiabetic);
+    })());
+  check('an unrecognised bucket is not guessed at',
+    caseClinicalInputs(58, { riskFactors: { glycemicControl: 'somethingelse' } }) === null);
+
   console.log('\n--- Capture and model provenance ---');
   const fb = require('./central-system/backend/services/matlabFallback');
 

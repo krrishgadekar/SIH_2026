@@ -384,6 +384,15 @@ export const ReviewQueuePage = () => {
               <SortHeader label={t('central.queue.table.colRuleEngine', 'RULE ENGINE')} sortKey="drGradeRuleEngine" currentSort={sortConfig} onRequestSort={requestSort} />
               <SortHeader label={t('central.queue.table.colAgreement', 'AGREEMENT')} sortKey="branchAgreement" currentSort={sortConfig} onRequestSort={requestSort} />
               <SortHeader label={t('central.queue.table.colConfidence', 'CONFIDENCE')} sortKey="confidenceScore" currentSort={sortConfig} onRequestSort={requestSort} />
+              {/* Triage urgency: an ordering HINT inside the tier, not a
+                  clinical score. The header carries the caveat so it is
+                  visible without hovering a single row. */}
+              <SortHeader
+                label={t('central.queue.table.colUrgency', 'URGENCY *')}
+                sortKey="urgencyScore"
+                currentSort={sortConfig}
+                onRequestSort={requestSort}
+              />
             </tr>
           </thead>
           <tbody>
@@ -457,11 +466,50 @@ export const ReviewQueuePage = () => {
                   )}
                 </td>
                 <td><ConfidenceBar value={item.confidenceScore} /></td>
+                {/* Urgency: ordering hint only. Rendered muted and with the
+                    limitation on hover so it never reads as a clinical score,
+                    and "--" for not-computed so a blank cell is not mistaken
+                    for low urgency. */}
+                <td
+                  className="t-mono"
+                  title={item.urgencyLimitation
+                    || 'Not computed: the clinical inputs (age, years diabetic, HbA1c) were not all available. This is not a low-urgency result.'}
+                  style={{ opacity: item.urgencyScore == null ? 0.35 : 0.85 }}
+                >
+                  {item.urgencyScore == null ? '--' : (
+                    <>
+                      <span style={{ fontWeight: 700 }}>{item.urgencyScore}</span>
+                      {item.urgencyTopFactor && (
+                        <span style={{ fontSize: '10px', opacity: 0.6, marginLeft: 4 }}>
+                          {item.urgencyTopFactor}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </td>
               </tr>
               );
             })}
           </tbody>
         </table>
+      </div>
+
+      {/* The caveat the * points at. Stated here, in the open, rather than
+          only in a tooltip: a 1-100 number in a clinical queue reads as
+          evidence unless something says otherwise, and this one is a
+          re-expression of an assumption -- the model behind it is trained on
+          synthetic data and has never been validated against an outcome. */}
+      <div
+        className="u-p-3"
+        style={{ fontSize: '11px', opacity: 0.65, borderTop: 'var(--border)' }}
+      >
+        {t('central.queue.urgencyFootnote',
+          '* URGENCY is a queue-ordering hint only. It comes from a model trained '
+          + 'on synthetic data and has never been validated against patient '
+          + 'outcomes — it is not a clinical assessment, and it does not affect '
+          + 'the review tier or the referral decision. "--" means it was not '
+          + 'computed because age, years diabetic or HbA1c was missing; that is '
+          + 'not a low-urgency result.')}
       </div>
 
       {sortedQueue.length === 0 && (
