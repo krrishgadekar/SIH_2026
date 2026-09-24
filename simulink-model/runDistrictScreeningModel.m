@@ -35,6 +35,18 @@ fprintf('%d patients/yr, %d PHCs, %d ophthalmologists, %d sim days\n\n', ...
 load_system(slxPath);
 cleanup = onCleanup(@() close_system(modelName, 0));
 
+% sim() cannot start while a previous run is going, and the error it raises
+% names an internal SimEvents parameter rather than the real cause -- see the
+% longer note in runFullPipelineModel.m. Same guard, same reason: a leftover
+% run from the Simulink window is not worth protecting.
+if ~strcmp(get_param(modelName, 'SimulationStatus'), 'stopped')
+    set_param(modelName, 'SimulationCommand', 'stop');
+    for k = 1:100
+        if strcmp(get_param(modelName, 'SimulationStatus'), 'stopped'), break; end
+        pause(0.1);
+    end
+end
+
 t0  = tic;
 out = sim(modelName, 'ReturnWorkspaceOutputs', 'on');
 simSeconds = toc(t0);

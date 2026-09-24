@@ -67,6 +67,40 @@ else
 end
 cleanup = onCleanup(@() closeQuietly(modelName));
 
+% ── A RUN ALREADY IN PROGRESS MUST BE STOPPED FIRST ───────────────────────
+% Everything below reconfigures the model -- StopTime, pacing, and a compile
+% via SimulationCommand 'update' -- and NONE of that is allowed while a
+% simulation is running. The failure does not say so: SimEvents reports
+%
+%   Cannot change the 'EventLogging' parameter while the model
+%   'netraSetuPipeline' is running
+%
+% which names a parameter this file never touches, because the compile
+% internally reaches for it. The actual cause is almost always that the model
+% was started with the Run button in the Simulink window -- it is paced at
+% 200x and takes minutes -- and then this function was called from the command
+% line while it was still going.
+%
+% Stopped rather than refused: the caller asked for a run, and the previous
+% one is a leftover, not something to protect. The wait loop matters because
+% 'stop' is asynchronous -- proceeding immediately would hit the same error.
+status = get_param(modelName, 'SimulationStatus');
+if ~strcmp(status, 'stopped')
+    fprintf('a simulation is already %s -- stopping it first... ', status);
+    set_param(modelName, 'SimulationCommand', 'stop');
+    for k = 1:100                       % up to ~10 s
+        if strcmp(get_param(modelName, 'SimulationStatus'), 'stopped'), break; end
+        pause(0.1);
+    end
+    if strcmp(get_param(modelName, 'SimulationStatus'), 'stopped')
+        fprintf('stopped\n');
+    else
+        error('runFullPipelineModel:stillRunning', ...
+            ['the model is still %s after 10 s. Press Stop in the Simulink ' ...
+             'window, then re-run.'], get_param(modelName, 'SimulationStatus'));
+    end
+end
+
 % ── WARM THE MODEL UP BEFORE ANYONE WATCHES ───────────────────────────────
 % Measured on this machine: the first run in a MATLAB session takes 18.3 s
 % for one simulated hour, the second 6.0 s, the third 5.5 s -- and an EIGHT
