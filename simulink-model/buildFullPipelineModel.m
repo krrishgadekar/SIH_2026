@@ -639,14 +639,23 @@ end
 function addSignalBinding(m, lib, kind, label, sourceBlock, portIndex)
 b = [m '/' label];
 add_block([lib '/' kind], b);
-try
-    spec = Simulink.HMI.SignalSpecification;
-    spec.BlockPath = Simulink.BlockPath([m '/' sourceBlock]);
-    spec.OutputPortIndex = portIndex;
+spec = Simulink.HMI.SignalSpecification;
+spec.BlockPath = Simulink.BlockPath([m '/' sourceBlock]);
+spec.OutputPortIndex = portIndex;
+
+% A Dashboard Scope plots SEVERAL signals, so its Binding is a CELL ARRAY;
+% every other widget here shows one value and takes the object directly.
+% Passing the bare object to a scope fails with
+%   SimulinkHMI:errors:ScopeBindingSrcInvalid
+% and, because this used to be inside a try/catch that only warned, the build
+% still "succeeded" -- leaving two scopes reading Unconnected in the model
+% nobody looks at until it is opened. A binding that did not take is a broken
+% dashboard, so it now fails the build instead of printing a line into the
+% scrollback.
+if strcmpi(kind, 'Dashboard Scope')
+    set_param(b, 'Binding', {spec});
+else
     set_param(b, 'Binding', spec);
-catch ME
-    warning('buildFullPipelineModel:binding', ...
-        'could not bind %s to %s port %d: %s', label, sourceBlock, portIndex, ME.message);
 end
 
 % A statistics port that goes nowhere produces nothing: the first run of this
