@@ -62,7 +62,13 @@ p.workingHoursPerDay   = 8;
 p.imageSizeMB          = 4;
 p.bandwidthMbps        = [0.5 1 2 5]; % sampled per PHC — rural tiers
 p.numOphthalmologists  = 2;
-p.tierFractions        = [0.70 0.20 0.10];   % A / B / C
+% MEASURED over 72 graded cases (calibration.json tierFractionsObserved),
+% changed from the design-doc assumption 0.70/0.20/0.10 on 2026-09-24.
+% That corpus is mostly IDRiD, a teaching set enriched for disease, so ~97%
+% of cases reach a human here against ~30% in a screening population --
+% reviewer load and wait times are correspondingly worse. Truthful for this
+% corpus, NOT a district screening forecast.
+p.tierFractions        = [0.028 0.847 0.125];   % A / B / C
 p.reviewSecondsB       = 30;          % the PS's <30 s AI-assisted target
 p.reviewSecondsC       = 240;         % full manual grading
 p.simDays              = 20;

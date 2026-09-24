@@ -136,11 +136,29 @@ p.numPhcs         = pick(c, 'numPhcs',         p.numPhcs);
 p.numOphthalmologists = pick(c, 'numOphthalmologists', p.numOphthalmologists);
 p.workingHoursPerDay  = pick(c, 'workingHoursPerDay',  p.workingHoursPerDay);
 
-% TIER MIX: the design-doc assumption, NOT the observed one. The observed
-% split is 3% auto-cleared because this corpus is IDRiD, a teaching set
-% enriched for disease. Using it would make every scenario collapse for a
-% reason that has nothing to do with the system.
-p.tierFractions = pick(c, 'tierFractions', p.tierFractions)';
+% ── TIER MIX: THE MEASURED SPLIT (changed 2026-09-24, Saad's call) ─────────
+% Now tierFractionsObserved -- what the pipeline actually produced over 72
+% graded cases -- in place of the design-doc assumption of 0.70/0.20/0.10.
+%
+% READ THIS BEFORE QUOTING ANY NUMBER THIS MODEL PRODUCES. The observed split
+% is roughly 0.03 / 0.85 / 0.12, and it is measured on THIS corpus, which is
+% mostly IDRiD: a teaching set deliberately enriched for disease. A real
+% screening population is overwhelmingly healthy eyes, so the auto-clear share
+% there would be far higher.
+%
+% What that means for the output: reviewer load, queue depth and wait times
+% come out much worse than a screening district would see, because ~97% of
+% cases reach a human instead of ~30%. Those numbers are a truthful simulation
+% of grading an IDRiD-like population and are NOT a forecast for a district
+% screening programme. Do not present them as one.
+%
+% The trade being made deliberately: every input is now measured rather than
+% assumed, which is easier to defend, at the cost of modelling a population
+% the deployment will not see. To go back, set this to
+% pick(c, 'tierFractions', ...) -- the assumed split is still in
+% calibration.json under that key.
+p.tierFractions = pick(c, 'tierFractionsObserved', ...
+                       pick(c, 'tierFractions', p.tierFractions))';
 if numel(p.tierFractions) ~= 3, p.tierFractions = [0.70 0.20 0.10]; end
 
 % GRADING FAILURE RATE: the measured 0.53 is development history -- half the
