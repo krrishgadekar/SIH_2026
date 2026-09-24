@@ -13,7 +13,7 @@
           "stats": "cases pending"
         },
         "admin": {
-          "title": "DISTRICT ADMIN",
+          "title": "DISTRICT WORKER",
           "subtitle": "Analytics & Oversight",
           "desc": "Monitor PHC performance, track referrals, view screening analytics, and manage district-wide operations.",
           "stats": "cases today"
@@ -115,7 +115,7 @@
       }
     },
     "referral": {
-      "subtitle": "DISTRICT ADMIN",
+      "subtitle": "DISTRICT WORKER",
       "title": "REFERRAL TRACKER",
       "showAll": "SHOW ALL",
       "pipeline": {

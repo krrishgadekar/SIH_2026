@@ -288,7 +288,7 @@ export const DashboardPage = () => {
     <div className="section">
       <div className="u-flex u-items-center u-justify-between u-mb-6">
         <div>
-          <p className="section__subtitle">{t('central.dashboard.subtitle', 'DISTRICT ADMIN')}</p>
+          <p className="section__subtitle">{t('central.dashboard.subtitle', 'DISTRICT WORKER')}</p>
           <h1 className="section__title" style={{ marginBottom: 0 }}>{t('central.dashboard.title', 'DASHBOARD')}</h1>
         </div>
         <span className="t-mono" style={{ opacity: 0.7 }}>
