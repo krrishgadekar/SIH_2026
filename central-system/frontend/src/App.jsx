@@ -60,9 +60,9 @@ const RoleRouter = () => {
       phone: '+91 98230 44821',
       location: isDoc ? 'District Civil Hospital, Pune' : 'Pune District Health Office',
       email: 'krrishgadekar@gmail.com',
-      designation: isDoc ? 'Chief Retina Specialist / Lead Ophthalmologist' : 'District Health Officer (DHO)',
-      officerId: 'DHO-MH-PUN-042',
-      district: 'Pune District (Rural & Peri-Urban Zone)',
+      designation: isDoc ? 'Chief Retina Specialist / Lead Ophthalmologist' : 'District Health Worker (DHW)',
+      officerId: isDoc ? 'MCI-MH-2018-89421' : 'DHW-MH-PUN-042',
+      district: isDoc ? 'District Civil Hospital & Regional Tele-Ophthalmology Centre, Pune' : 'Pune District (Rural & Peri-Urban Zone)',
       role: currentRole
     };
   });
@@ -84,9 +84,9 @@ const RoleRouter = () => {
       phone: '+91 98230 44821',
       location: isDoc ? 'District Civil Hospital, Pune' : 'Pune District Health Office',
       email: 'krrishgadekar@gmail.com',
-      designation: isDoc ? 'Chief Retina Specialist / Lead Ophthalmologist' : 'District Health Officer (DHO)',
-      officerId: 'DHO-MH-PUN-042',
-      district: 'Pune District (Rural & Peri-Urban Zone)',
+      designation: isDoc ? 'Chief Retina Specialist / Lead Ophthalmologist' : 'District Health Worker (DHW)',
+      officerId: isDoc ? 'MCI-MH-2018-89421' : 'DHW-MH-PUN-042',
+      district: isDoc ? 'District Civil Hospital & Regional Tele-Ophthalmology Centre, Pune' : 'Pune District (Rural & Peri-Urban Zone)',
       role: selectedRole
     };
     localStorage.setItem('netra_user_profile', JSON.stringify(profile));

@@ -33,7 +33,15 @@ export const CaptureScreen = () => {
   const [imagePreviewUrl, setImagePreviewUrl] = useState(null);
   const [qualityResult, setQualityResult] = useState(null);
   const [metadata, setMetadata] = useState({ eye: 'right' });
-  // questionnaire is now collected during patient registration (PatientRegistrationForm)
+  // questionnaire is collected during patient registration (PatientRegistrationForm)
+  const [questionnaire] = useState(() => {
+    try {
+      const p = JSON.parse(localStorage.getItem('netra_latest_patient'));
+      return p?.questionnaire || {};
+    } catch (e) {
+      return {};
+    }
+  });
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [mockScenario, setMockScenario] = useState('pass');
 
@@ -145,46 +153,37 @@ export const CaptureScreen = () => {
   const handleAcceptQuality = () => setActiveStep(3);
 
   // Translation into real contract payloads (api-contracts.md & system-design-v4.md §9.1)
-  const toRealQuestionnairePayload = (q) => ({
+  const toRealQuestionnairePayload = (q = {}) => ({
     riskFactors: {
-      yearsSinceDiagnosis: ['lt1', '1to5', '5to10', 'gt10'].includes(q.yearsSinceDiagnosis)
+      yearsSinceDiagnosis: ['lt1', '1to5', '5to10', 'gt10'].includes(q?.yearsSinceDiagnosis)
         ? q.yearsSinceDiagnosis
-        : (Number(q.yearsSinceDiagnosis) >= 10 ? 'gt10'
-          : Number(q.yearsSinceDiagnosis) >= 5 ? '5to10'
-            : Number(q.yearsSinceDiagnosis) >= 1 ? '1to5' : 'lt1'),
-      glycemicControl: ['good', 'moderate', 'poor'].includes(q.glycemicControl) ? q.glycemicControl : 'moderate',
-      bloodPressure: ['normal', 'high', 'unknown'].includes(q.bloodPressure) ? q.bloodPressure : 'unknown',
+        : (Number(q?.yearsSinceDiagnosis) >= 10 ? 'gt10'
+          : Number(q?.yearsSinceDiagnosis) >= 5 ? '5to10'
+            : Number(q?.yearsSinceDiagnosis) >= 1 ? '1to5' : 'lt1'),
+      glycemicControl: ['good', 'moderate', 'poor'].includes(q?.glycemicControl) ? q.glycemicControl : 'moderate',
+      bloodPressure: ['normal', 'high', 'unknown'].includes(q?.bloodPressure) ? q.bloodPressure : 'unknown',
       pregnant: null,
       // ── REAL NUMBERS, ADDITIVE TO THE BUCKETS ABOVE ────────────────────
-      // yearsSinceDiagnosis is collected as an actual year count and then
-      // bucketed above for the existing contract; the bucket loses precision
-      // the triage urgency score needs, so the number is carried through as
-      // well. hba1c is new and has no bucket equivalent.
-      //
-      // Both are null when not collected, and null is load-bearing: the
-      // backend computes NO urgency score unless age, years and HbA1c are all
-      // present, rather than imputing one. Sending 0 here instead of null
-      // would turn "never tested" into a real-looking score.
-      yearsDiabetic: Number.isFinite(Number(q.yearsSinceDiagnosis))
-        && String(q.yearsSinceDiagnosis).trim() !== ''
+      yearsDiabetic: Number.isFinite(Number(q?.yearsSinceDiagnosis))
+        && String(q?.yearsSinceDiagnosis).trim() !== ''
         ? Number(q.yearsSinceDiagnosis) : null,
-      hba1c: Number.isFinite(Number(q.hba1c)) && String(q.hba1c).trim() !== ''
+      hba1c: Number.isFinite(Number(q?.hba1c)) && String(q?.hba1c).trim() !== ''
         ? Number(q.hba1c) : null,
     },
     symptoms: {
-      blurredVision: !!q.blurredVision,
-      floaters: !!q.floaters,
-      suddenVisionChange: !!q.suddenVisionChange,
-      eyePain: !!q.eyePain,
+      blurredVision: !!q?.blurredVision,
+      floaters: !!q?.floaters,
+      suddenVisionChange: !!q?.suddenVisionChange,
+      eyePain: !!q?.eyePain,
     },
     language: null,
   });
 
-  const toRealCaptureMetadataPayload = (m) => ({
-    cameraDeviceReported: m.cameraDeviceId || 'unknown',
-    pupilStatus: m.pupilDilation ? 'dilated' : 'non_dilated',
+  const toRealCaptureMetadataPayload = (m = {}) => ({
+    cameraDeviceReported: m?.cameraDeviceId || 'unknown',
+    pupilStatus: m?.pupilDilation ? 'dilated' : 'non_dilated',
     lightingEnvironment: 'indoor_clinic',
-    observedIssues: Array.isArray(m.issuesNoticed) && m.issuesNoticed.length
+    observedIssues: Array.isArray(m?.issuesNoticed) && m.issuesNoticed.length
       ? m.issuesNoticed.filter((i) =>
         ['glare', 'blink_or_moved', 'out_of_focus', 'media_opacity', 'eyelash_obstruction'].includes(i))
       : ['none_noticed'],
@@ -210,12 +209,13 @@ export const CaptureScreen = () => {
         patientName,
         patientAge,
         metadata,
-        questionnaire,
+        questionnaire: questionnaire || {},
         aiPrediction: qualityResult?.aiPrediction,
         imagePreviewUrl: imagePreviewUrl || demoFundusImg
       });
       navigate('/queue');
     } catch (err) {
+      console.error('Failed to save capture data:', err);
       alert('Failed to save capture data');
     }
   };

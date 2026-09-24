@@ -258,7 +258,7 @@ export const ReferralTrackerPage = () => {
     <div className="section">
       <div className="u-flex u-items-center u-justify-between u-mb-6">
         <div>
-          <p className="section__subtitle">{t('central.referral.subtitle', 'DISTRICT ADMIN')}</p>
+          <p className="section__subtitle">{t('central.referral.subtitle', 'DISTRICT WORKER')}</p>
           <h1 className="section__title" style={{ marginBottom: 0 }}>{t('central.referral.title', 'REFERRAL TRACKER')}</h1>
         </div>
         <div className="u-flex u-items-center u-gap-3">
