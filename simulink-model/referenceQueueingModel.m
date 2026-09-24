@@ -62,13 +62,14 @@ p.workingHoursPerDay   = 8;
 p.imageSizeMB          = 4;
 p.bandwidthMbps        = [0.5 1 2 5]; % sampled per PHC — rural tiers
 p.numOphthalmologists  = 2;
-% MEASURED over 72 graded cases (calibration.json tierFractionsObserved),
-% changed from the design-doc assumption 0.70/0.20/0.10 on 2026-09-24.
-% That corpus is mostly IDRiD, a teaching set enriched for disease, so ~97%
-% of cases reach a human here against ~30% in a screening population --
-% reviewer load and wait times are correspondingly worse. Truthful for this
-% corpus, NOT a district screening forecast.
-p.tierFractions        = [0.028 0.847 0.125];   % A / B / C
+% MEASURED: 50-fold cross-fit of the shipped conformal policy over the
+% 628-image held-out test split, scored against ground-truth labels
+% (diagnostics/out/conformal_v3_crossfit_report_branchA_v2c.json). False
+% auto-clear of truly referable patients is 0.0 across all folds, so this
+% 38% auto-clear share is a real workload reduction and not a safety trade.
+% Deliberately NOT the development database's 0.028/0.847/0.125 -- that
+% corpus is 60/72 grade 3 and measures the seed data, not the system.
+p.tierFractions        = [0.384 0.438 0.178];   % A / B / C
 p.reviewSecondsB       = 30;          % the PS's <30 s AI-assisted target
 p.reviewSecondsC       = 240;         % full manual grading
 p.simDays              = 20;

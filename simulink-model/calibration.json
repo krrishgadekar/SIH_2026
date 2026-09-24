@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-24T13:18:24.640Z",
+  "generatedAt": "2026-09-24T19:03:34.419Z",
   "provenance": "scripts/exportSimCalibration.js, from the live central database and the PHC SQLite file on this machine",
   "gradingSeconds": {
     "value": 39,
@@ -31,13 +31,13 @@
   },
   "tierFractions": {
     "value": [
-      0.7,
-      0.2,
-      0.1
+      0.38405690395145775,
+      0.4375477282817819,
+      0.1783953677667604
     ],
-    "source": "assumed",
-    "n": null,
-    "note": "design doc §7: the screening-population split the district model is built on"
+    "source": "measured",
+    "n": 628,
+    "note": "branchA_v2c conformal policy, 50-fold cross-fit on the held-out test split scored against ground truth; false auto-clear of truly referable cases 0.0 across all folds. NOT this database -- see tierFractionsObserved for that, and why it is not a population estimate"
   },
   "qualityPassRate": {
     "value": 0.9259259259259259,

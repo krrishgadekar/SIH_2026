@@ -119,8 +119,28 @@ async function main() {
     tierTotal,
     'THIS CORPUS, which is mostly IDRiD -- a teaching set enriched for disease. '
     + 'NOT a screening population. Do not use as the model default.');
-  out.tierFractions = assumed([0.70, 0.20, 0.10],
-    'design doc §7: the screening-population split the district model is built on');
+  // ── THE MODEL DEFAULT: measured on HELD-OUT data, not on this database ────
+  // 50-fold cross-fit of the shipped conformal policy over the 628-image
+  // held-out test split, scored against ground-truth labels
+  // (diagnostics/out/conformal_v3_crossfit_report_branchA_v2c.json).
+  //
+  // This replaces the design-doc assumption of 0.70/0.20/0.10, and it is NOT
+  // the same thing as tierFractionsObserved above. That one is this
+  // development database, where 60 of 72 cases are grade 3 because it was
+  // seeded with diseased images for testing -- a 3% auto-clear rate there is
+  // correct behaviour on a corpus with almost nothing to clear, and useless
+  // as a population estimate.
+  //
+  // What makes this one usable: same measurement, proper sample. 38.4% of
+  // cases auto-clear and the false auto-clear rate for truly referable
+  // patients is 0.0 across all 50 folds -- so the workload reduction is real
+  // and nothing referable is being cleared to achieve it.
+  out.tierFractions = measured([0.38405690395145775, 0.4375477282817819,
+                                0.1783953677667604], 628,
+    'branchA_v2c conformal policy, 50-fold cross-fit on the held-out test '
+    + 'split scored against ground truth; false auto-clear of truly referable '
+    + 'cases 0.0 across all folds. NOT this database -- see '
+    + 'tierFractionsObserved for that, and why it is not a population estimate');
 
   // ── Quality gate ─────────────────────────────────────────────────────────
   const qg = await qualityGate();

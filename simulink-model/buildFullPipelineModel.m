@@ -102,7 +102,7 @@ p = struct( ...
     'gradingSeconds',      39, ...   % branchA_v2c 512 px + red lesion v2; was 21 at 384 px
     'gradingFailureRate',  0.05, ...
     'maxRetries',          3, ...
-    'tierFractions',       [0.70 0.20 0.10], ...
+    'tierFractions',       [0.384 0.438 0.178], ...   % 50-fold cross-fit, held-out n=628
     'reviewSecondsB',      30, ...
     'reviewSecondsC',      240, ...
     'referableFraction',   0.30, ...
@@ -136,30 +136,20 @@ p.numPhcs         = pick(c, 'numPhcs',         p.numPhcs);
 p.numOphthalmologists = pick(c, 'numOphthalmologists', p.numOphthalmologists);
 p.workingHoursPerDay  = pick(c, 'workingHoursPerDay',  p.workingHoursPerDay);
 
-% ── TIER MIX: THE MEASURED SPLIT (changed 2026-09-24, Saad's call) ─────────
-% Now tierFractionsObserved -- what the pipeline actually produced over 72
-% graded cases -- in place of the design-doc assumption of 0.70/0.20/0.10.
+% ── TIER MIX: MEASURED ON HELD-OUT DATA ───────────────────────────────────
+% calibration.json's tierFractions is now the 50-fold cross-fit of the shipped
+% conformal policy over the 628-image held-out test split, scored against
+% ground-truth labels: 0.384 / 0.438 / 0.178, with the false auto-clear rate
+% for truly referable patients at 0.0 across all folds.
 %
-% READ THIS BEFORE QUOTING ANY NUMBER THIS MODEL PRODUCES. The observed split
-% is roughly 0.03 / 0.85 / 0.12, and it is measured on THIS corpus, which is
-% mostly IDRiD: a teaching set deliberately enriched for disease. A real
-% screening population is overwhelmingly healthy eyes, so the auto-clear share
-% there would be far higher.
-%
-% What that means for the output: reviewer load, queue depth and wait times
-% come out much worse than a screening district would see, because ~97% of
-% cases reach a human instead of ~30%. Those numbers are a truthful simulation
-% of grading an IDRiD-like population and are NOT a forecast for a district
-% screening programme. Do not present them as one.
-%
-% The trade being made deliberately: every input is now measured rather than
-% assumed, which is easier to defend, at the cost of modelling a population
-% the deployment will not see. To go back, set this to
-% pick(c, 'tierFractions', ...) -- the assumed split is still in
-% calibration.json under that key.
-p.tierFractions = pick(c, 'tierFractionsObserved', ...
-                       pick(c, 'tierFractions', p.tierFractions))';
-if numel(p.tierFractions) ~= 3, p.tierFractions = [0.70 0.20 0.10]; end
+% NOT tierFractionsObserved, which is this development database. That corpus
+% has 60 of 72 cases at grade 3 because it was seeded with diseased images, so
+% its 3% auto-clear rate is correct behaviour on a corpus with nothing to
+% clear and meaningless as a population estimate. Reading it here made the
+% model say the system barely helps, which is a statement about the seed data,
+% not about the system.
+p.tierFractions = pick(c, 'tierFractions', p.tierFractions)';
+if numel(p.tierFractions) ~= 3, p.tierFractions = [0.384 0.438 0.178]; end
 
 % GRADING FAILURE RATE: the measured 0.53 is development history -- half the
 % corpus was graded against a pipeline that was still being built, and those
