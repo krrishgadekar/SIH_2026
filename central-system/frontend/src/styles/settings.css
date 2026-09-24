@@ -1,0 +1,743 @@
+/* ══════════════════════════════════════════════════════════════════
+   NetraSetu — Full-Page Settings Design System & Layout
+   Brutalist Government Tele-Ophthalmology Aesthetic
+   ══════════════════════════════════════════════════════════════════ */
+
+.settings-page-wrapper {
+  /* Design Tokens — Spec Tokens */
+  --bg: #F3EEE8;
+  --card: #F5EDE0;
+  --ink: #1F1A17;
+  --mute: #6F645C;
+  --edge: #CEC5B9;
+  --shadow: #C42B2B;
+  --red: #A11A1A;
+  --red-d: #7A1212;
+  --on-red: #F5EDE0;
+  --soft: #ECE5DC;
+
+  /* Monospace Font Stack driven by --fs */
+  font-family: 'JetBrains Mono', 'Courier New', monospace;
+  font-size: var(--fs, 14px);
+  line-height: 1.5;
+  color: var(--ink);
+  background-color: var(--bg);
+  min-height: 100vh;
+  width: 100%;
+  box-sizing: border-box;
+  padding-bottom: 60px;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* High Contrast Mode for bright sunlight */
+.settings-page-wrapper.high-contrast-mode {
+  --mute: #2C241E;
+  --edge: #7A6F62;
+  --bg: #EAE3D9;
+}
+
+/* Reset inside settings container */
+.settings-page-wrapper *,
+.settings-page-wrapper *::before,
+.settings-page-wrapper *::after {
+  box-sizing: border-box;
+  border-radius: 0 !important; /* No rounded corners anywhere */
+}
+
+/* Universal Focus States */
+.settings-page-wrapper button:focus-visible,
+.settings-page-wrapper a:focus-visible,
+.settings-page-wrapper input:focus-visible,
+.settings-page-wrapper [role="switch"]:focus-visible,
+.settings-page-wrapper [role="radio"]:focus-visible {
+  outline: 3px solid var(--red) !important;
+  outline-offset: 2px !important;
+}
+
+/* ── Full-Width Red Header Bar ───────────────────────────────── */
+.settings-header {
+  width: 100%;
+  background-color: var(--red);
+  color: var(--on-red);
+  border-bottom: 2px solid var(--red-d);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+
+.settings-header__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-header__title {
+  margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--on-red);
+}
+
+.settings-header__badge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  background-color: var(--red-d);
+  color: var(--on-red);
+  border: 1px solid rgba(245, 237, 224, 0.4);
+  letter-spacing: 0.08em;
+}
+
+.settings-header__close-btn {
+  background: transparent;
+  color: var(--on-red);
+  border: 2px solid var(--on-red);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 6px 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.settings-header__close-btn:hover {
+  background-color: var(--on-red);
+  color: var(--red);
+}
+
+/* ── Content Layout ─────────────────────────────────────────── */
+.settings-container {
+  max-width: 1200px;
+  margin: 24px auto 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+}
+
+/* Three-Pane Grid (Sidebar + 2 Card Columns) >= 1040px */
+.settings-layout {
+  display: grid;
+  grid-template-columns: 200px 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* ── Sticky Left Sidebar (>= 1040px) ────────────────────────── */
+.settings-sidebar {
+  position: sticky;
+  top: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-sidebar__title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--mute);
+  padding: 4px 6px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--edge);
+}
+
+.settings-sidebar__link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: var(--card);
+  border: 1px solid var(--edge);
+  color: var(--ink);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.settings-sidebar__link:hover,
+.settings-sidebar__link.active {
+  background-color: var(--red);
+  color: var(--on-red);
+  border-color: var(--red-d);
+}
+
+.settings-sidebar__link-arrow {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.settings-sidebar__link:hover .settings-sidebar__link-arrow,
+.settings-sidebar__link.active .settings-sidebar__link-arrow {
+  opacity: 1;
+}
+
+/* Card Columns */
+.settings-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+/* ── Section Cards ──────────────────────────────────────────── */
+.settings-card {
+  background-color: var(--card);
+  border: 1px solid var(--edge);
+  box-shadow: 5px 5px 0 var(--shadow);
+  padding: 18px 20px;
+  scroll-margin-top: 80px; /* Offset for anchor clicks */
+  transition: transform 0.15s ease;
+}
+
+.settings-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--edge);
+}
+
+.settings-card__title {
+  margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-card__title-icon {
+  color: var(--red);
+  font-weight: 900;
+}
+
+/* Chips / Tags with 3px red offset shadow */
+.settings-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background-color: var(--card);
+  border: 1px solid var(--edge);
+  box-shadow: 3px 3px 0 var(--shadow);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--ink);
+}
+
+.settings-chip--red {
+  background-color: var(--red);
+  color: var(--on-red);
+  border-color: var(--red-d);
+}
+
+/* ── Setting Rows & Dividers ────────────────────────────────── */
+.settings-row {
+  padding: 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.settings-row + .settings-row {
+  border-top: 1px dashed var(--edge);
+}
+
+.settings-row--stacked {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.settings-row__info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-row__title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.3;
+}
+
+.settings-row__hint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--mute);
+  line-height: 1.4;
+}
+
+.settings-row__control {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-row__chevron {
+  font-size: 14px;
+  color: var(--mute);
+  font-weight: 700;
+}
+
+/* Interactive Action Row */
+.settings-row--clickable {
+  cursor: pointer;
+  padding-left: 6px;
+  padding-right: 6px;
+  margin-left: -6px;
+  margin-right: -6px;
+  transition: background-color 0.15s ease;
+}
+
+.settings-row--clickable:hover {
+  background-color: var(--soft);
+}
+
+.settings-row--warn .settings-row__title {
+  color: var(--red);
+  font-weight: 700;
+}
+
+.settings-row--warn:hover {
+  background-color: #F8E2E2;
+}
+
+/* ── Toggle Switch (46x26px square) ─────────────────────────── */
+.settings-toggle {
+  width: 46px;
+  height: 26px;
+  background-color: var(--soft);
+  border: 1px solid var(--edge);
+  position: relative;
+  cursor: pointer;
+  padding: 0;
+  display: inline-block;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.settings-toggle[aria-checked="true"] {
+  background-color: var(--red);
+  border-color: var(--red-d);
+}
+
+.settings-toggle__knob {
+  width: 18px;
+  height: 18px;
+  background-color: var(--card);
+  border: 1px solid var(--edge);
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.15s ease;
+}
+
+.settings-toggle[aria-checked="true"] .settings-toggle__knob {
+  transform: translateX(20px);
+  background-color: var(--on-red);
+  border-color: var(--red-d);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .settings-toggle__knob {
+    transition: none !important;
+  }
+}
+
+/* ── Segmented Control (Connected Buttons) ──────────────────── */
+.settings-segmented {
+  display: flex;
+  width: 100%;
+  border: 1px solid var(--edge);
+  background-color: var(--card);
+  overflow: hidden;
+}
+
+.settings-segmented__btn {
+  flex: 1;
+  padding: 8px 12px;
+  background-color: var(--card);
+  color: var(--ink);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+  border: none;
+  border-right: 1px solid var(--edge);
+  transition: background-color 0.15s ease, color 0.15s ease;
+  user-select: none;
+}
+
+.settings-segmented__btn:last-child {
+  border-right: none;
+}
+
+.settings-segmented__btn[aria-checked="true"] {
+  background-color: var(--red);
+  color: var(--on-red);
+  font-weight: 700;
+}
+
+.settings-segmented__btn:not([aria-checked="true"]):hover {
+  background-color: var(--soft);
+}
+
+/* ── Small Buttons ──────────────────────────────────────────── */
+.settings-btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 14px;
+  background-color: var(--card);
+  border: 1px solid var(--edge);
+  color: var(--ink);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  letter-spacing: 0.04em;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.settings-btn:hover {
+  background-color: var(--soft);
+}
+
+.settings-btn--warn {
+  color: var(--red);
+  border-color: var(--red);
+}
+
+.settings-btn--warn:hover {
+  background-color: #F8E2E2;
+}
+
+.settings-btn--primary {
+  background-color: var(--red);
+  color: var(--on-red);
+  border-color: var(--red-d);
+}
+
+.settings-btn--primary:hover {
+  background-color: var(--red-d);
+}
+
+/* ── Bottom Toast Notification ──────────────────────────────── */
+.settings-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--ink);
+  color: var(--card);
+  border: 1px solid var(--edge);
+  box-shadow: 4px 4px 0 var(--shadow);
+  padding: 10px 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 1000;
+  animation: settings-toast-slide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.settings-toast__icon {
+  color: #2D8F6F;
+  font-weight: 900;
+}
+
+@keyframes settings-toast-slide {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 14px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+/* ── Modals / Dialogs in Brutalist Style ─────────────────────── */
+.settings-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(31, 26, 23, 0.6);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.settings-modal {
+  background-color: var(--card);
+  border: 2px solid var(--red);
+  box-shadow: 8px 8px 0 var(--shadow);
+  width: 100%;
+  max-width: 480px;
+  padding: 24px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.settings-modal__title {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--red);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-modal__desc {
+  font-size: 12px;
+  color: var(--ink);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.settings-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.settings-modal__label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+
+.settings-modal__input {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  padding: 8px 12px;
+  background-color: var(--soft);
+  border: 1px solid var(--edge);
+  color: var(--ink);
+}
+
+.settings-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--edge);
+}
+
+/* ── Responsive Layout Breakpoints ──────────────────────────── */
+
+/* 760px to 1039px: no sidebar, two columns */
+@media (max-width: 1039px) {
+  .settings-layout {
+    grid-template-columns: 1fr 1fr;
+  }
+  .settings-sidebar {
+    display: none;
+  }
+}
+
+/* < 760px: single column, stacked cards */
+@media (max-width: 759px) {
+  .settings-layout {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .settings-sidebar {
+    display: none;
+  }
+  .settings-header__title {
+    font-size: 16px;
+  }
+  .settings-card {
+    padding: 14px 16px;
+  }
+  .settings-row {
+    padding: 10px 0;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   DARK MODE OVERRIDES FOR SETTINGS PAGE
+   ══════════════════════════════════════════════════════════════════ */
+[data-contrast="dark"] .settings-page-wrapper {
+  --bg: #0E0B08;
+  --card: #18130E;
+  --ink: #EDE0CC;
+  --mute: #9C8F84;
+  --edge: rgba(237, 224, 204, 0.16);
+  --shadow: #000000;
+  --red: #D94444;
+  --red-d: #8A1A1A;
+  --on-red: #F5EDE0;
+  --soft: #231B14;
+}
+
+[data-contrast="dark"] .settings-header {
+  background-color: #8A1A1A;
+  border-bottom: 2px solid #5A1010;
+}
+
+[data-contrast="dark"] .settings-header__close-btn {
+  border-color: #EDE0CC;
+  color: #EDE0CC;
+}
+
+[data-contrast="dark"] .settings-header__close-btn:hover {
+  background-color: #EDE0CC;
+  color: #0E0B08;
+}
+
+[data-contrast="dark"] .settings-card {
+  background-color: var(--card);
+  border-color: var(--edge);
+  box-shadow: 5px 5px 0px #000000;
+}
+
+[data-contrast="dark"] .settings-sidebar__link {
+  background-color: var(--card);
+  border-color: var(--edge);
+  color: var(--ink);
+}
+
+[data-contrast="dark"] .settings-sidebar__link:hover,
+[data-contrast="dark"] .settings-sidebar__link.active {
+  background-color: var(--red);
+  color: #FFFFFF;
+}
+
+[data-contrast="dark"] .settings-toggle {
+  background-color: var(--soft);
+  border-color: var(--edge);
+}
+
+[data-contrast="dark"] .settings-toggle__knob {
+  background-color: #33281E;
+  border-color: var(--edge);
+}
+
+[data-contrast="dark"] .settings-toggle[aria-checked="true"] {
+  background-color: var(--red);
+  border-color: var(--red-d);
+}
+
+[data-contrast="dark"] .settings-toggle[aria-checked="true"] .settings-toggle__knob {
+  background-color: #FFFFFF;
+}
+
+[data-contrast="dark"] .settings-segmented {
+  background-color: var(--card);
+  border-color: var(--edge);
+}
+
+[data-contrast="dark"] .settings-segmented__btn {
+  background-color: var(--card);
+  color: var(--ink);
+  border-right-color: var(--edge);
+}
+
+[data-contrast="dark"] .settings-segmented__btn:hover {
+  background-color: var(--soft);
+}
+
+[data-contrast="dark"] .settings-segmented__btn[aria-checked="true"] {
+  background-color: var(--red);
+  color: #FFFFFF;
+}
+
+[data-contrast="dark"] .settings-btn {
+  background-color: var(--card);
+  border-color: var(--edge);
+  color: var(--ink);
+}
+
+[data-contrast="dark"] .settings-btn:hover {
+  background-color: var(--soft);
+}
+
+[data-contrast="dark"] .settings-btn--warn {
+  color: #E05555;
+  border-color: #E05555;
+}
+
+[data-contrast="dark"] .settings-btn--warn:hover {
+  background-color: #381515;
+}
+
+[data-contrast="dark"] .settings-chip {
+  background-color: var(--card);
+  border-color: var(--edge);
+  color: var(--ink);
+  box-shadow: 3px 3px 0px #000000;
+}
+
+[data-contrast="dark"] .settings-row--clickable:hover {
+  background-color: var(--soft);
+}
+
+[data-contrast="dark"] .settings-row--warn:hover {
+  background-color: #331414;
+}
+
+[data-contrast="dark"] .settings-modal {
+  background-color: #18130E;
+  border-color: var(--red);
+  box-shadow: 8px 8px 0px #000000;
+  color: var(--ink);
+}
+
+[data-contrast="dark"] .settings-modal__desc {
+  color: var(--ink);
+}
+
+[data-contrast="dark"] .settings-modal__input {
+  background-color: #231B14;
+  border-color: var(--edge);
+  color: var(--ink);
+}
