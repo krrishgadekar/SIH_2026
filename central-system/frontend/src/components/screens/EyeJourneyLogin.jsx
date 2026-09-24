@@ -53,7 +53,7 @@ export const EyeJourneyLogin = ({ onLogin }) => {
       subtitle: t('central.login.roles.ophthalmologist.subtitle', 'Case Review & Diagnosis'),
       description: t('central.login.roles.ophthalmologist.desc', 'Review AI-graded retinal scans, confirm or override diagnoses, and manage the review queue.'),
       icon: '◉',
-      stats: `6 ${t('central.login.roles.ophthalmologist.stats', 'cases pending')}`,
+
     },
     {
       id: 'admin',
@@ -61,7 +61,7 @@ export const EyeJourneyLogin = ({ onLogin }) => {
       subtitle: t('central.login.roles.admin.subtitle', 'Analytics & Oversight'),
       description: t('central.login.roles.admin.desc', 'Monitor PHC performance, track referrals, view screening analytics, and manage district-wide operations.'),
       icon: '⬡',
-      stats: `42 ${t('central.login.roles.admin.stats', 'cases today')}`,
+
     },
   ];
 
@@ -205,7 +205,7 @@ export const EyeJourneyLogin = ({ onLogin }) => {
         anatomy?.resize(w, h);
         if (veilRef.current) {
           const hyp = Math.hypot(w, h);
-          veilRef.current.style.background = `radial-gradient(circle at 50% 50%, rgba(22,3,2,0) ${hyp * 0.3}px, rgba(22,3,2,0.55) ${hyp * 0.42}px, rgba(9,1,1,0.97) ${hyp * 0.56}px)`;
+          veilRef.current.style.background = `radial-gradient(circle at 50% 50%, rgba(120,36,18,0) ${hyp * 0.34}px, rgba(74,20,10,0.3) ${hyp * 0.46}px, rgba(30,10,6,0.78) ${hyp * 0.62}px)`;
         }
       }
       fit(true);
@@ -361,12 +361,12 @@ export const EyeJourneyLogin = ({ onLogin }) => {
 
         // Background colour transitions
         const dark = smoothstep(0.1, 0.7, h);
-        const bg = r > 0 ? mixHex('#0d0c0b', '#1a0503', r) : mixHex('#1a1008', '#0d0c0b', dark);
+        const bg = r > 0 ? mixHex('#16100b', '#2E1008', r) : mixHex('#1a1008', '#16100b', dark);
         put(containerRef.current, 'background', bg);
         const stageEl = containerRef.current?.querySelector('.stage');
         if (stageEl) put(stageEl, 'background', bg);
 
-        put(veilRef.current, 'opacity', smoothstep(0.3, 1, f).toFixed(3));
+        put(veilRef.current, 'opacity', (smoothstep(0.3, 1, f) * 0.52).toFixed(3));
 
         // Brand fades out as we scroll into 3D
         const brandO = 1 - smoothstep(0.2, 0.8, s);
@@ -480,8 +480,7 @@ export const EyeJourneyLogin = ({ onLogin }) => {
       {/* System HUD */}
       <div className="hud" aria-hidden="true">
         SYS::NETRA_SETU<br />
-        v1.0.0 // SIH_2026<br />
-        DR✦AI ACTIVE
+        NETRASETU ACTIVE
       </div>
 
       <a className="skip" href="#auth-overlay" onClick={skipAnimation} data-skip>
@@ -490,6 +489,9 @@ export const EyeJourneyLogin = ({ onLogin }) => {
 
       {/* The 3D Stage — fixed viewport overlay */}
       <div className="stage" aria-hidden="true">
+        {/* Iris fibres and perimetry rings behind the model, so the exploded
+            view sits inside the eye rather than in empty black. */}
+        <div className="layer stage-field"></div>
         <div className="layer" id="gl-host" ref={glRef}></div>
         <div className="layer retina-veil" id="veil" ref={veilRef}></div>
         <canvas className="layer" id="ink" ref={inkRef}></canvas>
@@ -500,7 +502,7 @@ export const EyeJourneyLogin = ({ onLogin }) => {
       <main id="story">
         <header className="brand" id="brand" ref={brandRef}>
           <h1 className="brand__name">
-            RETINAL<span className="accent">✦</span>DIAGNOSTICS
+            NETRA<span className="accent">SETU</span>
           </h1>
           <p className="brand__tagline">
             EXPLAINABLE AI FOR DIABETIC RETINOPATHY
@@ -536,7 +538,7 @@ export const EyeJourneyLogin = ({ onLogin }) => {
                       <div className="enter__role-title">{role.title}</div>
                       <div className="enter__role-sub">{role.subtitle}</div>
                       <div className="enter__role-desc">{role.description}</div>
-                      <div className="enter__role-stats">◈ {role.stats}</div>
+
                       <div className="enter__role-arrow">→</div>
                     </button>
                   ))}
@@ -544,9 +546,6 @@ export const EyeJourneyLogin = ({ onLogin }) => {
               </>
             )}
           </div>
-          <p className="enter__fine">
-            NETRA SETU PLATFORM v1.0 · SIH 2026 PROTOTYPE
-          </p>
         </section>
 
         {/* The tall scroll track — this creates 700vh of scrollable space */}

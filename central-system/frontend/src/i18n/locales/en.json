@@ -1,7 +1,7 @@
 {
   "central": {
     "login": {
-      "title": "RETINAL✦DIAGNOSTICS",
+      "title": "NETRASETU",
       "subtitle": "EXPLAINABLE AI FOR DIABETIC RETINOPATHY",
       "version": "NETRA SETU PLATFORM v1.0",
       "selectRole": "SELECT YOUR ROLE TO PROCEED",
@@ -34,6 +34,8 @@
     "header": {
       "nav": {
         "dashboard": "DASHBOARD",
+        "overview": "OVERVIEW",
+        "fullDashboard": "DASHBOARD",
         "referrals": "REFERRALS",
         "phcHealth": "PHC HEALTH",
         "queue": "CASES",

@@ -38,7 +38,9 @@
         "phcHealth": "पीएचसी आरोग्य",
         "queue": "पुनरावलोकन रांग",
         "timeline": "टाइमलाइन",
-        "programHealth": "कार्यक्रम आरोग्य"
+        "programHealth": "कार्यक्रम आरोग्य",
+        "overview": "आढावा",
+        "fullDashboard": "डॅशबोर्ड"
       },
       "statusLive": "थेट",
       "profile": "प्रोफाइल",

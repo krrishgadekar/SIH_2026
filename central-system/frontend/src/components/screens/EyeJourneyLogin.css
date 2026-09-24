@@ -101,6 +101,61 @@
   opacity: 0;
 }
 
+/* What the eye sits in: warm light drifting through the vitreous, with the
+   choroidal vessels showing through out of focus behind it. */
+.eye-journey .stage-field {
+  z-index: 0;
+  inset: -16%;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 48% 44% at 27% 30%, rgba(222, 104, 54, 0.34), transparent 64%),
+    radial-gradient(ellipse 44% 40% at 74% 66%, rgba(178, 48, 62, 0.26), transparent 66%),
+    radial-gradient(ellipse 38% 34% at 62% 22%, rgba(240, 168, 106, 0.16), transparent 68%),
+    radial-gradient(ellipse 74% 64% at 50% 52%, rgba(112, 38, 18, 0.34), transparent 74%);
+  animation: ej-drift 48s ease-in-out infinite alternate;
+}
+
+/* The vessel network, thrown far out of focus. */
+.eye-journey .stage-field::after {
+  content: '';
+  position: absolute;
+  inset: -8%;
+  background: url('./vessel-field.svg') center / cover no-repeat;
+  opacity: 0.14;
+  filter: blur(6px);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 50%, transparent 16%, #000 52%, transparent 94%);
+  mask-image: radial-gradient(ellipse at 50% 50%, transparent 16%, #000 52%, transparent 94%);
+  animation: ej-vessels 84s ease-in-out infinite alternate;
+}
+
+@keyframes ej-drift {
+  0% {
+    transform: translate3d(-2%, -1%, 0) scale(1.04);
+  }
+  50% {
+    transform: translate3d(2%, 2%, 0) scale(1.13);
+  }
+  100% {
+    transform: translate3d(-1%, 1.5%, 0) scale(1.06);
+  }
+}
+
+@keyframes ej-vessels {
+  from {
+    transform: translate3d(1.5%, -1%, 0) scale(1.02) rotate(-1.2deg);
+  }
+  to {
+    transform: translate3d(-1.5%, 1%, 0) scale(1.1) rotate(1.2deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eye-journey .stage-field,
+  .eye-journey .stage-field::after {
+    animation: none;
+  }
+}
+
 .eye-journey #gl-host canvas {
   display: block;
   width: 100%;
@@ -361,7 +416,9 @@
   opacity: var(--enter-o, 0);
   visibility: hidden;
   pointer-events: none;
-  background: radial-gradient(circle at center, rgba(26, 16, 8, 0.3) 0%, rgba(26, 16, 8, 0.7) 100%);
+  background:
+    radial-gradient(ellipse 66% 50% at 50% 42%, rgba(236, 130, 74, 0.3), transparent 76%),
+    radial-gradient(ellipse at center, rgba(104, 56, 30, 0.26) 0%, rgba(30, 16, 9, 0.58) 100%);
   transition: opacity 0.5s ease;
 }
 
@@ -481,14 +538,6 @@
   margin-bottom: var(--sp-4, 1rem);
 }
 
-.eye-journey .enter__role-stats {
-  font-family: var(--f-mono, monospace);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  color: rgba(196, 43, 43, 0.65);
-  padding-top: var(--sp-3, 0.75rem);
-  border-top: 1px solid rgba(196, 43, 43, 0.12);
-}
 
 .eye-journey .enter__role-arrow {
   position: absolute;
@@ -507,17 +556,7 @@
 }
 
 /* Platform badge at the bottom */
-.eye-journey .enter__fine {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-family: var(--f-mono, monospace);
-  font-size: 9px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: rgba(196, 43, 43, 0.3);
-}
+
 
 /* ── scroll track — creates 700vh of scroll space ──────────────────────── */
 .eye-journey .track {

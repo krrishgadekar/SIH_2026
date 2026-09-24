@@ -819,13 +819,6 @@ body {
   letter-spacing: -0.03em;
 }
 
-.app-logo .star {
-  display: inline-block;
-  font-size: 0.6em;
-  vertical-align: middle;
-  margin: 0 var(--sp-1);
-}
-
 .app-nav {
   display: flex;
   gap: 0;
@@ -3215,14 +3208,6 @@ body {
   transform: scale(1.03);
 }
 
-.app-logo .star {
-  display: inline-block;
-  font-size: 0.6em;
-  vertical-align: middle;
-  margin: 0 var(--sp-1);
-  animation: gentle-float 3s ease-in-out infinite;
-}
-
 /* ── Premium Login Screen ─────────────────────────────────── */
 
 /* Floating particles background */
@@ -3906,3 +3891,84 @@ body {
   }
 }
 
+
+/* ── Header: hold together as the window narrows ─────────────── */
+/* The menu is an auto-width grid item, so it would otherwise push the page
+   sideways. Let it shrink and scroll instead, and drop the decorative status
+   ticker before the menu suffers. */
+@media (max-width: 1280px) {
+  .app-header > * {
+    min-width: 0;
+  }
+
+  .app-nav {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .app-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .app-nav__link {
+    padding: var(--sp-3) var(--sp-4);
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 1024px) {
+  .app-header .console {
+    display: none;
+  }
+
+  .app-nav__link {
+    padding: var(--sp-2) var(--sp-3);
+    letter-spacing: 0.05em;
+  }
+}
+
+@media (max-width: 1024px) {
+  /* The select already shows the language; its label is redundant here. */
+  .app-header__actions .t-label {
+    display: none;
+  }
+
+  .app-header__actions {
+    gap: 8px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  /* The role is repeated inside the profile panel. */
+  .app-header__role-badge {
+    display: none;
+  }
+}
+
+/* ── Header: what gives way first when the bar runs out of room ──────
+   The status ticker was being crushed to a sliver between the logo and the
+   nav, where it wrapped into unreadable fragments. It now stays on one line,
+   and steps aside entirely before it can squeeze the navigation. */
+.app-header__ticker {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app-header__ticker .console {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1600px) {
+  .app-header__ticker {
+    display: none;
+  }
+}
+
+/* The role badge and the exit button read as one line each, never wrapped. */
+.app-header__role-badge,
+.app-header__logout {
+  white-space: nowrap;
+}

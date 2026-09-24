@@ -38,7 +38,9 @@
         "phcHealth": "पीएचसी स्वास्थ्य",
         "queue": "समीक्षा कतार",
         "timeline": "समयरेखा",
-        "programHealth": "कार्यक्रम स्वास्थ्य"
+        "programHealth": "कार्यक्रम स्वास्थ्य",
+        "overview": "अवलोकन",
+        "fullDashboard": "डैशबोर्ड"
       },
       "statusLive": "लाइव",
       "profile": "प्रोफ़ाइल",

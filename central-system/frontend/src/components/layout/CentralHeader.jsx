@@ -56,7 +56,8 @@ const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) => {
         { to: '/ophth/queue', label: t('central.header.nav.queue', 'CASES') },
       ]
     : [
-        { to: '/admin/dashboard', label: t('central.header.nav.dashboard', 'DASHBOARD') },
+        { to: '/admin/dashboard', label: t('central.header.nav.overview', 'OVERVIEW'), end: true },
+        { to: '/admin/dashboard/detailed', label: t('central.header.nav.fullDashboard', 'DASHBOARD') },
         { to: '/admin/referrals', label: t('central.header.nav.referrals', 'REFERRALS') },
         { to: '/admin/phc-health', label: t('central.header.nav.phcHealth', 'PHC & SYSTEM HEALTH') },
         { to: '/admin/resources', label: t('central.header.nav.resources', 'RESOURCE PLANNING') },
@@ -86,10 +87,10 @@ const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) => {
     <>
       <header className="app-header">
         <div className="app-logo">
-          Netra<span className="star">Setu</span>
+          NetraSetu
         </div>
 
-        <div style={{ overflow: 'hidden' }}>
+        <div className="app-header__ticker">
           <ConsoleStatus messages={isOphth ? OPTH_MESSAGES : ADMIN_MESSAGES} />
         </div>
 
@@ -98,6 +99,7 @@ const CentralHeader = ({ role, userProfile, onUpdateProfile, onLogout }) => {
             <NavLink
               key={link.to}
               to={link.to}
+              end={link.end}
               className={({ isActive }) =>
                 `app-nav__link ${isActive ? 'active' : ''}`
               }

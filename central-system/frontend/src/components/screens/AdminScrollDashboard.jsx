@@ -1,40 +1,51 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import { centralApi } from '../../api/centralApiClient';
 import { EyeHeroSVG } from './EyeHeroSVG';
 import './AdminScrollDashboard.css';
 
 const CHAPTERS = [
-  { id: 'hero', label: 'Overview', num: '01' },
-  { id: 'screening', label: 'Screening', num: '02' },
-  { id: 'ai', label: 'AI Performance', num: '03' },
-  { id: 'phc', label: 'PHC Network', num: '04' },
-  { id: 'referral', label: 'Referrals', num: '05' },
-  { id: 'enter', label: 'Dashboard', num: '06' },
+  { id: 'hero', label: 'Overview' },
+  { id: 'screening', label: 'Screening' },
+  { id: 'ai', label: 'AI Performance' },
+  { id: 'phc', label: 'PHC Network' },
+  { id: 'referral', label: 'Referrals' },
 ];
 
-// --- Animated counter hook ---
+// Which side each chapter's panel sits on: the eye leans the other way.
+const CARD_SIDES = [-1, -1, 1, -1, 1];
+
+const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
+const smoothstep = (a, b, v) => {
+  const t = clamp((v - a) / (b - a), 0, 1);
+  return t * t * (3 - 2 * t);
+};
+
+// --- Animated counter ---
+// The figure is written straight into its own node. Counting through React
+// state meant every card setting state sixty times a second, all of it landing
+// in the same frames as the scroll.
 const useCountUp = (target, shouldAnimate, duration = 1400) => {
-  const [display, setDisplay] = useState('0');
+  const ref = useRef(null);
   const rafRef = useRef(null);
 
   useEffect(() => {
-    if (!shouldAnimate) { setDisplay('0'); return; }
+    const el = ref.current;
+    if (!el) return undefined;
+    if (!shouldAnimate) { el.textContent = '0'; return undefined; }
+
     const cleanStr = String(target).replace(/,/g, '');
     const numericTarget = parseFloat(cleanStr);
-    if (isNaN(numericTarget)) { setDisplay(String(target)); return; }
+    if (isNaN(numericTarget)) { el.textContent = String(target); return undefined; }
 
     const isFloat = cleanStr.includes('.');
     const decimals = isFloat ? (cleanStr.split('.')[1] || '').length : 0;
     const startTime = performance.now();
 
     const animate = (now) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
+      const progress = Math.min((now - startTime) / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
       const current = numericTarget * eased;
-      setDisplay(isFloat ? current.toFixed(decimals) : Math.round(current).toLocaleString());
+      el.textContent = isFloat ? current.toFixed(decimals) : Math.round(current).toLocaleString();
       if (progress < 1) rafRef.current = requestAnimationFrame(animate);
     };
 
@@ -42,17 +53,51 @@ const useCountUp = (target, shouldAnimate, duration = 1400) => {
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, [target, shouldAnimate, duration]);
 
-  return display;
+  return ref;
 };
 
+/**
+ * A heading whose lines wipe up from behind a mask, one after another. Each
+ * line is a node, so an accent span inside a line still works.
+ */
+const SplitTitle = React.memo(({ lines, visible, as: Tag = 'h2', className = 'admin-scroll__title' }) => (
+  <Tag className={className}>
+    {lines.map((line, i) => (
+      <span className="admin-scroll__line" key={i}>
+        <span
+          className={`admin-scroll__line-in ${visible ? 'is-in' : ''}`}
+          style={{ '--i': i }}
+        >
+          {line}
+        </span>
+      </span>
+    ))}
+  </Tag>
+));
+
+/**
+ * One chapter's layer. Every card covers the whole pinned viewport, so its
+ * panel holds the same place on screen for as long as the chapter lasts — the
+ * page never carries it past. Arrival and departure are written onto the
+ * element by the scroll engine as --enter and --exit.
+ */
+const Card = React.memo(({ side, cardRef, children }) => (
+  <div className={`admin-scroll__card admin-scroll__card--${side}`} ref={cardRef}>
+    <div className="admin-scroll__panel">{children}</div>
+  </div>
+));
+
 // --- Stat card with counter ---
-const StatCard = ({ label, value, suffix, delta, deltaDir, visible }) => {
+const StatCard = React.memo(({ label, value, suffix, delta, deltaDir, visible, index = 0 }) => {
   const animVal = useCountUp(value, visible);
   return (
-    <div className={`admin-scroll__stat ${visible ? 'admin-scroll__stat--visible' : ''}`}>
+    <div
+      className={`admin-scroll__stat ${visible ? 'admin-scroll__stat--visible' : ''}`}
+      style={{ '--i': index }}
+    >
       <div className="admin-scroll__stat-label">{label}</div>
       <div className="admin-scroll__stat-value">
-        {animVal}{suffix && <span className="suffix">{suffix}</span>}
+        <span ref={animVal} />{suffix && <span className="suffix">{suffix}</span>}
       </div>
       {delta && (
         <div className={`admin-scroll__stat-delta admin-scroll__stat-delta--${deltaDir || 'up'}`}>
@@ -61,17 +106,20 @@ const StatCard = ({ label, value, suffix, delta, deltaDir, visible }) => {
       )}
     </div>
   );
-};
+});
 
 // --- Progress ring ---
-const ProgressRing = ({ value, visible, label }) => {
+const ProgressRing = React.memo(({ value, visible, label, index = 0 }) => {
   const r = 36;
   const circumference = 2 * Math.PI * r;
   const offset = visible ? circumference * (1 - value / 100) : circumference;
   const animVal = useCountUp(value.toFixed(1), visible, 1600);
 
   return (
-    <div className="admin-scroll__stat" style={{ display: 'flex', alignItems: 'center', gap: '16px', opacity: visible ? 1 : 0, transform: visible ? 'none' : 'translateX(-20px)', transition: 'all 0.6s ease' }}>
+    <div
+      className={`admin-scroll__stat admin-scroll__stat--ring ${visible ? 'admin-scroll__stat--visible' : ''}`}
+      style={{ '--i': index }}
+    >
       <div className="admin-scroll__ring">
         <svg viewBox="0 0 80 80">
           <circle className="admin-scroll__ring-bg" cx="40" cy="40" r={r} />
@@ -86,80 +134,199 @@ const ProgressRing = ({ value, visible, label }) => {
             }}
           />
         </svg>
-        <div className="admin-scroll__ring-value">{animVal}%</div>
+        <div className="admin-scroll__ring-value"><span ref={animVal} />%</div>
       </div>
-      <div>
-        <div className="admin-scroll__stat-label">{label}</div>
-      </div>
+      <div className="admin-scroll__stat-label">{label}</div>
     </div>
   );
-};
+});
 
 // ===== MAIN COMPONENT =====
 export const AdminScrollDashboard = () => {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
   const [data, setData] = useState(null);
+
+  // Arriving from the sign-in journey (a tall, scrolled page) would otherwise
+  // drop the visitor into the middle of this story. This has to be instant and
+  // before paint: the document sets scroll-behavior: smooth, which would
+  // otherwise play the whole way back up as an animation.
+  useLayoutEffect(() => {
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, []);
 
   // Scroll state
   const containerRef = useRef(null);
-  const chapterRefs = useRef([]);
+  const cardRefs = useRef([]);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [activeChapter, setActiveChapter] = useState(0);
   const [chapterProgress, setChapterProgress] = useState(0);
   const [visibleChapters, setVisibleChapters] = useState(new Set([0]));
 
-  // Pointer for gaze tracking
-  const [pointer, setPointer] = useState({ x: 0, y: 0 });
+  // Where the eye is looking, and where it is being asked to look. Both live
+  // in refs: gaze is written straight to the DOM every frame, so following the
+  // cursor costs nothing in renders.
+  const pointerRef = useRef({ x: 0, y: 0 });
 
   // Load data
   useEffect(() => {
     centralApi.getAdminDashboard().then(d => setData(d)).catch(() => {});
   }, []);
 
-  // Scroll handler
+  // ── Scroll engine ─────────────────────────────────────────────────
+  // One rAF loop damps the raw scroll position, derives a velocity signal, and
+  // hands every chapter its own arrival and departure. All of it goes out as
+  // custom properties, so the scene animates at display rate rather than
+  // stepping along with React renders.
   useEffect(() => {
-    const onScroll = () => {
-      const container = containerRef.current;
-      if (!container) return;
+    const container = containerRef.current;
+    if (!container) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    let raf = 0;
+    let last = performance.now();
+    let smooth = 0;
+    let prev = 0;
+    let vel = 0;
+    let publishedProgress = -1;
+    let publishedChapter = -1;
+    let publishedVisible = '';
+    let lean = 0;
+    let gazeX = 0;
+    let gazeY = 0;
+    const shown = [];
+
+    const frame = (now) => {
+      const dt = Math.min(0.064, (now - last) / 1000) || 0.016;
+      last = now;
 
       const rect = container.getBoundingClientRect();
-      const totalHeight = container.scrollHeight - window.innerHeight;
-      const scrolled = -rect.top;
-      const progress = Math.max(0, Math.min(1, scrolled / totalHeight));
-      setScrollProgress(progress);
+      const total = Math.max(1, container.scrollHeight - window.innerHeight);
+      const raw = clamp(-rect.top / total, 0, 1);
 
-      // Determine active chapter
-      const chapterCount = CHAPTERS.length;
-      const chapterIdx = Math.min(Math.floor(progress * chapterCount), chapterCount - 1);
-      const chProgress = (progress * chapterCount) - chapterIdx;
-      setActiveChapter(chapterIdx);
-      setChapterProgress(chProgress);
+      // Critically damped follow: direct enough to feel attached to the wheel,
+      // slow enough to iron out its steps.
+      smooth += (raw - smooth) * (reduced ? 1 : 1 - Math.exp(-dt / 0.105));
 
-      // Track visible chapters (for triggering animations)
-      const newVisible = new Set();
-      chapterRefs.current.forEach((el, i) => {
+      const instant = (smooth - prev) / dt;
+      prev = smooth;
+      const targetVel = reduced ? 0 : clamp(instant * 1.7, -1, 1);
+      vel += (targetVel - vel) * (1 - Math.exp(-dt / 0.14));
+
+      container.style.setProperty('--p', smooth.toFixed(4));
+      container.style.setProperty('--vel', vel.toFixed(4));
+      container.style.setProperty('--vel-abs', Math.abs(vel).toFixed(4));
+      container.style.setProperty('--eye-zoom', (1 + 0.24 * smoothstep(0, 0.85, smooth)).toFixed(4));
+      container.style.setProperty('--field-strength', (0.55 + smooth * 0.45).toFixed(3));
+
+      // Each chapter owns one fifth of the scroll. u runs 0 → 1 across its
+      // share: it arrives over the first sixth, holds, then leaves over the
+      // last, handing straight to the next chapter with no gap between them.
+      const count = CHAPTERS.length;
+      // Guarded: a NaN here would index past the chapter list and blank the page.
+      const idx = clamp(Math.floor(smooth * count) || 0, 0, count - 1);
+      let key = '';
+      let topSide = 0;
+      let topWeight = 0;
+      const nowVisible = new Set();
+
+      cardRefs.current.forEach((el, i) => {
         if (!el) return;
-        const r = el.getBoundingClientRect();
-        if (r.top < window.innerHeight * 0.85 && r.bottom > 0) {
-          newVisible.add(i);
+        const u = smooth * count - i;
+        // The first chapter has no run-up and the last has no way out.
+        // The windows overlap, so one chapter is still leaving as the next
+        // arrives and the handover reads as a dissolve, not a cut.
+        const enter = i === 0 ? 1 : smoothstep(-0.16, 0.10, u);
+        const exit = i === count - 1 ? 0 : smoothstep(0.82, 1, u);
+        const live = u > -0.2 && exit < 0.99;
+
+        el.style.setProperty('--enter', enter.toFixed(4));
+        el.style.setProperty('--exit', exit.toFixed(4));
+        el.style.setProperty('--u', clamp(u - 0.5, -0.6, 0.6).toFixed(4));
+        if (shown[i] !== live) {
+          shown[i] = live;
+          el.style.visibility = live ? 'visible' : 'hidden';
+        }
+        // Whichever card is most present decides which way the eye leans. A
+        // weighted average would leave it parked in the middle — under the
+        // text — for the whole of a handover; this way it commits to a side
+        // and the CSS easing carries it across.
+        const weight = enter * (1 - exit);
+        if (weight > topWeight) {
+          topWeight = weight;
+          topSide = CARD_SIDES[i];
+        }
+
+        if (live && enter > 0.12 && exit < 0.7) {
+          nowVisible.add(i);
+          key += i;
         }
       });
-      setVisibleChapters(newVisible);
+
+      // The eye keeps out of the panel's way: the cards alternate sides, so it
+      // drifts across the stage as the story moves between them.
+      // The lean is sprung, not switched: the eye drifts across as the story
+      // changes sides instead of arriving with a transition after the fact.
+      lean += (-topSide - lean) * (reduced ? 1 : 1 - Math.exp(-dt / 0.42));
+      container.style.setProperty('--eye-x', lean.toFixed(4));
+
+      // Gaze: the cursor, plus a pull towards the panel the eye is leaning
+      // away from — it keeps looking at what you are reading.
+      const p = pointerRef.current;
+      const wantX = clamp(p.x, -1, 1) * 9 - lean * 4.5;
+      const wantY = clamp(p.y, -1, 1) * 5.5;
+      const g = reduced ? 1 : 1 - Math.exp(-dt / 0.16);
+      gazeX += (wantX - gazeX) * g;
+      gazeY += (wantY - gazeY) * g;
+      container.style.setProperty('--gaze-x', gazeX.toFixed(3));
+      container.style.setProperty('--gaze-y', gazeY.toFixed(3));
+
+      // React state changes only when it has to.
+      if (idx !== publishedChapter) {
+        publishedChapter = idx;
+        setActiveChapter(idx);
+      }
+
+      const quantised = Math.round(smooth * 250) / 250;
+      if (quantised !== publishedProgress) {
+        publishedProgress = quantised;
+        setScrollProgress(quantised);
+        setChapterProgress(clamp(quantised * count - idx, 0, 1));
+      }
+
+      if (key !== publishedVisible) {
+        publishedVisible = key;
+        setVisibleChapters(nowVisible);
+      }
+
+      raf = requestAnimationFrame(frame);
     };
 
-    window.addEventListener('scroll', onScroll, { passive: true });
-    onScroll();
-    return () => window.removeEventListener('scroll', onScroll);
+    raf = requestAnimationFrame(frame);
+    return () => cancelAnimationFrame(raf);
   }, []);
 
-  // Pointer tracking
+  // The app header is sticky, so the pinned stage has to start below it.
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const measure = () => {
+      const header = document.querySelector('.app-header');
+      container.style.setProperty('--header-h', (header ? header.offsetHeight : 64) + 'px');
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
+
+  // Pointer tracking — straight into a ref; the engine reads it each frame.
   useEffect(() => {
     const onMove = (e) => {
-      setPointer({
+      pointerRef.current = {
         x: (e.clientX / window.innerWidth) * 2 - 1,
         y: (e.clientY / window.innerHeight) * 2 - 1,
-      });
+      };
     };
     window.addEventListener('pointermove', onMove, { passive: true });
     return () => window.removeEventListener('pointermove', onMove);
@@ -169,7 +336,8 @@ export const AdminScrollDashboard = () => {
     const container = containerRef.current;
     if (!container) return;
     const totalHeight = container.scrollHeight - window.innerHeight;
-    const targetScroll = container.offsetTop + (idx / CHAPTERS.length) * totalHeight;
+    // Aim at the middle of the chapter's share, where its card is fully open.
+    const targetScroll = container.offsetTop + ((idx + 0.45) / CHAPTERS.length) * totalHeight;
     window.scrollTo({ top: targetScroll, behavior: 'smooth' });
   }, []);
 
@@ -198,6 +366,18 @@ export const AdminScrollDashboard = () => {
 
   const maxPhcCount = useMemo(() => Math.max(...phcs.map(p => p.count), 1), [phcs]);
 
+  // The readout that trails the story along the foot of the screen.
+  const telemetry = useMemo(() => ([
+    { k: 'CASES', v: stats.casesToday },
+    { k: 'ACCURACY', v: stats.modelAccuracy + '%' },
+    { k: 'CENTRES', v: phcs.length },
+    { k: 'QUEUE', v: stats.thisWeek },
+  ]), [stats, phcs]);
+
+  const setCard = (i) => (el) => { cardRefs.current[i] = el; };
+
+  const active = CHAPTERS[activeChapter] || CHAPTERS[0];
+
   return (
     <div className="admin-scroll" ref={containerRef}>
       {/* Corner decorations */}
@@ -206,15 +386,11 @@ export const AdminScrollDashboard = () => {
       <div className="admin-scroll__corner admin-scroll__corner--bl" />
       <div className="admin-scroll__corner admin-scroll__corner--br" />
 
-      {/* HUD */}
-      <div className="admin-scroll__hud">
-        SYS::DISTRICT_ADMIN<br />
-        DR✦AI // OVERVIEW<br />
-        SCROLL_PROGRESS: {(scrollProgress * 100).toFixed(0)}%
-      </div>
-
       {/* Chapter navigation dots */}
       <nav className="admin-scroll__nav" aria-label="Chapter navigation">
+        <span className="admin-scroll__nav-track" aria-hidden="true">
+          <span className="admin-scroll__nav-fill" />
+        </span>
         {CHAPTERS.map((ch, i) => (
           <button
             key={ch.id}
@@ -223,177 +399,153 @@ export const AdminScrollDashboard = () => {
             aria-label={`Go to ${ch.label}`}
           >
             <span className="admin-scroll__nav-label">{ch.label}</span>
-            <span className="admin-scroll__nav-num">{ch.num}</span>
             <span className="admin-scroll__nav-pip" />
           </button>
         ))}
       </nav>
 
-      {/* ═══ STICKY VIEWPORT (pinned eye scene) ═══ */}
+      {/* ═══ PINNED STAGE — the eye, and the chapter cards over it ═══ */}
       <div className="admin-scroll__viewport">
+        {/* Light drifting through the vitreous, with the choroidal vessels
+            showing through out of focus behind it. */}
+        <div className="admin-scroll__field" aria-hidden="true" />
+
         <EyeHeroSVG
           progress={scrollProgress}
           chapter={activeChapter}
           chapterProgress={chapterProgress}
-          pointerX={pointer.x}
-          pointerY={pointer.y}
         />
-      </div>
 
-      {/* ═══ SCROLL TRACK (chapters that overlay the sticky viewport) ═══ */}
-      <div className="admin-scroll__track">
+        {/* A scan passes over the scene on every chapter change. */}
+        <div className="admin-scroll__sweep" key={'s' + activeChapter} aria-hidden="true" />
 
-        {/* ── Chapter 01: HERO ── */}
-        <section
-          className="admin-scroll__chapter"
-          ref={el => chapterRefs.current[0] = el}
-        >
-          <div className={`admin-scroll__panel admin-scroll__panel--left ${visibleChapters.has(0) ? 'admin-scroll__panel--visible' : ''}`}>
-            <div className="admin-scroll__chapter-num">01</div>
-            <h1 className="admin-scroll__hero-title">
-              DISTRICT<br /><span className="accent">OVER</span>VIEW
-            </h1>
-            <p className="admin-scroll__hero-date">{today}</p>
-            <p className="admin-scroll__subtitle" style={{ marginTop: '1.5rem' }}>
-              A comprehensive look at the DR screening program across all Primary Health Centres in your district.
-            </p>
+        {/* ── Chapter 01: OVERVIEW ── */}
+        <Card side="left" cardRef={setCard(0)}>
+          <div className="admin-scroll__eyebrow">District Report</div>
+          <SplitTitle
+            as="h1"
+            className="admin-scroll__title admin-scroll__hero-title"
+            visible={visibleChapters.has(0)}
+            lines={['DISTRICT', <><span className="accent">OVER</span>VIEW</>]}
+          />
+          <p className="admin-scroll__hero-date">{today}</p>
+          <p className="admin-scroll__subtitle" style={{ marginTop: '1.5rem' }}>
+            A comprehensive look at the DR screening program across all Primary Health Centres in your district.
+          </p>
+          <div className="admin-scroll__cue" aria-hidden="true">
+            <span className="admin-scroll__cue-rail"><span /></span>
+            SCROLL
           </div>
-          <div className="admin-scroll__watermark admin-scroll__watermark--right">EYE</div>
-        </section>
+        </Card>
 
         {/* ── Chapter 02: SCREENING IMPACT ── */}
-        <section
-          className="admin-scroll__chapter"
-          ref={el => chapterRefs.current[1] = el}
-        >
-          <div className={`admin-scroll__panel admin-scroll__panel--left ${visibleChapters.has(1) ? 'admin-scroll__panel--visible' : ''}`}>
-            <div className="admin-scroll__chapter-num">02 — SCREENING IMPACT</div>
-            <h2 className="admin-scroll__title">Cases<br />Processed</h2>
-            <p className="admin-scroll__subtitle">
-              Real-time screening throughput across all connected PHCs.
-            </p>
-            <div className="admin-scroll__stats admin-scroll__stats--col">
-              <StatCard label="CASES TODAY" value={stats.casesToday} delta="+12% from yesterday" deltaDir="up" visible={visibleChapters.has(1)} />
-              <StatCard label="THIS WEEK" value={stats.thisWeek} delta="+8% WoW" deltaDir="up" visible={visibleChapters.has(1)} />
-              <StatCard label="TOTAL PROCESSED" value={stats.totalProcessed} visible={visibleChapters.has(1)} />
-              <StatCard label="AVG REVIEW TIME" value={stats.avgReviewTime} suffix="s" delta="-3s from last week" deltaDir="up" visible={visibleChapters.has(1)} />
-            </div>
+        <Card side="left" cardRef={setCard(1)}>
+          <div className="admin-scroll__eyebrow">Screening Impact</div>
+          <SplitTitle lines={['Cases', 'Processed']} visible={visibleChapters.has(1)} />
+          <p className="admin-scroll__subtitle">
+            Real-time screening throughput across all connected PHCs.
+          </p>
+          <div className="admin-scroll__stats admin-scroll__stats--col">
+            <StatCard index={0} label="CASES TODAY" value={stats.casesToday} delta="+12% from yesterday" deltaDir="up" visible={visibleChapters.has(1)} />
+            <StatCard index={1} label="THIS WEEK" value={stats.thisWeek} delta="+8% WoW" deltaDir="up" visible={visibleChapters.has(1)} />
+            <StatCard index={2} label="TOTAL PROCESSED" value={stats.totalProcessed} visible={visibleChapters.has(1)} />
+            <StatCard index={3} label="AVG REVIEW TIME" value={stats.avgReviewTime} suffix="s" delta="-3s from last week" deltaDir="up" visible={visibleChapters.has(1)} />
           </div>
-          <div className="admin-scroll__watermark admin-scroll__watermark--right">42</div>
-        </section>
+        </Card>
 
         {/* ── Chapter 03: AI PERFORMANCE ── */}
-        <section
-          className="admin-scroll__chapter"
-          ref={el => chapterRefs.current[2] = el}
-        >
-          <div className={`admin-scroll__panel admin-scroll__panel--right ${visibleChapters.has(2) ? 'admin-scroll__panel--visible' : ''}`}>
-            <div className="admin-scroll__chapter-num">03 — AI PERFORMANCE</div>
-            <h2 className="admin-scroll__title">Model<br />Accuracy</h2>
-            <p className="admin-scroll__subtitle">
-              Deep learning model diagnostics and confidence metrics for the CNN grading engine.
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <ProgressRing value={stats.modelAccuracy} visible={visibleChapters.has(2)} label="MODEL ACCURACY" />
-              <ProgressRing value={100 - stats.overrideRate} visible={visibleChapters.has(2)} label="AGREEMENT RATE" />
-              <ProgressRing value={stats.avgConfidence} visible={visibleChapters.has(2)} label="AVG CONFIDENCE" />
-            </div>
+        <Card side="right" cardRef={setCard(2)}>
+          <div className="admin-scroll__eyebrow">AI Performance</div>
+          <SplitTitle lines={['Model', 'Accuracy']} visible={visibleChapters.has(2)} />
+          <p className="admin-scroll__subtitle">
+            Deep learning model diagnostics and confidence metrics for the CNN grading engine.
+          </p>
+          <div className="admin-scroll__rings">
+            <ProgressRing index={0} value={stats.modelAccuracy} visible={visibleChapters.has(2)} label="MODEL ACCURACY" />
+            <ProgressRing index={1} value={100 - stats.overrideRate} visible={visibleChapters.has(2)} label="AGREEMENT RATE" />
+            <ProgressRing index={2} value={stats.avgConfidence} visible={visibleChapters.has(2)} label="AVG CONFIDENCE" />
           </div>
-          <div className="admin-scroll__watermark admin-scroll__watermark--left">94.6</div>
-        </section>
+        </Card>
 
         {/* ── Chapter 04: PHC NETWORK ── */}
-        <section
-          className="admin-scroll__chapter"
-          ref={el => chapterRefs.current[3] = el}
-        >
-          <div className={`admin-scroll__panel admin-scroll__panel--left ${visibleChapters.has(3) ? 'admin-scroll__panel--visible' : ''}`}>
-            <div className="admin-scroll__chapter-num">04 — PHC NETWORK</div>
-            <h2 className="admin-scroll__title">Health<br />Centres</h2>
-            <p className="admin-scroll__subtitle">
-              Per-centre case distribution and screening workload.
-            </p>
-            <div className="admin-scroll__phc-grid">
-              {phcs.map((phc, i) => (
-                <div
-                  key={phc.phcName}
-                  className={`admin-scroll__phc ${visibleChapters.has(3) ? 'admin-scroll__phc--visible' : ''}`}
-                  style={{ transitionDelay: `${i * 0.12}s` }}
-                >
-                  <div className="admin-scroll__phc-name">{phc.phcName.replace('PHC ', '')}</div>
-                  <div className="admin-scroll__phc-count">{phc.count}</div>
-                  <div className="admin-scroll__phc-bar">
-                    <div
-                      className="admin-scroll__phc-bar-fill"
-                      style={{ '--bar-width': `${(phc.count / maxPhcCount) * 100}%` }}
-                    />
-                  </div>
+        <Card side="left" cardRef={setCard(3)}>
+          <div className="admin-scroll__eyebrow">PHC Network</div>
+          <SplitTitle lines={['Health', 'Centres']} visible={visibleChapters.has(3)} />
+          <p className="admin-scroll__subtitle">
+            Per-centre case distribution and screening workload.
+          </p>
+          <div className="admin-scroll__phc-grid">
+            {phcs.map((phc, i) => (
+              <div
+                key={phc.phcName}
+                className={`admin-scroll__phc ${visibleChapters.has(3) ? 'admin-scroll__phc--visible' : ''}`}
+                style={{ '--i': i }}
+              >
+                <div className="admin-scroll__phc-name">{phc.phcName.replace('PHC ', '')}</div>
+                <div className="admin-scroll__phc-count">{phc.count}</div>
+                <div className="admin-scroll__phc-bar">
+                  <div
+                    className="admin-scroll__phc-bar-fill"
+                    style={{ '--bar-width': `${(phc.count / maxPhcCount) * 100}%` }}
+                  />
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-        </section>
+        </Card>
 
         {/* ── Chapter 05: REFERRAL PIPELINE ── */}
-        <section
-          className="admin-scroll__chapter"
-          ref={el => chapterRefs.current[4] = el}
-        >
-          <div className={`admin-scroll__panel admin-scroll__panel--right ${visibleChapters.has(4) ? 'admin-scroll__panel--visible' : ''}`}>
-            <div className="admin-scroll__chapter-num">05 — REFERRAL PIPELINE</div>
-            <h2 className="admin-scroll__title">Referral<br />Funnel</h2>
-            <p className="admin-scroll__subtitle">
-              Patient journey from AI screening to specialist confirmation and treatment.
-            </p>
-            <div className="admin-scroll__funnel">
-              {[
-                { label: 'SCREENED', value: 1284, width: '100%' },
-                { label: 'REFERRED', value: 312, width: '24%' },
-                { label: 'CONFIRMED', value: 287, width: '22%' },
-                { label: 'TREATED', value: 198, width: '15%' },
-              ].map((step, i) => (
-                <div
-                  key={step.label}
-                  className={`admin-scroll__funnel-step ${visibleChapters.has(4) ? 'admin-scroll__funnel-step--visible' : ''}`}
-                  style={{ transitionDelay: `${i * 0.15}s` }}
-                >
-                  <div className="admin-scroll__funnel-label">{step.label}</div>
-                  <div className="admin-scroll__funnel-bar" style={{ '--funnel-width': step.width }}>
-                    <span className="admin-scroll__funnel-bar-val">{step.value.toLocaleString()}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="admin-scroll__watermark admin-scroll__watermark--left">DR</div>
-        </section>
-
-        {/* ── Chapter 06: CTA ── */}
-        <section
-          className="admin-scroll__chapter"
-          ref={el => chapterRefs.current[5] = el}
-          style={{ justifyContent: 'center' }}
-        >
-          <div className={`admin-scroll__panel admin-scroll__panel--center ${visibleChapters.has(5) ? 'admin-scroll__panel--visible' : ''}`}>
-            <div className="admin-scroll__chapter-num" style={{ justifyContent: 'center' }}>06 — ENTER</div>
-            <h2 className="admin-scroll__title" style={{ textAlign: 'center' }}>
-              Proceed to<br /><span style={{ color: 'var(--c-crimson)' }}>Full Dashboard</span>
-            </h2>
-            <p className="admin-scroll__subtitle" style={{ textAlign: 'center' }}>
-              Access detailed charts, case tables, grade breakdowns, and PHC comparisons.
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2rem' }}>
-              <button
-                className="admin-scroll__cta"
-                onClick={() => navigate('/admin/dashboard/detailed')}
+        <Card side="right" cardRef={setCard(4)}>
+          <div className="admin-scroll__eyebrow">Referral Pipeline</div>
+          <SplitTitle lines={['Referral', 'Funnel']} visible={visibleChapters.has(4)} />
+          <p className="admin-scroll__subtitle">
+            Patient journey from AI screening to specialist confirmation and treatment.
+          </p>
+          <div className="admin-scroll__funnel">
+            {[
+              { label: 'SCREENED', value: 1284, width: '100%' },
+              { label: 'REFERRED', value: 312, width: '24%' },
+              { label: 'CONFIRMED', value: 287, width: '22%' },
+              { label: 'TREATED', value: 198, width: '15%' },
+            ].map((step, i) => (
+              <div
+                key={step.label}
+                className={`admin-scroll__funnel-step ${visibleChapters.has(4) ? 'admin-scroll__funnel-step--visible' : ''}`}
+                style={{ '--i': i }}
               >
-                OPEN FULL DASHBOARD
-                <span className="admin-scroll__cta-arrow">→</span>
-              </button>
-            </div>
+                <div className="admin-scroll__funnel-label">{step.label}</div>
+                <div className="admin-scroll__funnel-bar" style={{ '--funnel-width': step.width }}>
+                  <span className="admin-scroll__funnel-bar-val">{step.value.toLocaleString()}</span>
+                </div>
+              </div>
+            ))}
           </div>
-        </section>
+        </Card>
+      </div>
 
+      {/* ═══ SCROLL TRACK — height only; it is what the story plays along ═══ */}
+      <div className="admin-scroll__track" aria-hidden="true">
+        {CHAPTERS.map((ch) => (
+          <div className="admin-scroll__chapter" key={ch.id} />
+        ))}
+      </div>
+
+      {/* ═══ TELEMETRY FOOT ═══ */}
+      <div className="admin-scroll__telemetry" aria-hidden="true">
+        <div className="admin-scroll__telemetry-bar"><span /></div>
+        <div className="admin-scroll__telemetry-row">
+          <span className="admin-scroll__telemetry-chapter">
+            {active.label.toUpperCase()}
+          </span>
+          <span className="admin-scroll__telemetry-items">
+            {telemetry.map((item) => (
+              <span key={item.k} className="admin-scroll__telemetry-item">
+                {item.k}<b>{item.v}</b>
+              </span>
+            ))}
+          </span>
+          <span className="admin-scroll__telemetry-live">LIVE</span>
+        </div>
       </div>
     </div>
   );
