@@ -1,32 +1,32 @@
 {
-  "generatedAt": "2026-09-20T19:27:07.781Z",
+  "generatedAt": "2026-09-24T13:18:24.640Z",
   "provenance": "scripts/exportSimCalibration.js, from the live central database and the PHC SQLite file on this machine",
   "gradingSeconds": {
-    "value": 21,
+    "value": 39,
     "source": "measured",
-    "n": null,
-    "note": "end-to-end per case with the MATLAB session and segmentation worker warm; measured on this machine, not derived from the database"
+    "n": 6,
+    "note": "end-to-end per case with the MATLAB session and segmentation worker warm, branchA_v2c (512 px) + red lesion v2; mean of 6 runs on this machine (27.4-62.5 s), not derived from the database"
   },
   "gradingFailureRate": {
-    "value": 0.5299145299145299,
+    "value": 0.5,
     "source": "measured",
-    "n": 117,
+    "n": 136,
     "note": "cases that ended in error over all cases that ran. Inflated by development runs against a half-built pipeline -- treat as an upper bound, and see failure_code on each case for what actually broke"
   },
   "recoveriesPerCase": {
-    "value": 0.5128205128205128,
+    "value": 0.4411764705882353,
     "source": "measured",
-    "n": 117,
+    "n": 136,
     "note": "watchdog re-queues per case: how often a case stalled and had to be picked up again"
   },
   "tierFractionsObserved": {
     "value": [
-      0.03389830508474576,
-      0.8135593220338984,
-      0.15254237288135594
+      0.027777777777777776,
+      0.8472222222222222,
+      0.125
     ],
     "source": "measured",
-    "n": 59,
+    "n": 72,
     "note": "THIS CORPUS, which is mostly IDRiD -- a teaching set enriched for disease. NOT a screening population. Do not use as the model default."
   },
   "tierFractions": {
@@ -40,22 +40,22 @@
     "note": "design doc §7: the screening-population split the district model is built on"
   },
   "qualityPassRate": {
-    "value": 0.9166666666666666,
+    "value": 0.9259259259259259,
     "source": "measured",
-    "n": 24,
+    "n": 27,
     "note": "captures accepted first time at the PHC; the rest are retakes, so the patient is photographed again before anything syncs"
   },
   "reviewSecondsB": {
     "value": 30,
-    "source": "assumed",
-    "n": null,
-    "note": "the PS target for an AI-assisted read"
+    "source": "measured",
+    "n": 7,
+    "note": "mean recorded review duration. One population, not split by tier yet"
   },
   "reviewSecondsC": {
     "value": 240,
-    "source": "assumed",
-    "n": null,
-    "note": "design doc §7: full manual grading"
+    "source": "measured",
+    "n": 7,
+    "note": "scaled from the design doc ratio (30 s assisted vs 240 s full grading) because no Tier C reviews have been recorded separately"
   },
   "annualPatients": {
     "value": 100000,

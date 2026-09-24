@@ -83,9 +83,21 @@ async function main() {
   const recov = await pool.query('SELECT count(*)::int n FROM grading_recoveries');
 
   const totalRun = graded.rows[0].n + failed.rows[0].n;
-  out.gradingSeconds = measured(21, null,
-    'end-to-end per case with the MATLAB session and segmentation worker warm; '
-    + 'measured on this machine, not derived from the database');
+  // 21 s was measured against branchA_v1 at 384 px. The classifier moved to
+  // branchA_v2c at 512 px on 2026-09-23 and the red-lesion model to v2, and
+  // six end-to-end runs that day took 27.4, 31.7, 31.9, 33.9, 47.9 and 62.5 s
+  // -- mean ~39 s. Left as a hardcoded figure because it is a WALL-CLOCK
+  // measurement of this machine, which the database cannot supply: cases are
+  // timestamped at grading completion, not at start, so a duration derived
+  // from the rows would silently include queue waiting time.
+  //
+  // RE-MEASURE THIS whenever the model versions change. A district model fed a
+  // per-case service time from the previous classifier understates every queue
+  // in it, and nothing about the output looks wrong when it does.
+  out.gradingSeconds = measured(39, 6,
+    'end-to-end per case with the MATLAB session and segmentation worker warm, '
+    + 'branchA_v2c (512 px) + red lesion v2; mean of 6 runs on this machine '
+    + '(27.4-62.5 s), not derived from the database');
   out.gradingFailureRate = measured(
     totalRun ? failed.rows[0].n / totalRun : 0, totalRun,
     'cases that ended in error over all cases that ran. Inflated by development '
