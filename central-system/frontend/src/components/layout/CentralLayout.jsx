@@ -32,7 +32,7 @@ export const CentralLayout = ({ role, userProfile, onUpdateProfile, onLogout }) 
       </div>
       <CentralHeader role={role} userProfile={userProfile} onUpdateProfile={onUpdateProfile} onLogout={onLogout} />
       <main className="app-main">
-        <Outlet />
+        <Outlet context={{ role, userProfile, onUpdateProfile, onLogout }} />
       </main>
     </div>
   );

@@ -14,9 +14,8 @@
     "logout": "Log out"
   },
   "login": {
-    "title": "RETINAL✦DIAGNOSTICS",
-    "subtitle": "PRIMARY HEALTH CENTRE MODULE · LOCAL QUALITY GATE",
-    "version": "NETRA SETU PLATFORM v1.0 · PHC KHARADI",
+    "title": "NETRASETU",
+    "subtitle": "EXPLAINABLE AI FOR DIABETIC RETINOPATHY",
     "selectRole": "SELECT OPERATOR PROFILE TO PROCEED",
     "roles": {
       "technician": {

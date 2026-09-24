@@ -74,19 +74,11 @@ export const LoginScreen = ({ onLogin }) => {
             </svg>
           </div>
 
-          <h1 className="t-display" style={{ textAlign: 'center', marginBottom: 'var(--sp-2)', fontSize: '2.4rem' }}>
-            {t('login.title', 'RETINAL✦DIAGNOSTICS').split('✦').map((part, i) => (
-              <React.Fragment key={i}>
-                {part}
-                {i === 0 && <span className="login-hero__star">✦</span>}
-              </React.Fragment>
-            ))}
+          <h1 className="login-brand__title">
+            NETRA<span className="login-brand__accent">SETU</span>
           </h1>
-          <p className="t-mono" style={{ textAlign: 'center', opacity: 0.85, fontSize: 'var(--fs-small)', marginBottom: 'var(--sp-1)' }}>
-            {t('login.subtitle', 'PRIMARY HEALTH CENTRE MODULE · LOCAL QUALITY GATE')}
-          </p>
-          <p className="t-label" style={{ textAlign: 'center', opacity: 0.6 }}>
-            {t('login.version', 'NETRA SETU PLATFORM v1.0 · PHC KHARADI')}
+          <p className="login-brand__tagline">
+            {t('login.subtitle', 'EXPLAINABLE AI FOR DIABETIC RETINOPATHY')}
           </p>
         </div>
 
