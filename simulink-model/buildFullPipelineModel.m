@@ -299,7 +299,11 @@ qg = [m '/Quality Gate'];
 add_block('sldelib/Entity Server', qg);
 set_param(qg, ...
     'Capacity',          num2str(p.numPhcs), ...   % one camera per PHC
-    'NumberEntitiesInBlock', 'on');
+    ... % NumberEntitiesInBlock was on and nothing read it -- no dashboard
+    ... % widget binds to this block -- so it only added a loose statistic
+    ... % port to the diagram. Off, rather than terminated: an unused output
+    ... % is better not created than created and hidden.
+    'NumberEntitiesInBlock', 'off');
 
 % ── THE RETAKE LOOP, WITHOUT A LOOP ────────────────────────────────────────
 % A failed capture means the patient sits again at the SAME camera, so the
@@ -413,8 +417,11 @@ add_block('sldelib/Entity Output Switch', [m '/Tier Triage'], ...
 add_block('sldelib/Entity Terminator', [m '/Tier A Auto-Cleared']);
 set_param([m '/Tier A Auto-Cleared'], 'NumberEntitiesArrived', 'on');
 
+% Two tier inputs (B and C) PLUS one return path per reviewer for preempted
+% cases -- see the preemption note where the reviewers are wired.
 add_block('sldelib/Entity Input Switch', [m '/Review Merge'], ...
-    'NumberInputPorts', '2', 'ActivePortSelection', 'All');
+    'NumberInputPorts', num2str(2 + p.numOphthalmologists), ...
+    'ActivePortSelection', 'All');
 
 add_block('sldelib/Entity Queue', [m '/Review Queue'], ...
     'Capacity', '5000', 'QueueType', 'Priority', ...
@@ -497,7 +504,9 @@ c('Grading Time/1', 'Grading Server/1');   % service-time signal
 c('IAT/1', 'Patient Arrivals/1');
 c('Patient Arrivals/1', 'Capture Queue/1');
 c('Capture Queue/1', 'Quality Gate/1');
-c('Quality Gate/2', 'Quality Verdict/1');
+% Port 1, not 2: turning NumberEntitiesInBlock off above removed the
+% statistic port that used to sit ahead of the entity output.
+c('Quality Gate/1', 'Quality Verdict/1');
 c('Quality Verdict/1', 'Sync Queue/1');            % usable image
 c('Quality Verdict/2', 'Abandoned Captures/1');    % still unusable after 3 retakes
 
@@ -526,6 +535,28 @@ c('Review Dispatch/1', 'Reviewer 1/2');    % entity
 c('Review Dispatch/2', 'Reviewer 2/2');
 c('Reviewer 1/2', 'Reviewer Merge/1');
 c('Reviewer 2/2', 'Reviewer Merge/2');
+
+% ── THE PREEMPTED CASE HAS TO GO SOMEWHERE ────────────────────────────────
+% PermitPreemptionBasedOnAttribute gives each server a THIRD output carrying
+% the entity that was thrown out of service, and it was connected to nothing.
+% A Tier C case displacing an in-service Tier B therefore destroyed that Tier
+% B: the patient left the simulation ungraded, and the counters simply showed
+% fewer reviews rather than anything resembling an error.
+%
+% It hid because preemption barely fires at the utilisations this model runs
+% at (12-38%), so the cross-check against referenceQueueingModel still agreed
+% -- the two only diverge once the reviewer pool saturates, which is exactly
+% what sweepDistrictScenarios explores. The reference model has always
+% re-queued the preempted case with its remaining work; now this one does too.
+%
+% Back to Review Merge, not straight to a reviewer: it re-enters the priority
+% queue and competes on prio like anything else, and `residual` already
+% carries what was left of its service so it resumes rather than restarts.
+% Written out rather than looped: connectAll has no access to p, and the two
+% reviewer entity outputs above are hardcoded the same way. Both lists must
+% grow together if numOphthalmologists ever changes.
+c('Reviewer 1/3', 'Review Merge/3');
+c('Reviewer 2/3', 'Review Merge/4');
 c('Reviewer Merge/1', 'Referral Decision/1');
 c('Referral Decision/1', 'Referred + SMS/1');
 c('Referral Decision/2', 'Cleared by Reviewer/1');
