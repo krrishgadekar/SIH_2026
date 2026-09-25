@@ -1,4 +1,4 @@
-import React, { useState, Component } from 'react';
+import React, { useState, useEffect, Component } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { EyeJourneyLogin } from './components/screens/EyeJourneyLogin';
 import { CentralLayout } from './components/layout/CentralLayout';
@@ -9,6 +9,8 @@ import { AdminScrollDashboard } from './components/screens/AdminScrollDashboard'
 import { ReferralTrackerPage } from './components/screens/ReferralTrackerPage';
 import { PhcHealthPage } from './components/screens/PhcHealthPage';
 import { ResourceRecommendationsPanel } from './components/screens/ResourceRecommendationsPanel';
+import { CentralProfilePage } from './components/screens/CentralProfilePage';
+import { CentralSettingsPage } from './components/settings/CentralSettingsPage';
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -60,13 +62,37 @@ const RoleRouter = () => {
       phone: '+91 98230 44821',
       location: isDoc ? 'District Civil Hospital, Pune' : 'Pune District Health Office',
       email: 'krrishgadekar@gmail.com',
-      designation: isDoc ? 'Chief Retina Specialist / Lead Ophthalmologist' : 'District Health Officer (DHO)',
-      officerId: 'DHO-MH-PUN-042',
-      district: 'Pune District (Rural & Peri-Urban Zone)',
+      designation: isDoc ? 'Chief Retina Specialist / Lead Ophthalmologist' : 'District Health Worker (DHW)',
+      officerId: isDoc ? 'MCI-MH-2018-89421' : 'DHW-MH-PUN-042',
+      district: isDoc ? 'District Civil Hospital & Regional Tele-Ophthalmology Centre, Pune' : 'Pune District (Rural & Peri-Urban Zone)',
       role: currentRole
     };
   });
   const navigate = useNavigate();
+
+  // Initialize theme, text size (--fs), and high contrast on startup
+  useEffect(() => {
+    // 1. Dark mode from contrast setting
+    const savedContrast = localStorage.getItem('netrasetu_contrast');
+    if (savedContrast === 'dark') {
+      document.documentElement.setAttribute('data-contrast', 'dark');
+    }
+
+    // 2. Settings text size (--fs) and high contrast
+    try {
+      const savedSettings = localStorage.getItem('netrasetu_settings');
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings);
+        if (parsed.textSize) {
+          const sizeMap = { Small: '12px', Normal: '14px', Large: '16px' };
+          document.documentElement.style.setProperty('--fs', sizeMap[parsed.textSize] || '14px');
+        }
+        if (parsed.highContrast) {
+          document.documentElement.classList.add('high-contrast-mode');
+        }
+      }
+    } catch (e) {}
+  }, []);
 
   const handleLogin = (selectedRole, username) => {
     localStorage.setItem('netra_user_role', selectedRole);
@@ -84,9 +110,9 @@ const RoleRouter = () => {
       phone: '+91 98230 44821',
       location: isDoc ? 'District Civil Hospital, Pune' : 'Pune District Health Office',
       email: 'krrishgadekar@gmail.com',
-      designation: isDoc ? 'Chief Retina Specialist / Lead Ophthalmologist' : 'District Health Officer (DHO)',
-      officerId: 'DHO-MH-PUN-042',
-      district: 'Pune District (Rural & Peri-Urban Zone)',
+      designation: isDoc ? 'Chief Retina Specialist / Lead Ophthalmologist' : 'District Health Worker (DHW)',
+      officerId: isDoc ? 'MCI-MH-2018-89421' : 'DHW-MH-PUN-042',
+      district: isDoc ? 'District Civil Hospital & Regional Tele-Ophthalmology Centre, Pune' : 'Pune District (Rural & Peri-Urban Zone)',
       role: selectedRole
     };
     localStorage.setItem('netra_user_profile', JSON.stringify(profile));
@@ -121,6 +147,8 @@ const RoleRouter = () => {
         <Route index element={<Navigate to="queue" replace />} />
         <Route path="queue" element={<ReviewQueuePage />} />
         <Route path="case/:caseId" element={<CaseDetailPage />} />
+        <Route path="profile" element={<CentralProfilePage />} />
+        <Route path="settings" element={<CentralSettingsPage />} />
       </Route>
 
       {/* Admin Routes */}
@@ -133,6 +161,8 @@ const RoleRouter = () => {
         <Route path="referrals" element={<ReferralTrackerPage />} />
         <Route path="phc-health" element={<PhcHealthPage />} />
         <Route path="resources" element={<ResourceRecommendationsPanel />} />
+        <Route path="profile" element={<CentralProfilePage />} />
+        <Route path="settings" element={<CentralSettingsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

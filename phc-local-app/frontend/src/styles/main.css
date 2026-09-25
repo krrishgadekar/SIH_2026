@@ -4479,6 +4479,45 @@ body {
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
+.login-brand__title {
+  margin: 0 0 var(--sp-2) 0;
+  font-family: 'Instrument Serif', 'Playfair Display', Georgia, serif;
+  font-size: clamp(2.8rem, 6vw, 4.4rem);
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-align: center;
+  color: var(--c-text);
+  text-transform: uppercase;
+}
+
+.login-brand__accent {
+  color: var(--c-crimson);
+}
+
+.login-brand__tagline {
+  margin: 0 auto;
+  font-family: var(--f-mono, 'JetBrains Mono', monospace);
+  font-size: clamp(9px, 0.85vw, 11px);
+  font-weight: 400;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--c-crimson);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.login-brand__tagline::before,
+.login-brand__tagline::after {
+  content: '';
+  width: clamp(24px, 6vw, 64px);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--c-crimson), transparent);
+}
+
 .login-roles {
   animation: fade-in-up var(--duration-slow) var(--ease-out) 0.2s both;
 }

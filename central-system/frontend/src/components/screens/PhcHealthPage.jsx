@@ -272,7 +272,7 @@ export const PhcHealthPage = () => {
       {/* Page Header */}
       <div className="u-flex u-items-center u-justify-between u-mb-6">
         <div>
-          <p className="section__subtitle">{t('central.phcHealth.subtitle', 'DISTRICT ADMIN')}</p>
+          <p className="section__subtitle">{t('central.phcHealth.subtitle', 'DISTRICT WORKER')}</p>
           <h1 className="section__title" style={{ marginBottom: 0 }}>{t('central.phcHealth.title', 'PHC HEALTH')}</h1>
         </div>
         {/* Interactive filter badges */}

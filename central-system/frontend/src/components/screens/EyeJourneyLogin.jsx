@@ -57,7 +57,7 @@ export const EyeJourneyLogin = ({ onLogin }) => {
     },
     {
       id: 'admin',
-      title: t('central.login.roles.admin.title', 'DISTRICT ADMIN'),
+      title: t('central.login.roles.admin.title', 'DISTRICT WORKER'),
       subtitle: t('central.login.roles.admin.subtitle', 'Analytics & Oversight'),
       description: t('central.login.roles.admin.desc', 'Monitor PHC performance, track referrals, view screening analytics, and manage district-wide operations.'),
       icon: '⬡',
@@ -419,7 +419,7 @@ export const EyeJourneyLogin = ({ onLogin }) => {
   // --- Auth UI ---
   const renderAuthCard = (role) => {
     const isAdmin = role === 'admin';
-    const roleLabel = isAdmin ? t('central.login.roles.admin.title', 'DISTRICT ADMIN') : t('central.login.roles.ophthalmologist.title', 'OPHTHALMOLOGIST');
+    const roleLabel = isAdmin ? t('central.login.roles.admin.title', 'DISTRICT WORKER') : t('central.login.roles.ophthalmologist.title', 'OPHTHALMOLOGIST');
     const username = isAdmin ? adminUsername : ophthUsername;
     const setUsername = isAdmin ? setAdminUsername : setOphthUsername;
     const password = isAdmin ? adminPassword : ophthPassword;

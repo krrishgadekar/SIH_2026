@@ -139,13 +139,21 @@ export const ReviewQueuePage = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [showInfoModal, setShowInfoModal] = useState(false);
-  // Default is newest-first (by capture time), NOT clinical priority. This is
-  // deliberate: under demo/presentation pressure "find the case I just
-  // submitted" matters more than the priority ranking a real ophthalmologist
-  // would want by default. Clicking the "#" (priority) column header still
-  // re-sorts by the original urgency ranking — that ordering isn't removed,
-  // just no longer the default.
-  const [sortConfig, setSortConfig] = useState({ key: 'capturedAt', direction: 'desc' });
+  // Respect user settings for initial default sort & compact table view
+  const [sortConfig, setSortConfig] = useState(() => {
+    try {
+      const saved = localStorage.getItem('netrasetu_settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.sortListsBy === 'Urgency') return { key: 'urgencyScore', direction: 'desc' };
+        if (parsed.sortListsBy === 'Date') return { key: 'capturedAt', direction: 'desc' };
+        if (parsed.sortListsBy === 'PHC') return { key: 'phc_name', direction: 'asc' };
+      }
+    } catch (e) {}
+    return { key: 'capturedAt', direction: 'desc' };
+  });
+
+  const isCompact = localStorage.getItem('netrasetu_compact_table') === 'true';
   const [now, setNow] = useState(() => Date.now());
   const navigate = useNavigate();
 
@@ -439,7 +447,7 @@ export const ReviewQueuePage = () => {
 
       {/* Queue Table */}
       <div className="table-wrapper">
-        <table className="table">
+        <table className={`table ${isCompact ? 'table--compact' : ''}`}>
           <thead>
             <tr>
               <SortHeader width="40px" label={t('central.queue.table.colPriority', '#')} sortKey="priorityRank" currentSort={sortConfig} onRequestSort={requestSort} />
