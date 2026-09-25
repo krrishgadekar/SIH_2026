@@ -8,12 +8,11 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Routes } from '../navigation/routes';
 import { useScreening } from '../context/ScreeningContext';
-import SeverityCard from '../components/SeverityCard';
-import RecommendationCard from '../components/RecommendationCard';
-import DisclaimerBanner from '../components/DisclaimerBanner';
 import HumanInTheLoopStatus from '../components/HumanInTheLoopStatus';
+import DisclaimerBanner from '../components/DisclaimerBanner';
+import StatusBadge from '../components/StatusBadge';
+import { getSeverityDisplay, getPriorityColour } from '../utils/severityHelpers';
 import { Colors, Typography, Spacing, Shadows, TouchTarget, Animations } from '../theme';
-import { formatDateTime } from '../utils/dateHelpers';
 
 export default function ResultScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
@@ -46,14 +45,23 @@ export default function ResultScreen() {
     );
   }
 
-  const handleViewDetails = () => {
-    navigation.navigate(Routes.Explainability);
-  };
+  // Derive display values from CentralCaseDetail
+  const drGrade    = result.drGradeCnn ?? result.drGradeRuleEngine ?? 0;
+  const isReferable = drGrade >= 2;
+  const severity   = getSeverityDisplay(drGrade);
 
-  const handleViewReport = () => {
-    navigation.navigate(Routes.Report);
-  };
+  const priority = isReferable
+    ? (drGrade >= 4 ? 'EMERGENCY' : drGrade >= 3 ? 'URGENT' : 'ROUTINE')
+    : 'ROUTINE';
+  const priorityColour = getPriorityColour(priority);
+  const referralVariant = isReferable ? 'danger' : 'success';
 
+  const confidencePct = result.confidenceScore != null
+    ? `${Math.round(result.confidenceScore * 100)}%`
+    : null;
+
+  const handleViewDetails = () => navigation.navigate(Routes.Explainability);
+  const handleViewReport  = () => navigation.navigate(Routes.Report);
   const handleNewScreening = () => {
     resetSession();
     navigation.navigate('MainTabs');
@@ -65,7 +73,7 @@ export default function ResultScreen() {
         {/* Header */}
         <Animated.View style={[styles.header, { opacity: fadeAnims[0] }]}>
           <Text style={styles.heading}>Screening Result</Text>
-          <Text style={styles.timestamp}>{formatDateTime(result.processedAt)}</Text>
+          <Text style={styles.timestamp}>Case: {result.caseId}</Text>
         </Animated.View>
 
         {/* Patient info strip */}
@@ -82,27 +90,47 @@ export default function ResultScreen() {
           </Animated.View>
         )}
 
-        {/* Feature 5: Human-in-the-Loop Status */}
+        {/* Human-in-the-Loop Status */}
         <Animated.View style={{ opacity: fadeAnims[1] }}>
           <HumanInTheLoopStatus
             currentStage="awaiting_doctor"
-            isReferable={result.referableDR.isReferable}
+            isReferable={isReferable}
           />
         </Animated.View>
 
-        {/* Feature 3: Main severity card with AI Decision Breakdown */}
-        <Animated.View style={{ opacity: fadeAnims[2] }}>
-          <SeverityCard
-            severity={result.severity}
-            referableDR={result.referableDR}
-            confidence={result.confidence}
-            recommendation={result.recommendation}
-          />
+        {/* Severity Card */}
+        <Animated.View style={[styles.severityCard, { opacity: fadeAnims[2] }]}>
+          <View style={[styles.severityBlock, { backgroundColor: severity.backgroundColour }]}>
+            <View style={styles.severityRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.severityGrade, { color: severity.colour }]}>
+                  Grade {drGrade}
+                </Text>
+                <Text style={[styles.severityLabel, { color: severity.colour }]}>
+                  {severity.fullLabel}
+                </Text>
+              </View>
+              <StatusBadge
+                label={isReferable ? 'REFER' : 'NO REFER'}
+                variant={referralVariant}
+                size="md"
+              />
+            </View>
+            {confidencePct && (
+              <Text style={[styles.confidenceText, { color: severity.colour }]}>
+                Confidence: {confidencePct}
+              </Text>
+            )}
+          </View>
+          <Text style={styles.severityDescription}>{severity.whatThisMeans}</Text>
         </Animated.View>
 
         {/* Recommendation */}
         <Animated.View style={[styles.section, { opacity: fadeAnims[3] }]}>
-          <RecommendationCard recommendation={result.recommendation} />
+          <View style={[styles.recommendationCard, { borderLeftColor: priorityColour }]}>
+            <Text style={[styles.priorityLabel, { color: priorityColour }]}>{priority}</Text>
+            <Text style={styles.recommendationText}>{severity.workerAdvice}</Text>
+          </View>
         </Animated.View>
 
         {/* Disclaimer */}
@@ -156,102 +184,82 @@ const styles = StyleSheet.create({
     fontSize: Typography.base, color: Colors.textSecondary, textAlign: 'center', marginBottom: Spacing.lg,
   },
   restartButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 0,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-    borderWidth: 1,
-    borderColor: Colors.primaryDark,
+    backgroundColor: Colors.primary, borderRadius: 0,
+    paddingVertical: Spacing.md, paddingHorizontal: Spacing.xl,
+    borderWidth: 1, borderColor: Colors.primaryDark,
   },
   restartText: {
-    color: Colors.textInverse,
-    fontWeight: Typography.bold,
-    fontSize: Typography.base,
-    letterSpacing: Typography.trackWide,
+    color: Colors.textInverse, fontWeight: Typography.bold,
+    fontSize: Typography.base, letterSpacing: Typography.trackWide,
   },
 
   header: { marginBottom: Spacing.md, marginTop: Spacing.sm },
   heading: {
-    fontSize: Typography['2xl'],
-    fontWeight: Typography.heavy,
-    color: Colors.textPrimary,
+    fontSize: Typography['2xl'], fontWeight: Typography.heavy, color: Colors.textPrimary,
   },
-  timestamp: {
-    fontSize: Typography.sm,
-    color: Colors.textMuted,
-    marginTop: 2,
-  },
+  timestamp: { fontSize: Typography.sm, color: Colors.textMuted, marginTop: 2 },
 
   patientStrip: {
-    flexDirection: 'row',
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.accentGold,
-    borderRadius: 0,
-    marginBottom: Spacing.base,
-    overflow: 'hidden',
+    flexDirection: 'row', backgroundColor: Colors.surface,
+    borderWidth: 1, borderColor: Colors.accentGold, borderRadius: 0,
+    marginBottom: Spacing.base, overflow: 'hidden',
   },
-  patientAccent: {
-    width: 3,
-    backgroundColor: Colors.accentGold,
-  },
+  patientAccent: { width: 3, backgroundColor: Colors.accentGold },
   patientContent: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.base,
-    paddingVertical: Spacing.md,
-    gap: Spacing.md,
-    flexWrap: 'wrap',
+    flex: 1, flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: Spacing.base, paddingVertical: Spacing.md,
+    gap: Spacing.md, flexWrap: 'wrap',
   },
-  patientName: {
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-    color: Colors.textPrimary,
-  },
+  patientName: { fontSize: Typography.md, fontWeight: Typography.bold, color: Colors.textPrimary },
   patientMeta: {
-    fontSize: Typography.sm,
-    color: Colors.textMuted,
-    letterSpacing: Typography.trackWide,
-    fontWeight: Typography.semibold,
+    fontSize: Typography.sm, color: Colors.textMuted,
+    letterSpacing: Typography.trackWide, fontWeight: Typography.semibold,
   },
 
   section: { marginTop: Spacing.base },
 
-  actions: {
-    marginTop: Spacing.xl,
-    gap: Spacing.md,
+  severityCard: {
+    backgroundColor: Colors.surface, borderWidth: 1, borderColor: Colors.border,
+    borderRadius: 0, marginTop: Spacing.base, overflow: 'hidden',
   },
+  severityBlock: { padding: Spacing.base },
+  severityRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginBottom: Spacing.xs },
+  severityGrade: { fontSize: Typography['2xl'], fontWeight: Typography.heavy },
+  severityLabel: { fontSize: Typography.base, fontWeight: Typography.medium, marginTop: 2 },
+  confidenceText: { fontSize: Typography.xs, fontWeight: Typography.semibold, marginTop: Spacing.xs },
+  severityDescription: {
+    fontSize: Typography.sm, color: Colors.textSecondary, lineHeight: 20,
+    padding: Spacing.base,
+  },
+
+  recommendationCard: {
+    backgroundColor: Colors.surface, borderLeftWidth: 4,
+    paddingHorizontal: Spacing.base, paddingVertical: Spacing.md,
+    borderWidth: 1, borderColor: Colors.border,
+    gap: Spacing.xs,
+  },
+  priorityLabel: { fontSize: Typography.xs, fontWeight: Typography.bold, letterSpacing: Typography.trackWide },
+  recommendationText: { fontSize: Typography.base, color: Colors.textPrimary, lineHeight: 22 },
+
+  actions: { marginTop: Spacing.xl, gap: Spacing.md },
   secondaryActionButton: {
-    backgroundColor: Colors.surface,
-    borderRadius: 0,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.base,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.primary,
+    backgroundColor: Colors.surface, borderRadius: 0,
+    paddingVertical: Spacing.md, paddingHorizontal: Spacing.base,
+    alignItems: 'center', borderWidth: 1, borderColor: Colors.primary,
     minHeight: TouchTarget.minHeight,
   },
   secondaryActionText: {
-    fontSize: Typography.sm,
-    color: Colors.primary,
-    fontWeight: Typography.bold,
-    letterSpacing: Typography.trackWide,
+    fontSize: Typography.sm, color: Colors.primary,
+    fontWeight: Typography.bold, letterSpacing: Typography.trackWide,
   },
   newScreeningButton: {
-    backgroundColor: Colors.primary,
-    borderRadius: 0,
-    paddingVertical: Spacing.lg,
-    alignItems: 'center',
-    minHeight: TouchTarget.minHeight,
-    marginTop: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.primaryDark,
+    backgroundColor: Colors.primary, borderRadius: 0,
+    paddingVertical: Spacing.lg, alignItems: 'center',
+    minHeight: TouchTarget.minHeight, marginTop: Spacing.sm,
+    borderWidth: 1, borderColor: Colors.primaryDark,
   },
   newScreeningText: {
-    fontSize: Typography.md,
-    fontWeight: Typography.bold,
-    color: Colors.textInverse,
-    letterSpacing: Typography.trackWide,
+    fontSize: Typography.md, fontWeight: Typography.bold,
+    color: Colors.textInverse, letterSpacing: Typography.trackWide,
   },
 });

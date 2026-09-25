@@ -1,0 +1,118 @@
+{
+  "header": {
+    "title": "NetraSetu",
+    "nav": {
+      "register": "नोंदणी",
+      "capture": "कॅप्चर",
+      "queue": "रांग"
+    },
+    "status": {
+      "online": "ऑनलाइन",
+      "offline": "ऑफलाइन",
+      "pending": "प्रलंबित"
+    }
+  },
+  "registration": {
+    "title": "रुग्ण नोंदणी",
+    "fullName": "पूर्ण नाव",
+    "namePlaceholder": "उदा. सुनीता देवी",
+    "age": "वय",
+    "agePlaceholder": "उदा. 54",
+    "contact": "संपर्क क्रमांक (आवश्यक)",
+    "contactPlaceholder": "+91...",
+    "btnRegistering": "नोंदणी करत आहे...",
+    "btnInitiate": "कॅप्चर सुरू करा ✦",
+    "secureModule": "सुरक्षित ऑफलाइन मॉड्यूल V1.2.0"
+  },
+  "capture": {
+    "title": "इमेज कॅप्चर",
+    "patient": "रुग्ण:",
+    "steps": {
+      "capture": "1. कॅप्चर",
+      "quality": "2. गुणवत्ता तपासणी",
+      "metadata": "3. मेटाडेटा आणि सिंक"
+    },
+    "preview": "लाइव्ह फीड / प्रिव्ह्यू",
+    "statusCaptured": "कॅप्चर केले",
+    "statusReady": "तयार",
+    "clickToInitiate": "कॅप्चर अनुक्रम सुरू करण्यासाठी क्लिक करा",
+    "loadSample": "✦ नमुना रेटिनल स्कॅन लोड करा",
+    "mockScenario": "मॉक टेस्ट परिस्थिती:",
+    "scenarioPass": "पास (ग्रेड 1)",
+    "scenarioBorderline": "बॉर्डरलाइन (ग्रेड 2)",
+    "scenarioRetake": "पुन्हा घ्या (अस्पष्ट)",
+    "btnRetake": "पुन्हा घ्या",
+    "btnAnalyze": "गुणवत्ता तपासणी चालवा ✦",
+    "btnAnalyzing": "विश्लेषण करत आहे... ✦",
+    "instructionsTitle": "सूचना",
+    "instructions": [
+      "रुग्णाचे डोके चिन रेस्टवर संरेखित करा.",
+      "बाहुली फीडमध्ये मध्यभागी येईपर्यंत उंची समायोजित करा.",
+      "खोलीतील प्रकाश पुरेशा प्रमाणात कमी असल्याची खात्री करा.",
+      "रुग्णाला अंतर्गत हिरव्या लक्ष्यावर लक्ष केंद्रित करण्यास सांगा.",
+      "फोकस इंडिकेटर घन झाल्यावर कॅप्चर सुरू करा."
+    ]
+  },
+  "metadata": {
+    "title": "कॅप्चर मेटाडेटा",
+    "eyeScanned": "डोळा स्कॅन केला",
+    "eyeLeft": "डावा (OS)",
+    "eyeRight": "उजवा (OD)",
+    "cameraDevice": "कॅमेरा डिव्हाइस",
+    "pupilDilation": "बाहुलीचे प्रसरण केले",
+    "observedIssues": "आढळलेल्या समस्या (पर्यायी)"
+  },
+  "questionnaire": {
+    "title": "क्लिनिकल प्रश्नावली",
+    "knownDiabetic": "मधुमेह ज्ञात आहे?",
+    "yearsSince": "निदानापासूनची वर्षे",
+    "yearsPlaceholder": "उदा. 5",
+    "bpHistory": "रक्तदाबाचा इतिहास",
+    "bpOptions": {
+      "unknown": "अज्ञात / मोजले नाही",
+      "normal": "सामान्य",
+      "high": "उच्च (उच्च रक्तदाब)",
+      "low": "कमी (कमी रक्तदाब)"
+    },
+    "visionChanges": "अलीकडील दृष्टीतील बदल? (अस्पष्टता, डाग)"
+  },
+  "quality": {
+    "btnQue": "सिंकसाठी रांगेत ठेवा ✦",
+    "passTitle": "गुणवत्ता पास",
+    "passSub": "इमेज डायग्नोस्टिक थ्रेशोल्ड पूर्ण करते",
+    "retakeTitle": "पुन्हा घेणे आवश्यक",
+    "retakeSub": "इमेज स्वीकार्य गुणवत्तेपेक्षा कमी आहे",
+    "borderTitle": "बॉर्डरलाइन गुणवत्ता",
+    "borderSub": "इमेज AI अचूकतेवर परिणाम करू शकते",
+    "score": "गुणवत्ता स्कोअर",
+    "metrics": {
+      "focus": "फोकस",
+      "illumination": "प्रकाश",
+      "contrast": "कॉन्ट्रास्ट",
+      "coverage": "कव्हरेज"
+    },
+    "issues": "आढळलेल्या समस्या",
+    "severityTitle": "AI तीव्रता अंदाज",
+    "grade": "ग्रेड",
+    "confidence": "मॉडेल आत्मविश्वास",
+    "btnBack": "← पुन्हा घ्या",
+    "btnAccept": "स्वीकारा आणि सुरू ठेवा ✦"
+  },
+  "queue": {
+    "title": "स्थानिक रांग",
+    "items": "आयटम",
+    "colId": "आयडी",
+    "colPatient": "रुग्ण",
+    "colCaptured": "कॅप्चर केले",
+    "colStatus": "स्थिती",
+    "colAction": "कृती",
+    "empty": "रांग रिकामी आहे",
+    "statusPass": "गुणवत्ता पास",
+    "statusSynced": "सिंक केले ↗",
+    "statusPending": "AI प्रलंबित",
+    "statusReady": "निकाल तयार ✓",
+    "statusCaptured": "कॅप्चर केले",
+    "btnView": "निकाल पहा",
+    "txtWaiting": "प्रतीक्षा करत आहे..."
+  }
+}

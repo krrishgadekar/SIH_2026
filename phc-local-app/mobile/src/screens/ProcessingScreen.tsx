@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, Animated, Easing, TouchableOpacity,
 } from 'react-native';
@@ -7,21 +7,38 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Routes } from '../navigation/routes';
 import { useScreening } from '../context/ScreeningContext';
-import { uploadImageForScreening, NetworkError, TimeoutError, InvalidImageError } from '../api/client';
+import { useQueue } from '../context/QueueContext';
+import {
+  createCaseSummary,
+  uploadCaseImageSingle,
+  getCaseStatus,
+  getCaseDetail,
+  NetworkError,
+  TimeoutError,
+  InvalidImageError,
+  ServerError,
+} from '../api/client';
+import { generateLocalId } from '../utils/idGenerator';
 import { Colors, Typography, Spacing, Shadows, Animations } from '../theme';
 
 const STEPS = [
-  'Uploading image…',
-  'Analysing image quality…',
-  'Running AI model…',
+  'Registering case…',
+  'Uploading retinal image…',
+  'AI model analysing…',
   'Preparing result…',
 ];
 
+const POLL_INTERVAL_MS = 3000;
+const MAX_POLL_ATTEMPTS = 20; // 60 seconds
+
 export default function ProcessingScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
-  const { state, setResult } = useScreening();
+  const { state, setResult, setCentralCaseId } = useScreening();
+  const { enqueue } = useQueue();
+
   const [currentStepIdx, setCurrentStepIdx] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isQueued, setIsQueued] = useState(false);
 
   // Spinner rotation
   const spinAnim = useRef(new Animated.Value(0)).current;
@@ -54,70 +71,147 @@ export default function ProcessingScreen() {
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: false,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 0,
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-          useNativeDriver: false,
-        }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
+        Animated.timing(pulseAnim, { toValue: 0, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: false }),
       ]),
     ).start();
   }, [pulseAnim]);
 
-  const executeAnalysis = React.useCallback(async () => {
+  const executeAnalysis = useCallback(async () => {
     setErrorMsg(null);
+    setIsQueued(false);
     setCurrentStepIdx(0);
-
-    const stepTimer1 = setTimeout(() => { setCurrentStepIdx(1); }, 1000);
-    const stepTimer2 = setTimeout(() => { setCurrentStepIdx(2); }, 2500);
 
     try {
       if (!state.imageUri) {
         throw new Error('No retinal image found. Please retake the image.');
       }
+      if (!state.patient) {
+        throw new Error('No patient information. Please restart the screening.');
+      }
 
-      const screeningResult = await uploadImageForScreening(
-        state.imageUri,
-        state.imageFilename,
-        state.imageMimeType,
-      );
+      // ── Step 1: POST /cases/summary ────────────────────────────────────
+      setCurrentStepIdx(0);
 
-      clearTimeout(stepTimer1);
-      clearTimeout(stepTimer2);
+      const captureId = state.sessionId;
+      const patientId = state.patient.id ?? generateLocalId();
+
+      const summaryPayload = {
+        caseId: captureId,
+        patientId,
+        patientName: state.patient.name,
+        patientAge: state.patient.age,
+        patientContact: state.patient.contactNumber || '',
+        patientReference: state.patient.referenceId || '',
+        questionnaireData: state.questionnaire,
+        captureMetadata: state.captureMetadata ?? {
+          cameraDeviceReported: 'unknown',
+          pupilStatus: 'unknown',
+          lightingEnvironment: 'indoor_clinic',
+          observedIssues: ['none_noticed'],
+          workerUsabilityRating: 'clear',
+          eyeLaterality: state.eyeLaterality ?? undefined,
+        },
+        eyeLaterality: state.eyeLaterality,
+        capturedAt: new Date().toISOString(),
+      };
+
+      const summaryResp = await createCaseSummary(summaryPayload);
+      const caseId = summaryResp.caseId ?? captureId;
+      setCentralCaseId(caseId);
+
+      // ── Step 2: Upload image ───────────────────────────────────────────
+      setCurrentStepIdx(1);
+
+      const uploadPayload = {
+        caseId,
+        patientId,
+        eyeLaterality: state.eyeLaterality ?? 'unknown',
+      };
+
+      await uploadCaseImageSingle(uploadPayload, state.imageUri);
+
+      // ── Step 3: Poll for status ────────────────────────────────────────
+      setCurrentStepIdx(2);
+
+      let attempts = 0;
+      let graded = false;
+
+      while (attempts < MAX_POLL_ATTEMPTS) {
+        await new Promise((res) => setTimeout(res, POLL_INTERVAL_MS));
+        attempts++;
+
+        const statusResp = await getCaseStatus(caseId);
+        if (statusResp.status === 'graded') {
+          graded = true;
+          break;
+        }
+        if (statusResp.status === 'error') {
+          throw new ServerError(500, `Backend processing failed for case ${caseId}`);
+        }
+      }
+
+      if (!graded) {
+        throw new TimeoutError('Analysis timed out waiting for the AI model. The case has been queued for sync.');
+      }
+
+      // ── Step 4: Fetch full result ──────────────────────────────────────
       setCurrentStepIdx(3);
 
-      setResult(screeningResult);
+      const detail = await getCaseDetail(caseId);
+      setResult(detail);
 
       setTimeout(() => {
         navigation.replace(Routes.Result);
-      }, 800);
-    } catch (err: unknown) {
-      clearTimeout(stepTimer1);
-      clearTimeout(stepTimer2);
+      }, 600);
 
+    } catch (err: unknown) {
       let userMsg = 'Failed to analyze retinal image. Please check your connection and try again.';
-      if (err instanceof TimeoutError) {
-        userMsg = 'Analysis timed out. The server took too long to respond. Please retry.';
-      } else if (err instanceof NetworkError) {
-        userMsg = 'Network connection failed. Please verify your internet or ngrok URL.';
-      } else if (err instanceof InvalidImageError) {
+      let shouldQueue = true;
+
+      if (err instanceof InvalidImageError) {
         userMsg = err.message || 'The uploaded file could not be identified as a valid retinal image.';
+        shouldQueue = false; // image-level error — retake needed, not a retry
+      } else if (err instanceof TimeoutError) {
+        userMsg = 'Analysis timed out. The case has been saved and will auto-sync when the server is available.';
+      } else if (err instanceof NetworkError) {
+        userMsg = 'Network connection failed. The case has been saved and will auto-sync when you are back online.';
+      } else if (err instanceof ServerError && err.statusCode >= 500) {
+        userMsg = 'Server error. The case has been saved and will auto-sync shortly.';
       } else if (err instanceof Error) {
         userMsg = err.message;
+        shouldQueue = false;
       }
+
+      // Enqueue for offline retry if applicable
+      if (shouldQueue && state.patient && state.imageUri) {
+        try {
+          await enqueue({
+            id: state.sessionId,
+            patient: state.patient,
+            imageUri: state.imageUri,
+            eyeLaterality: state.eyeLaterality,
+            questionnaire: state.questionnaire,
+            captureMetadata: state.captureMetadata ?? undefined,
+            qualityGateResult: state.qualityGateResult ?? undefined,
+            centralCaseId: state.centralCaseId ?? undefined,
+            result: null,
+            createdAt: new Date().toISOString(),
+            syncStatus: 'pending',
+          });
+          setIsQueued(true);
+        } catch (queueErr) {
+          console.error('Failed to queue session:', queueErr);
+        }
+      }
+
       setErrorMsg(userMsg);
     }
-  }, [state.imageUri, state.imageFilename, state.imageMimeType, navigation, setResult]);
+  }, [state, navigation, setResult, setCentralCaseId, enqueue]);
 
   useEffect(() => {
     executeAnalysis();
-  }, [executeAnalysis]);
+  }, []); // Run once on mount
 
   const spin = spinAnim.interpolate({
     inputRange: [0, 1],
@@ -139,26 +233,41 @@ export default function ProcessingScreen() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.container}>
           <View style={styles.errorIconBox}>
-            <Text style={styles.errorIcon}>⚠</Text>
+            <Text style={styles.errorIcon}>{isQueued ? '🕐' : '⚠'}</Text>
           </View>
-          <Text style={styles.title}>ANALYSIS FAILED</Text>
+          <Text style={styles.title}>{isQueued ? 'SAVED FOR SYNC' : 'ANALYSIS FAILED'}</Text>
           <Text style={styles.subtitle}>{errorMsg}</Text>
 
-          <TouchableOpacity
-            style={[styles.retryBtn, Shadows.md]}
-            onPress={executeAnalysis}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.retryBtnText}>TRY AGAIN</Text>
-          </TouchableOpacity>
+          {!isQueued && (
+            <TouchableOpacity
+              style={[styles.retryBtn, Shadows.md]}
+              onPress={executeAnalysis}
+              activeOpacity={0.85}
+              id="btn-retry-analysis"
+            >
+              <Text style={styles.retryBtnText}>TRY AGAIN</Text>
+            </TouchableOpacity>
+          )}
 
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => navigation.navigate(Routes.Capture)}
-            activeOpacity={0.75}
-          >
-            <Text style={styles.backBtnText}>RETAKE IMAGE</Text>
-          </TouchableOpacity>
+          {isQueued ? (
+            <TouchableOpacity
+              style={[styles.retryBtn, Shadows.md]}
+              onPress={() => navigation.navigate('MainTabs')}
+              activeOpacity={0.85}
+              id="btn-go-home-queued"
+            >
+              <Text style={styles.retryBtnText}>GO TO HOME</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.backBtn}
+              onPress={() => navigation.navigate(Routes.Capture)}
+              activeOpacity={0.75}
+              id="btn-retake-from-processing"
+            >
+              <Text style={styles.backBtnText}>RETAKE IMAGE</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </SafeAreaView>
     );
@@ -232,7 +341,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  // Scan line
   scanLine: {
     position: 'absolute',
     left: 0,
@@ -242,7 +350,6 @@ const styles = StyleSheet.create({
     opacity: 0.3,
   },
 
-  // Spinner
   spinnerGlow: {
     shadowColor: Colors.primary,
     shadowOffset: { width: 0, height: 0 },
@@ -333,7 +440,6 @@ const styles = StyleSheet.create({
     fontWeight: Typography.bold,
   },
 
-  // Error state
   errorIconBox: {
     width: 64,
     height: 64,

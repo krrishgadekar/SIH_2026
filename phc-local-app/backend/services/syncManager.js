@@ -313,13 +313,18 @@ async function syncOnce() {
   // High priority first (design doc §9.2): referable/uncertain cases go before
   // confident-negative ones when bandwidth is scarce. Oldest first within a
   // priority so a backlog drains in the order it was captured.
+  // Upload ownership (docs/peer-sync-protocol.md): a capture replicated from a
+  // paired phone is uploaded by that phone. This PC takes it over only once
+  // the phone has been silent longer than PEER_TAKEOVER_MS. A double upload
+  // would be harmless (central deduplicates on the capture ID) but wasteful.
+  const { ownsUpload } = require('./peerSync');
   const pending = db.prepare(`
-    SELECT q.queue_id, q.capture_id, q.priority
+    SELECT q.queue_id, q.capture_id, q.priority, q.owner_device
     FROM sync_queue q
     JOIN captures c ON c.capture_id = q.capture_id
     WHERE q.status = 'pending'
     ORDER BY CASE q.priority WHEN 'high' THEN 0 ELSE 1 END, c.captured_at ASC
-  `).all();
+  `).all().filter((r) => ownsUpload(r.owner_device));
 
   let synced = 0, failed = 0;
 
@@ -339,6 +344,7 @@ async function syncOnce() {
       // Task 8.2: chunk the big ones, post the small ones whole.
       const bytes = fs.statSync(bundle.capture.image_path).size;
       let caseId;
+      let status = 'processing';
 
       if (bytes > CHUNK_THRESHOLD) {
         ({ caseId } = await uploadChunked(bundle));
@@ -354,11 +360,16 @@ async function syncOnce() {
           const body = await res.text();
           throw new Error(`central returned ${res.status}: ${body.slice(0, 200)}`);
         }
-        ({ caseId } = await res.json());
+        const body = await res.json();
+        caseId = body.caseId;
+        if (body.status) status = body.status;
       }
 
-      db.prepare("UPDATE sync_queue SET status = 'synced' WHERE queue_id = ?")
-        .run(row.queue_id);
+      // The central case id and status are kept so a paired phone learns this
+      // capture is done (docs/peer-sync-protocol.md) and does not upload it too.
+      db.prepare(`UPDATE sync_queue SET status = 'synced', central_case_id = ?, central_status = ?, updated_at = ?
+                  WHERE queue_id = ?`)
+        .run(caseId ?? null, status, new Date().toISOString(), row.queue_id);
       synced++;
       console.log(`[syncManager] ${row.capture_id} -> case ${caseId}`
         + `${bytes > CHUNK_THRESHOLD ? ` (chunked, ${(bytes / 1048576).toFixed(1)} MB)` : ''}`);

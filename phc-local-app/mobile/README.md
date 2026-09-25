@@ -1,98 +1,65 @@
-# RetinaSaarthi — Mobile Application
+# NetraSetu PHC: Mobile App (Expo)
 
-RetinaSaarthi is a cross-platform React Native / Expo application designed for Primary Health Centre (PHC) health-workers in rural India to screen patients for Diabetic Retinopathy (DR) using fundus photography.
+The mobile version of the desktop PHC app (`phc-local-app/frontend`): the same screens and flow (login → register patient → capture → quality gate → capture metadata → local queue → report), built for a phone and wired to the **central backend**.
 
----
+Design doc: `docs/system-design-v4.md` §4.4. API: `docs/api-contracts.md`.
 
-## 🚀 Quick Start
+## Run
 
-### 1. Prerequisites
-- Node.js (v18 or higher)
-- npm or yarn
-- Expo Go on Android/iOS (or Android Emulator / iOS Simulator)
-
-### 2. Install Dependencies
 ```bash
-cd phc-local-app/mobile
 npm install
+cp .env.example .env        # set EXPO_PUBLIC_CENTRAL_API_URL to the central backend (port 5000)
+npx expo start              # Expo Go, or `npx expo run:android` for a dev build
 ```
 
-### 3. Configure Backend Connection
-Open [`src/config/api.ts`](file:///d:/RetinaSaarthi/Explainable-AI-for-Diabetic-Retinopathy-in-Rural-India/phc-local-app/mobile/src/config/api.ts):
-```ts
-// Set to your FastAPI server IP/hostname
-export const API_BASE_URL = 'http://192.168.1.100:8000';
+The central backend must be running (`central-system/backend`, `npm start`), with its database migrated (`npm run migrate`). The server address and PHC key can also be changed on the device: **☰ → Device Settings**.
 
-// Set to true to test the full UI flow with realistic mock fixtures without a backend
-export const MOCK_MODE = false;
+Demo login (only when `EXPO_PUBLIC_TECHNICIANS` is unset): `technician / tech123`.
+
+## How it works
+
+| Step | What happens | Where |
+|---|---|---|
+| Register | Desktop's 4-section form; contact number required; duplicate check against this phone's patients (§10.3); collision-safe IDs (`docs/id-format-spec.md`) | `screens/RegistrationScreen.tsx`, `db/patients.ts` |
+| Capture | **Import from gallery** (image from the fundus camera) or **Capture with fundus lens** (in-app camera: light, zoom, pupil guide, tagged `mobile_lens`) | `screens/CaptureScreen.tsx`, `screens/LensCameraScreen.tsx` |
+| Quality gate | On-device port of the MATLAB gate (`quality-gate-matlab/qualityGateMain.m`), full resolution, same presets. Real scores only; if it cannot run it says so. "Best effort, ungradable" after 3 failed attempts (§10.2) | `lib/quality/` |
+| Metadata & sync | Capture-metadata questionnaire (§9.6), then the case is saved in SQLite and queued | `components/CaptureMetadataForm.tsx`, `db/captures.ts` |
+| Sync | Background: urgency tier then age; summary packet first, then image (chunked above 2 MB); capture ID = idempotency key; "synced" only when central accepts the image; backoff on transient errors, visible failure on rejections | `sync/syncManager.ts`, `api/central.ts` |
+| Queue | Desktop's 5-stage pipeline per case, from real local and central state | `screens/QueueScreen.tsx` |
+| Report | Local quality report always; full report from `GET /api/v1/phc/cases/:captureRef/report` only while online; the grade is marked unconfirmed until an ophthalmologist reviews it; shareable PDF slip | `screens/CaseReportScreen.tsx` |
+
+There is no mock mode. A failure is shown or queued for retry, never replaced with a made-up result (§1.22).
+
+## Layout
+
+```
+App.tsx            -> netrasetu/Root.tsx
+netrasetu/
+  config/          runtime config (env defaults + device overrides)
+  theme/           desktop design tokens (cream / crimson / mono), light + high contrast
+  i18n/            desktop's 7 locale files + mobile strings
+  db/              expo-sqlite schema (design doc §4.3) and repositories
+  lib/quality/     quality gate (pure TS; testable in Node)
+  api/ sync/       central client and sync manager
+  components/ screens/ navigation/
+src/               LEGACY: the previous implementation, no longer imported. Safe to delete.
 ```
 
-### 4. Run the App
-```bash
-# Start Expo development server
-npm start
+## Tests
 
-# Run on Android emulator / connected USB device
-npm run android
+| Command | What it checks | Needs |
+|---|---|---|
+| `npm test` | Unit tests of the real source: questionnaire/metadata contract mapping, sync priority, IDs, duplicate matching, pipeline stages, quality-gate edge cases | nothing |
+| `npm run test:sync` | The real `syncManager` + SQLite layer + API client against central: happy path, chunked upload, phone offline, central down, lost response (idempotency), rejection, priority order, missing image | central running (`CENTRAL=http://localhost:5000`) |
+| `npm run test:parity` | Mobile quality gate vs MATLAB `qualityGateMain.m` on 17 images × 2 presets, all decision branches | MATLAB + Image Processing Toolbox on PATH |
+| `npm run type-check` | TypeScript | nothing |
 
-# Type check
-npm run type-check
-```
+Node tests run the app's TypeScript unchanged. `test/loader.mjs` transpiles it, and only the device APIs are swapped for Node stand-ins (`test/shims`: SQLite → `node:sqlite`, files → `fs`).
 
----
+## Known limits
 
-## 📱 Workflow Screens
-
-1. **Home Screen**:
-   - Prominent **"Start New Screening"** button.
-   - Real-time online/offline network indicator.
-   - Recent cases list with DR grade status.
-2. **Patient Registration**:
-   - Patient Name, Age, and PHC Reference ID.
-   - Validation ensures age between 1 and 120.
-3. **Fundus Image Capture**:
-   - Open Camera or Choose from Gallery.
-   - High-contrast retinal circular aperture guide.
-   - On-screen capture tips (lighting, pupil centering).
-4. **Quality Assurance Check**:
-   - **PASS**: Proceed directly.
-   - **BORDERLINE**: Informs worker of automated enhancement.
-   - **RETAKE**: Disables progression and shows actionable tips (blur, low illumination, eyelash occlusion).
-5. **Clinical Questionnaire**:
-   - Single-tap button groups: Diabetes duration, glycemic control, blood pressure, pregnancy.
-   - Multi-select symptom chips.
-   - Optional skip.
-6. **Processing Screen**:
-   - Visual progress indicator while AI model analyzes fundus image.
-7. **Screening Result**:
-   - Severity level Grade 0 (No DR) to Grade 4 (Proliferative DR).
-   - Referable DR alert banner.
-   - Predictive confidence score.
-   - Recommendation & priority (ROUTINE, URGENT, EMERGENCY).
-8. **Explainability & Grad-CAM**:
-   - Toggle tabs: Original image, preprocessed image, and Grad-CAM attention heatmap.
-   - Quality metrics table (sharpness, illumination, contrast).
-   - Probability distribution across all 5 classes.
-9. **Screening Report**:
-   - Printable / shareable patient summary.
-   - Direct export via system sharing sheet (WhatsApp, email, print).
-10. **Offline Queue & History**:
-    - Local case storage with `@react-native-async-storage/async-storage`.
-    - Filter by All, Pending Sync, Synced, Errors.
-    - Batch "Sync All" button when connectivity is restored.
-
----
-
-## 🔒 Exact Backend API Contract
-
-The app parses the FastAPI response strictly according to the backend schema:
-- `status`: string
-- `processedAt`: ISO 8601 timestamp
-- `model`: `{ version, name, imageSize }`
-- `input`: `{ filename, contentType, originalHeight, originalWidth }`
-- `imageQuality`: `{ status, qualityScore, issues, metrics }`
-- `enhancement`: `{ applied, steps, message }`
-- `severity`: `{ level, code, label, classProbabilities }`
-- `referableDR`: `{ isReferable, definition, probability, rawProbability, threshold }`
-- `confidence`: `{ score, uncertaintyScore, predictiveEntropy, mcDropoutPasses }`
-- `recommendation`: `{ action, priority }`
+- The quality gate matches MATLAB on identical pixels (`npm run test:parity`). On the phone the image is decoded by the OS rather than MATLAB's `imread`, so a JPEG can differ by a few pixel values. This hasn't been measured on a device.
+- `docs/id-format-spec.md`'s 4-character suffix can collide when hundreds of IDs are minted in the same millisecond (bulk import). This doesn't happen at capture pace. It's a spec-level issue shared with the desktop.
+- Full-resolution analysis in JS takes several seconds for a 12 MP photo on a mid-range phone.
+- Technician accounts are local to the device: central has no technician auth, and PHC devices authenticate with the site key.
+- Not built yet: export-queue-to-drive (§4.2), camp relay mode (§9.5).

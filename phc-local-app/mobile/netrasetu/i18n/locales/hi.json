@@ -1,0 +1,118 @@
+{
+  "header": {
+    "title": "NetraSetu",
+    "nav": {
+      "register": "पंजीकरण",
+      "capture": "कैप्चर",
+      "queue": "कतार"
+    },
+    "status": {
+      "online": "ऑनलाइन",
+      "offline": "ऑफ़लाइन",
+      "pending": "लंबित"
+    }
+  },
+  "registration": {
+    "title": "रोगी पंजीकरण",
+    "fullName": "पूरा नाम",
+    "namePlaceholder": "उदा. सुनीता देवी",
+    "age": "उम्र",
+    "agePlaceholder": "उदा. 54",
+    "contact": "संपर्क नंबर (आवश्यक)",
+    "contactPlaceholder": "+91...",
+    "btnRegistering": "पंजीकरण हो रहा है...",
+    "btnInitiate": "कैप्चर शुरू करें ✦",
+    "secureModule": "सुरक्षित ऑफ़लाइन मॉड्यूल V1.2.0"
+  },
+  "capture": {
+    "title": "छवि कैप्चर",
+    "patient": "रोगी:",
+    "steps": {
+      "capture": "1. कैप्चर",
+      "quality": "2. गुणवत्ता जाँच",
+      "metadata": "3. मेटाडेटा और सिंक"
+    },
+    "preview": "लाइव फ़ीड / प्रीव्यू",
+    "statusCaptured": "कैप्चर किया गया",
+    "statusReady": "तैयार",
+    "clickToInitiate": "कैप्चर अनुक्रम शुरू करने के लिए क्लिक करें",
+    "loadSample": "✦ नमूना रेटिनल स्कैन लोड करें",
+    "mockScenario": "मॉक टेस्ट परिदृश्य:",
+    "scenarioPass": "पास (ग्रेड 1)",
+    "scenarioBorderline": "सीमांत (ग्रेड 2)",
+    "scenarioRetake": "पुनः लें (धुंधला)",
+    "btnRetake": "पुनः लें",
+    "btnAnalyze": "गुणवत्ता जाँच चलाएँ ✦",
+    "btnAnalyzing": "विश्लेषण हो रहा है... ✦",
+    "instructionsTitle": "निर्देश",
+    "instructions": [
+      "रोगी के सिर को चिन रेस्ट पर संरेखित करें।",
+      "जब तक पुतली फ़ीड में केंद्रित न हो जाए, तब तक ऊंचाई समायोजित करें।",
+      "सुनिश्चित करें कि कमरे की रोशनी पर्याप्त रूप से कम है।",
+      "रोगी को आंतरिक हरे लक्ष्य पर ध्यान केंद्रित करने का निर्देश दें।",
+      "जब फोकस संकेतक ठोस हो तो कैप्चर शुरू करें।"
+    ]
+  },
+  "metadata": {
+    "title": "कैप्चर मेटाडेटा",
+    "eyeScanned": "आंख स्कैन की गई",
+    "eyeLeft": "बाएं (OS)",
+    "eyeRight": "दाएं (OD)",
+    "cameraDevice": "कैमरा डिवाइस",
+    "pupilDilation": "पुतली का फैलाव किया गया",
+    "observedIssues": "देखी गई समस्याएं (वैकल्पिक)"
+  },
+  "questionnaire": {
+    "title": "नैदानिक प्रश्नावली",
+    "knownDiabetic": "मधुमेह ज्ञात है?",
+    "yearsSince": "निदान के बाद से वर्ष",
+    "yearsPlaceholder": "उदा. 5",
+    "bpHistory": "रक्तचाप का इतिहास",
+    "bpOptions": {
+      "unknown": "अज्ञात / मापा नहीं गया",
+      "normal": "सामान्य",
+      "high": "उच्च (उच्च रक्तचाप)",
+      "low": "निम्न (निम्न रक्तचाप)"
+    },
+    "visionChanges": "हाल ही में दृष्टि में बदलाव? (धुंधलापन, धब्बे)"
+  },
+  "quality": {
+    "btnQue": "सिंक के लिए कतार में रखें ✦",
+    "passTitle": "गुणवत्ता पास",
+    "passSub": "छवि नैदानिक सीमा को पूरा करती है",
+    "retakeTitle": "पुनः लेना आवश्यक है",
+    "retakeSub": "छवि स्वीकार्य गुणवत्ता से नीचे है",
+    "borderTitle": "सीमांत गुणवत्ता",
+    "borderSub": "छवि AI सटीकता को प्रभावित कर सकती है",
+    "score": "गुणवत्ता स्कोर",
+    "metrics": {
+      "focus": "फोकस",
+      "illumination": "रोशनी",
+      "contrast": "कंट्रास्ट",
+      "coverage": "कवरेज"
+    },
+    "issues": "पाई गई समस्याएं",
+    "severityTitle": "AI गंभीरता भविष्यवाणी",
+    "grade": "ग्रेड",
+    "confidence": "मॉडल आत्मविश्वास",
+    "btnBack": "← पुनः लें",
+    "btnAccept": "स्वीकार करें और जारी रखें ✦"
+  },
+  "queue": {
+    "title": "स्थानीय कतार",
+    "items": "आइटम",
+    "colId": "आईडी",
+    "colPatient": "रोगी",
+    "colCaptured": "कैप्चर किया गया",
+    "colStatus": "स्थिति",
+    "colAction": "कार्रवाई",
+    "empty": "कतार खाली है",
+    "statusPass": "गुणवत्ता पास",
+    "statusSynced": "सिंक किया गया ↗",
+    "statusPending": "AI लंबित",
+    "statusReady": "परिणाम तैयार ✓",
+    "statusCaptured": "कैप्चर किया गया",
+    "btnView": "परिणाम देखें",
+    "txtWaiting": "प्रतीक्षा कर रहा है..."
+  }
+}

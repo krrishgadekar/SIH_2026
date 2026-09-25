@@ -11,6 +11,7 @@ import HomeScreen               from '../screens/HomeScreen';
 import PatientRegistrationScreen from '../screens/PatientRegistrationScreen';
 import CaptureScreen            from '../screens/CaptureScreen';
 import QualityResultScreen      from '../screens/QualityResultScreen';
+import CaptureMetadataScreen    from '../screens/CaptureMetadataScreen';
 import QuestionnaireScreen      from '../screens/QuestionnaireScreen';
 import ProcessingScreen         from '../screens/ProcessingScreen';
 import ResultScreen             from '../screens/ResultScreen';
@@ -95,6 +96,11 @@ export default function AppNavigator() {
           name={Routes.QualityResult}
           component={QualityResultScreen}
           options={{ title: 'IMAGE QUALITY' }}
+        />
+        <Stack.Screen
+          name={Routes.CaptureMetadata}
+          component={CaptureMetadataScreen}
+          options={{ title: 'CAPTURE METADATA' }}
         />
         <Stack.Screen
           name={Routes.Questionnaire}

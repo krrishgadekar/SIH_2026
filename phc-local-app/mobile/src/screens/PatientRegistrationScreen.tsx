@@ -10,21 +10,25 @@ import { Routes } from '../navigation/routes';
 import { useScreening } from '../context/ScreeningContext';
 import StepIndicator from '../components/StepIndicator';
 import { PatientInfo } from '../types/screening';
+import { generateLocalId } from '../utils/idGenerator';
 import { Colors, Typography, Spacing, Shadows, TouchTarget, Animations } from '../theme';
 
 export default function PatientRegistrationScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const { setPatient } = useScreening();
 
-  const [name, setName] = useState('');
-  const [age, setAge] = useState('');
+  const [name, setName]             = useState('');
+  const [age, setAge]               = useState('');
   const [referenceId, setReferenceId] = useState('');
+  const [contactNumber, setContactNumber] = useState('');
+  const [consentGiven, setConsentGiven]   = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Focus glow animation
-  const nameBorderAnim = useRef(new Animated.Value(0)).current;
-  const ageBorderAnim = useRef(new Animated.Value(0)).current;
-  const refBorderAnim = useRef(new Animated.Value(0)).current;
+  const nameBorderAnim    = useRef(new Animated.Value(0)).current;
+  const ageBorderAnim     = useRef(new Animated.Value(0)).current;
+  const refBorderAnim     = useRef(new Animated.Value(0)).current;
+  const contactBorderAnim = useRef(new Animated.Value(0)).current;
 
   const animateFocus = (anim: Animated.Value, focused: boolean) => {
     Animated.timing(anim, {
@@ -59,6 +63,9 @@ export default function PatientRegistrationScreen() {
     if (!age.trim() || isNaN(ageNum) || ageNum < 1 || ageNum > 120) {
       newErrors.age = 'Enter a valid age (1–120).';
     }
+    if (!consentGiven) {
+      newErrors.consent = 'Patient consent is required to proceed.';
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -66,15 +73,18 @@ export default function PatientRegistrationScreen() {
   const handleContinue = () => {
     if (!validate()) return;
     const patient: PatientInfo = {
+      id: generateLocalId(),
       name: name.trim(),
       age: parseInt(age, 10),
+      contactNumber: contactNumber.trim(),
       referenceId: referenceId.trim(),
+      consentGivenAt: new Date().toISOString(),
     };
     setPatient(patient);
     navigation.navigate(Routes.Capture);
   };
 
-  const isFormValid = name.trim().length > 0 && age.trim().length > 0;
+  const isFormValid = name.trim().length > 0 && age.trim().length > 0 && consentGiven;
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -143,6 +153,32 @@ export default function PatientRegistrationScreen() {
             {errors.age ? <Text style={styles.errorText}>{errors.age}</Text> : null}
           </View>
 
+          {/* Contact Number */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>CONTACT NUMBER</Text>
+            <Animated.View style={[
+              styles.inputWrapper,
+              { borderColor: getBorderColor(contactBorderAnim, false) },
+            ]}>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. +91 98765 43210"
+                placeholderTextColor={Colors.textMuted}
+                value={contactNumber}
+                onChangeText={setContactNumber}
+                onFocus={() => animateFocus(contactBorderAnim, true)}
+                onBlur={() => animateFocus(contactBorderAnim, false)}
+                keyboardType="phone-pad"
+                returnKeyType="next"
+                accessibilityLabel="Patient contact number"
+                id="input-contact-number"
+              />
+            </Animated.View>
+            <Text style={styles.hint}>
+              Used for SMS results notification (optional).
+            </Text>
+          </View>
+
           {/* Reference / Contact ID */}
           <View style={styles.fieldGroup}>
             <Text style={styles.label}>PHC REFERENCE / CONTACT ID</Text>
@@ -167,6 +203,30 @@ export default function PatientRegistrationScreen() {
             <Text style={styles.hint}>
               Optional. Used to link this screening to the patient's PHC record.
             </Text>
+          </View>
+
+          {/* Consent */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.label}>PATIENT CONSENT <Text style={styles.required}>*</Text></Text>
+            <TouchableOpacity
+              style={[styles.consentButton, consentGiven && styles.consentButtonChecked]}
+              onPress={() => {
+                setConsentGiven(!consentGiven);
+                setErrors((e) => ({ ...e, consent: '' }));
+              }}
+              activeOpacity={0.8}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: consentGiven }}
+              id="btn-consent"
+            >
+              <View style={[styles.consentCheckBox, consentGiven && styles.consentCheckBoxChecked]}>
+                <Text style={styles.consentCheckMark}>{consentGiven ? '✓' : ''}</Text>
+              </View>
+              <Text style={[styles.consentText, consentGiven && styles.consentTextChecked]}>
+                The patient has been informed about the screening procedure and has given verbal/written consent.
+              </Text>
+            </TouchableOpacity>
+            {errors.consent ? <Text style={styles.errorText}>{errors.consent}</Text> : null}
           </View>
 
           {/* Continue button */}
@@ -244,6 +304,54 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     marginTop: Spacing.xs,
     lineHeight: 18,
+  },
+
+  consentButton: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    borderRadius: 0,
+    gap: Spacing.md,
+  },
+  consentButtonChecked: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryFaded,
+  },
+  consentCheckBox: {
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.surface,
+    flexShrink: 0,
+    marginTop: 2,
+  },
+  consentCheckBoxChecked: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primaryDark,
+  },
+  consentCheckMark: {
+    fontSize: Typography.xs,
+    color: Colors.textInverse,
+    fontWeight: Typography.bold,
+  },
+  consentText: {
+    flex: 1,
+    fontSize: Typography.sm,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+    fontWeight: Typography.medium,
+  },
+  consentTextChecked: {
+    color: Colors.primary,
+    fontWeight: Typography.semibold,
   },
 
   continueButton: {

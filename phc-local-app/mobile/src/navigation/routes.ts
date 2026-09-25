@@ -7,6 +7,7 @@ export const Routes = {
   PatientRegistration:  'PatientRegistration',
   Capture:              'Capture',
   QualityResult:        'QualityResult',
+  CaptureMetadata:      'CaptureMetadata',
   Questionnaire:        'Questionnaire',
   Processing:           'Processing',
   Result:               'Result',

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { RetinalWaveCanvas } from '../shared/RetinalWaveCanvas';
+import { USE_MOCK_DATA } from '../../config';
+import { localApi } from '../../api/localApiClient';
 
 export const LoginScreen = ({ onLogin }) => {
   const { t } = useTranslation();
@@ -12,7 +14,7 @@ export const LoginScreen = ({ onLogin }) => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!username.trim() || !password.trim()) {
       setError(t('login.auth.errorEmpty', 'Please enter both username and password.'));
@@ -22,6 +24,29 @@ export const LoginScreen = ({ onLogin }) => {
     setLoading(true);
     setError(null);
 
+    // Real backend: technician accounts on this PHC PC (phc-local-app/backend,
+    // `npm run technician -- add ...`), checked against their scrypt hash.
+    if (!USE_MOCK_DATA) {
+      try {
+        const session = await localApi.login(username.trim(), password);
+        setIsTransitioning(true);
+        setTimeout(() => onLogin && onLogin({
+          authenticated: true,
+          role: 'technician',
+          username: session.user.username,
+          name: session.user.name,
+          roleTitle: session.user.role === 'phc_admin' ? 'PHC Admin' : 'PHC Technician',
+          token: session.token,
+          expiresAt: session.expiresAt,
+        }), 400);
+      } catch (err) {
+        setError(err.message || t('login.auth.errorInvalid', 'INVALID CREDENTIALS.'));
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Mock mode (demo without a backend): unchanged.
     setTimeout(() => {
       if (
         (username.toLowerCase() === 'krrish' && password === 'tech123') ||

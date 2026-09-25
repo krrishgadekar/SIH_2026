@@ -11,7 +11,6 @@ import StepIndicator from '../components/StepIndicator';
 import { ButtonGroupField } from '../components/QuestionnaireField';
 import {
   DiabetesDuration, GlycemicControl, BloodPressure,
-  PregnancyStatus, SymptomKey,
 } from '../types/screening';
 import { Colors, Typography, Spacing, Shadows, TouchTarget } from '../theme';
 
@@ -19,30 +18,59 @@ export default function QuestionnaireScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const { state, updateQuestionnaire, setStep } = useScreening();
 
-  const [diabetesDuration, setDiabetesDuration] = useState<DiabetesDuration | null>(
-    state.questionnaire.diabetesDuration,
+  // Risk factor state (maps to riskFactors nested object)
+  const [yearsSinceDiagnosis, setYearsSinceDiagnosis] = useState<DiabetesDuration | null>(
+    state.questionnaire.riskFactors.yearsSinceDiagnosis,
   );
   const [glycemicControl, setGlycemicControl] = useState<GlycemicControl | null>(
-    state.questionnaire.glycemicControl,
+    state.questionnaire.riskFactors.glycemicControl,
   );
   const [bloodPressure, setBloodPressure] = useState<BloodPressure | null>(
-    state.questionnaire.bloodPressure,
+    state.questionnaire.riskFactors.bloodPressure,
   );
-  const [pregnancy, setPregnancy] = useState<PregnancyStatus | null>(
-    state.questionnaire.pregnancy,
+  const [pregnant, setPregnant] = useState<boolean | null>(
+    state.questionnaire.riskFactors.pregnant,
   );
-  const [symptoms, setSymptoms] = useState<SymptomKey[]>(
-    state.questionnaire.symptoms,
-  );
+
+  // Symptoms state (maps to symptoms object with boolean flags)
+  const [blurredVision, setBlurredVision] = useState(state.questionnaire.symptoms.blurredVision);
+  const [floaters, setFloaters] = useState(state.questionnaire.symptoms.floaters);
+  const [suddenVisionChange, setSuddenVisionChange] = useState(state.questionnaire.symptoms.suddenVisionChange);
+  const [eyePain, setEyePain] = useState(state.questionnaire.symptoms.eyePain);
 
   // Determine if patient could potentially be pregnant (age < 55 heuristic)
   const couldBePregnant = (state.patient?.age ?? 0) < 55;
 
   const handleContinue = () => {
-    updateQuestionnaire({ diabetesDuration, glycemicControl, bloodPressure, pregnancy, symptoms });
+    updateQuestionnaire({
+      riskFactors: {
+        yearsSinceDiagnosis,
+        glycemicControl,
+        bloodPressure,
+        pregnant: couldBePregnant ? pregnant : null,
+      },
+      symptoms: {
+        blurredVision,
+        floaters,
+        suddenVisionChange,
+        eyePain,
+      },
+    });
     setStep(5);
     navigation.navigate(Routes.Processing);
   };
+
+  const toggleSymptom = (
+    setter: React.Dispatch<React.SetStateAction<boolean>>,
+    current: boolean,
+  ) => setter(!current);
+
+  const symptoms: { label: string; value: boolean; setter: React.Dispatch<React.SetStateAction<boolean>> }[] = [
+    { label: 'Blurred Vision', value: blurredVision, setter: setBlurredVision },
+    { label: 'Floaters',       value: floaters,       setter: setFloaters },
+    { label: 'Sudden Vision Change', value: suddenVisionChange, setter: setSuddenVisionChange },
+    { label: 'Eye Pain',       value: eyePain,        setter: setEyePain },
+  ];
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -66,13 +94,13 @@ export default function QuestionnaireScreen() {
         <ButtonGroupField
           label="Years since diabetes diagnosis"
           options={[
-            { value: '<1',   label: '< 1 year' },
-            { value: '1-5',  label: '1–5 years' },
-            { value: '5-10', label: '5–10 years' },
-            { value: '>10',  label: '> 10 years' },
+            { value: 'lt1',   label: '< 1 year' },
+            { value: '1to5',  label: '1–5 years' },
+            { value: '5to10', label: '5–10 years' },
+            { value: 'gt10',  label: '> 10 years' },
           ]}
-          value={diabetesDuration}
-          onSelect={(v) => setDiabetesDuration(v as DiabetesDuration)}
+          value={yearsSinceDiagnosis}
+          onSelect={(v) => setYearsSinceDiagnosis(v as DiabetesDuration)}
         />
 
         {/* Glycemic control */}
@@ -104,12 +132,11 @@ export default function QuestionnaireScreen() {
           <ButtonGroupField
             label="Currently pregnant?"
             options={[
-              { value: 'yes',            label: 'Yes' },
-              { value: 'no',             label: 'No' },
-              { value: 'not_applicable', label: 'Not applicable' },
+              { value: 'yes', label: 'Yes' },
+              { value: 'no',  label: 'No' },
             ]}
-            value={pregnancy}
-            onSelect={(v) => setPregnancy(v as PregnancyStatus)}
+            value={pregnant === null ? null : pregnant ? 'yes' : 'no'}
+            onSelect={(v) => setPregnant(v === 'yes')}
           />
         )}
 
@@ -118,41 +145,25 @@ export default function QuestionnaireScreen() {
           <Text style={styles.fieldLabel}>CURRENT EYE SYMPTOMS</Text>
           <Text style={styles.fieldHint}>Select all that apply</Text>
           <View style={styles.symptomGrid}>
-            {(
-              [
-                { value: 'blurred_vision',      label: 'Blurred Vision' },
-                { value: 'floaters',            label: 'Floaters' },
-                { value: 'sudden_vision_change',label: 'Sudden Vision Change' },
-                { value: 'eye_pain',            label: 'Eye Pain' },
-              ] as { value: SymptomKey; label: string }[]
-            ).map((sym) => {
-              const selected = symptoms.includes(sym.value);
-              return (
-                <TouchableOpacity
-                  key={sym.value}
-                  style={[styles.symptomButton, selected && styles.symptomButtonSelected]}
-                  onPress={() => {
-                    setSymptoms((prev) =>
-                      prev.includes(sym.value)
-                        ? prev.filter((s) => s !== sym.value)
-                        : [...prev, sym.value],
-                    );
-                  }}
-                  accessibilityRole="checkbox"
-                  accessibilityState={{ checked: selected }}
-                  activeOpacity={0.75}
-                >
-                  <View style={[styles.symptomCheckBox, selected && styles.symptomCheckBoxSelected]}>
-                    <Text style={[styles.symptomCheck, selected && styles.symptomCheckSelected]}>
-                      {selected ? '✓' : ''}
-                    </Text>
-                  </View>
-                  <Text style={[styles.symptomText, selected && styles.symptomTextSelected]}>
-                    {sym.label}
+            {symptoms.map((sym) => (
+              <TouchableOpacity
+                key={sym.label}
+                style={[styles.symptomButton, sym.value && styles.symptomButtonSelected]}
+                onPress={() => toggleSymptom(sym.setter, sym.value)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: sym.value }}
+                activeOpacity={0.75}
+              >
+                <View style={[styles.symptomCheckBox, sym.value && styles.symptomCheckBoxSelected]}>
+                  <Text style={[styles.symptomCheck, sym.value && styles.symptomCheckSelected]}>
+                    {sym.value ? '✓' : ''}
                   </Text>
-                </TouchableOpacity>
-              );
-            })}
+                </View>
+                <Text style={[styles.symptomText, sym.value && styles.symptomTextSelected]}>
+                  {sym.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
 
@@ -168,14 +179,6 @@ export default function QuestionnaireScreen() {
           <Text style={styles.continueText}>CONTINUE TO ANALYSIS →</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.skipButton}
-          onPress={handleContinue}
-          activeOpacity={0.75}
-          id="btn-questionnaire-skip"
-        >
-          <Text style={styles.skipText}>SKIP — GO DIRECTLY TO ANALYSIS</Text>
-        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -305,16 +308,5 @@ const styles = StyleSheet.create({
     color: Colors.textInverse,
     letterSpacing: Typography.trackWide,
   },
-  skipButton: {
-    paddingVertical: Spacing.md,
-    alignItems: 'center',
-    minHeight: TouchTarget.minHeight,
-  },
-  skipText: {
-    fontSize: Typography.sm,
-    color: Colors.textMuted,
-    fontWeight: Typography.semibold,
-    letterSpacing: Typography.trackWide,
-    textDecorationLine: 'underline',
-  },
+
 });

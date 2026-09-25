@@ -19,6 +19,8 @@
 Kept because this file is the tie-breaker: when it changes, the code and both
 plans have to be re-checked against it, and a silent edit makes that impossible.
 
+**2026-09-24 — PHC-readable report.** Added `GET /api/v1/phc/cases/:captureRef/report` and `GET /api/v1/phc/cases/:captureRef/gradcam` (PHC key). Until now nothing a PHC is allowed to call returned a grade, so a PHC front-end had no honest way to show a result. First consumer: the Expo mobile app.
+
 **2026-09-20 — Full backend audit: behaviour fixes.** Each of these changes what a client sees.
 
 - **The review queue no longer lists cases that have already been reviewed.** It used to keep them forever, so the queue grew without bound and finished work was indistinguishable from outstanding work. The history is still at `GET /cases/:caseId/reviews`.
@@ -587,6 +589,46 @@ Response `200`: `{ "phcId": "string", "phcName": "PHC Kharadi", "lastSyncAt": "2
 Response `404`: `{ "error": "phc_not_found", "message": "..." }`
 
 **Read `lastSyncAt` and `pendingCount` together — `pendingCount` alone is misleading.** The sync queue lives in that PHC's local SQLite; central has no view into it, so this is the number the PHC last *reported*, true only as of `lastSyncAt`. The site whose backlog is genuinely growing is exactly the offline one whose count is frozen at whatever it was when it last made contact. A PHC reporting `pendingCount: 0` with a three-day-old `lastSyncAt` is a far bigger problem than one reporting `40` from a minute ago. Any UI built on this must surface the staleness, not just the count. `lastSyncAt` is `null` and `pendingCount` is `0` for a site that has never synced.
+
+### `GET /api/v1/phc/cases/:captureRef/report`  *(added 2026-09-24)*
+The graded result for a capture, read by the PHC that submitted it. `:captureRef` is the PHC's own capture id (the `captureIdRef` it uploaded with), not the central `caseId`: it is the one id an offline-first client is guaranteed to hold.
+
+Auth: PHC key. A case submitted by a different site is `404`, never `403`, so one site cannot probe for another's captures.
+
+Response `200`:
+```json
+{
+  "captureRef": "PHC001-lz4a2b-c7f1",
+  "caseId": "uuid",
+  "status": "processing | awaiting_image | graded | error",
+  "failureCode": null,
+  "gradedAt": "2026-09-24T10:00:00.000Z",
+  "modelVersion": "branchA_v2c",
+  "drGradeCnn": 2,
+  "drGradeRuleEngine": 2,
+  "branchAgreement": true,
+  "confidenceScore": 0.81,
+  "uncertaintyScore": 0.07,
+  "conformalTier": "B",
+  "tierReason": "unvalidated_camera: ...",
+  "lesionCounts": { "microaneurysms": 4, "hemorrhages": 1, "hardExudates": 0, "softExudates": null, "detail": { } },
+  "nvSuspicionScore": null,
+  "evidenceSummaryText": "…",
+  "eyeLaterality": "right",
+  "eyeLateralityMismatch": false,
+  "foveaUnreliable": false,
+  "gradCamAvailable": true,
+  "review": { "decision": "confirm | override", "correctedGrade": null, "reviewedAt": "…" }
+}
+```
+Every ML field follows the null rule of `GET /api/v1/cases/:caseId`: `null` means not produced, never zero. `review` is `null` until an ophthalmologist has decided. **Until then the grade is the AI's alone and the client must present it as unconfirmed** (design doc §1.5). On an override, `review.correctedGrade` is the grade of record.
+
+Deliberately narrower than the reviewer's case detail: no questionnaire, patient reference, claim state or urgency score.
+
+Errors: `404 case_not_found`, `401 phc_key_required | phc_key_invalid`.
+
+### `GET /api/v1/phc/cases/:captureRef/gradcam`  *(added 2026-09-24)*
+The GradCAM overlay as `image/png`, under the same own-case check. `/media` requires a user session, which a PHC device never has. `404 gradcam_not_available` when the report says `gradCamAvailable: false`.
 
 ---
 

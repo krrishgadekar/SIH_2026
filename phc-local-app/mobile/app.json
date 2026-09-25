@@ -1,31 +1,33 @@
 {
   "expo": {
-    "name": "RetinaSaarthi",
+    "name": "NetraSetu PHC",
     "slug": "retina-saarthi",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1A7F8E"
+      "backgroundColor": "#FAF6EF"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "com.retinasaarthi.phc"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1A7F8E"
+        "backgroundColor": "#FAF6EF"
       },
       "package": "com.retinasaarthi.phc",
+      "usesCleartextTraffic": true,
       "permissions": [
         "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES",
         "ACCESS_NETWORK_STATE",
         "INTERNET"
       ]
@@ -37,22 +39,22 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "RetinaSaarthi needs camera access to capture retinal images for screening."
+          "cameraPermission": "NetraSetu uses the camera with an attached fundus lens to photograph the retina.",
+          "recordAudioAndroid": false
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "RetinaSaarthi needs photo library access to upload retinal images."
+          "photosPermission": "NetraSetu imports retinal images taken on the PHC's fundus camera from your photo library."
         }
       ],
-      [
-        "expo-media-library",
-        {
-          "photosPermission": "Allow RetinaSaarthi to access your photos.",
-          "savePhotosPermission": "Allow RetinaSaarthi to save photos."
-        }
-      ]
+      "expo-sqlite",
+      "expo-font",
+      "expo-asset",
+      "expo-sharing",
+      "expo-splash-screen",
+      "expo-secure-store"
     ]
   }
 }

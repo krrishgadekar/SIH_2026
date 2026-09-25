@@ -21,9 +21,16 @@ require('dotenv').config({ path: path.resolve(__dirname, '..', '..', '.env') });
 
 const express = require('express');
 
+const fs    = require('fs');
+const https = require('https');
+
 const patientsRouter = require('./routes/patients');
 const capturesRouter = require('./routes/captures');
 const syncRouter     = require('./routes/sync');
+const authRouter     = require('./routes/auth');
+const peerRouter     = require('./routes/peer');
+const requireTechnician = require('./middleware/requireTechnician');
+const localAuth      = require('./services/localAuth');
 
 const PORT = parseInt(process.env.PORT || '4000', 10);
 
@@ -34,6 +41,10 @@ const app = express();
 // OPTIONS is answered without being dragged through the body parser.
 app.use(require('./middleware/cors')());
 
+// Desktop <-> phone replication. Before the global JSON parser: its sealed
+// image payloads exceed that parser's 100 KB limit (routes/peer.js).
+app.use('/peer', peerRouter);
+
 app.use(express.json());
 
 // Requiring the DB module creates local.sqlite and applies schema.sql. Done at
@@ -41,9 +52,16 @@ app.use(express.json());
 // server immediately, instead of surfacing mid-capture with a patient waiting.
 require('./db/localDb');
 
-app.use('/patients', patientsRouter);
-app.use('/captures', capturesRouter);
-app.use('/sync',     syncRouter);
+/** Audit every read of patient data (design doc §11.1). Writes are logged where they happen. */
+const auditReads = (entity) => (req, res, next) => {
+  if (req.method === 'GET') localAuth.logAccess(req, 'read', entity, req.path === '/' ? null : req.path.slice(1));
+  next();
+};
+
+app.use('/auth',     authRouter);
+app.use('/patients', requireTechnician, auditReads('patients'), patientsRouter);
+app.use('/captures', requireTechnician, auditReads('captures'), capturesRouter);
+app.use('/sync',     requireTechnician, syncRouter);
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
@@ -75,8 +93,38 @@ app.use((err, req, res, next) => {   // eslint-disable-line no-unused-vars
   });
 });
 
-if (require.main === module) {
-  app.listen(PORT, () => console.log(`local backend on ${PORT}`));
+/**
+ * TLS (design doc §11.1: "TLS 1.2+ on every backend"), same scheme as central
+ * (§A.14): set LOCAL_TLS_KEY_PATH and LOCAL_TLS_CERT_PATH (a self-signed pair
+ * from scripts/generateDevCert.js is fine on a PHC LAN) and the server speaks
+ * HTTPS only, refusing anything below TLS 1.2. The phone link does not depend
+ * on it: /peer traffic is sealed end to end regardless (routes/peer.js).
+ */
+function createServer() {
+  const keyPath = process.env.LOCAL_TLS_KEY_PATH;
+  const certPath = process.env.LOCAL_TLS_CERT_PATH;
+  if (keyPath && certPath) {
+    return {
+      tls: true,
+      server: https.createServer({
+        key: fs.readFileSync(keyPath), cert: fs.readFileSync(certPath), minVersion: 'TLSv1.2',
+      }, app),
+    };
+  }
+  return { tls: false, server: require('http').createServer(app) };
 }
+
+if (require.main === module) {
+  const { tls, server } = createServer();
+  server.listen(PORT, () => {
+    console.log(`local backend on ${tls ? 'https' : 'http'}://localhost:${PORT}`
+      + ` (technician auth ${localAuth.LOCAL_AUTH_ENABLED ? 'ENFORCED' : 'not enforced -- set LOCAL_AUTH_ENABLED=true'})`);
+    if (localAuth.LOCAL_AUTH_ENABLED && !tls) {
+      console.warn('[local] auth is on over plain HTTP: tokens cross the LAN in clear (the /peer link is still sealed). Set LOCAL_TLS_KEY_PATH/LOCAL_TLS_CERT_PATH.');
+    }
+  });
+}
+
+app.createServer = createServer; // used by the TLS test
 
 module.exports = app;

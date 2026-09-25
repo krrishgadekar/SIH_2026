@@ -41,7 +41,8 @@ const { generateLocalId } = require('./ids');
 
 // Captured images live outside the DB; the row stores a path. Git-ignored --
 // these are patient fundus photographs.
-const STORAGE_DIR = path.resolve(__dirname, '..', 'storage');
+// LOCAL_STORAGE_DIR: tests point this at a scratch directory.
+const STORAGE_DIR = process.env.LOCAL_STORAGE_DIR || path.resolve(__dirname, '..', 'storage');
 
 fs.mkdirSync(STORAGE_DIR, { recursive: true });
 

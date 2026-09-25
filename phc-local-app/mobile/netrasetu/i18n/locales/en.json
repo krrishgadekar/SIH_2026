@@ -1,0 +1,151 @@
+{
+  "header": {
+    "title": "NetraSetu",
+    "nav": {
+      "register": "New Patient",
+      "capture": "Capture",
+      "queue": "Queue"
+    },
+    "status": {
+      "online": "ONLINE",
+      "offline": "OFFLINE",
+      "pending": "PENDING"
+    },
+    "logout": "Log out"
+  },
+  "login": {
+    "title": "RETINAL✦DIAGNOSTICS",
+    "subtitle": "PRIMARY HEALTH CENTRE MODULE · LOCAL QUALITY GATE",
+    "version": "NETRA SETU PLATFORM v1.0 · PHC KHARADI",
+    "selectRole": "SELECT OPERATOR PROFILE TO PROCEED",
+    "roles": {
+      "technician": {
+        "title": "PHC TECHNICIAN",
+        "subtitle": "Patient Intake & Fundus Capture",
+        "desc": "Register patients, capture retinal fundus images, execute instant local AI quality triage, and manage the clinic queue.",
+        "stats": "PHC Kharadi · Local AI Ready"
+      },
+      "field_worker": {
+        "title": "COMMUNITY HEALTH WORKER",
+        "subtitle": "Camp Screening & Rapid Vitals",
+        "desc": "Outreach screening registration, risk factor questionnaires, and community camp triage intake.",
+        "stats": "Rural Outreach · Fast Queue"
+      }
+    },
+    "auth": {
+      "authenticatingAs": "AUTHENTICATING AS: {{role}}",
+      "back": "← BACK",
+      "username": "USERNAME",
+      "password": "PASSWORD",
+      "initiate": "INITIATE SESSION ✦",
+      "authenticating": "AUTHENTICATING...",
+      "demo": "DEMO CREDENTIALS:",
+      "errorEmpty": "Please enter both username and password.",
+      "errorInvalid": "INVALID CREDENTIALS. USE DEMO: krrish / tech123",
+      "errorInvalidField": "INVALID CREDENTIALS. USE DEMO: asha_worker / camp123"
+    }
+  },
+  "registration": {
+    "title": "REGISTER PATIENT",
+    "fullName": "Full Name",
+    "namePlaceholder": "e.g. Sunita Devi",
+    "age": "Age",
+    "agePlaceholder": "e.g. 54",
+    "contact": "Contact Number (Required)",
+    "contactPlaceholder": "+91...",
+    "btnRegistering": "REGISTERING...",
+    "btnInitiate": "INITIATE CAPTURE ✦",
+    "secureModule": "SECURE OFFLINE MODULE V1.2.0"
+  },
+  "capture": {
+    "title": "IMAGE CAPTURE",
+    "patient": "PATIENT:",
+    "steps": {
+      "capture": "1. CAPTURE",
+      "quality": "2. QUALITY GATE",
+      "metadata": "3. METADATA & SYNC"
+    },
+    "liveFeed": "LIVE FEED",
+    "statusCaptured": "CAPTURED",
+    "statusReady": "READY",
+    "clickToInitiate": "CLICK TO INITIATE CAPTURE SEQUENCE",
+    "loadSample": "✦ LOAD SAMPLE RETINAL SCAN",
+    "mockScenario": "MOCK TEST SCENARIO:",
+    "scenarioPass": "PASS (GRADE 1)",
+    "scenarioBorderline": "BORDERLINE (GRADE 2)",
+    "scenarioRetake": "RETAKE (BLUR)",
+    "btnRetake": "RETAKE",
+    "btnAnalyze": "RUN QUALITY CHECK ✦",
+    "btnAnalyzing": "ANALYZING... ✦",
+    "instructionsTitle": "INSTRUCTIONS",
+    "instructions": [
+      "Align patient head on chin rest.",
+      "Adjust height until pupil is centered in feed.",
+      "Ensure room lighting is sufficiently dim.",
+      "Instruct patient to focus on internal green target.",
+      "Initiate capture when focus indicator is solid."
+    ]
+  },
+  "metadata": {
+    "title": "CAPTURE METADATA",
+    "eyeScanned": "EYE SCANNED",
+    "eyeLeft": "LEFT (OS)",
+    "eyeRight": "RIGHT (OD)",
+    "cameraDevice": "CAMERA DEVICE",
+    "pupilDilation": "PUPIL DILATION ADMINISTERED",
+    "observedIssues": "OBSERVED ISSUES (OPTIONAL)"
+  },
+  "questionnaire": {
+    "title": "CLINICAL QUESTIONNAIRE",
+    "knownDiabetic": "KNOWN DIABETIC?",
+    "yearsSince": "YEARS SINCE DIAGNOSIS",
+    "yearsPlaceholder": "e.g. 5",
+    "bpHistory": "BLOOD PRESSURE HISTORY",
+    "bpOptions": {
+      "unknown": "Unknown / Not measured",
+      "normal": "Normal",
+      "high": "High (Hypertension)",
+      "low": "Low (Hypotension)"
+    },
+    "visionChanges": "RECENT VISION CHANGES? (BLURRINESS, SPOTS)"
+  },
+  "quality": {
+    "btnQue": "QUE FOR SYNC ✦",
+    "passTitle": "QUALITY PASS",
+    "passSub": "Image meets diagnostic threshold",
+    "retakeTitle": "RETAKE REQUIRED",
+    "retakeSub": "Image below acceptable quality",
+    "borderTitle": "BORDERLINE QUALITY",
+    "borderSub": "Image may affect AI accuracy",
+    "score": "QUALITY SCORE",
+    "metrics": {
+      "focus": "FOCUS",
+      "illumination": "ILLUMINATION",
+      "contrast": "CONTRAST",
+      "coverage": "COVERAGE"
+    },
+    "issues": "DETECTED ISSUES",
+    "severityTitle": "AI SEVERITY PREDICTION",
+    "grade": "GRADE",
+    "confidence": "MODEL CONFIDENCE",
+    "btnBack": "← RETAKE",
+    "btnAccept": "ACCEPT & CONTINUE ✦"
+  },
+  "queue": {
+    "title": "LOCAL QUEUE",
+    "items": "ITEMS",
+    "colId": "ID",
+    "colPatient": "PATIENT",
+    "colCaptured": "CAPTURED AT",
+    "colStatus": "STATUS",
+    "colAction": "ACTION",
+    "empty": "QUEUE EMPTY",
+    "statusPass": "QUALITY PASS",
+    "statusSynced": "SYNCED ↗",
+    "statusPending": "AI PENDING",
+    "statusReady": "RESULT READY ✓",
+    "statusCaptured": "CAPTURED",
+    "btnView": "VIEW RESULT",
+    "txtWaiting": "WAITING..."
+  }
+}
