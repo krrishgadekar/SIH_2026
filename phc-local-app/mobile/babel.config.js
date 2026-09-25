@@ -4,10 +4,10 @@ module.exports = function (api) {
     presets: ['babel-preset-expo'],
     plugins: [
       ['module-resolver', {
-        root: ['./src'],
+        root: ['./netrasetu'],
         extensions: ['.ts', '.tsx', '.js', '.jsx'],
         alias: {
-          '@': './src',
+          '@': './netrasetu',
         },
       }],
     ],

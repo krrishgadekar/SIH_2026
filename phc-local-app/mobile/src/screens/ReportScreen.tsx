@@ -7,7 +7,6 @@ import DisclaimerBanner from '../components/DisclaimerBanner';
 import StatusBadge from '../components/StatusBadge';
 import HumanInTheLoopStatus from '../components/HumanInTheLoopStatus';
 import { getSeverityDisplay, getPriorityColour } from '../utils/severityHelpers';
-import { getQualityStatusDisplay } from '../utils/qualityHelpers';
 import { formatDateTime } from '../utils/dateHelpers';
 import { Colors, Typography, Spacing, Shadows } from '../theme';
 
@@ -18,15 +17,25 @@ export default function ReportScreen() {
 
   if (!result || !patient) return null;
 
-  const severityDisplay  = getSeverityDisplay(result.severity.level);
-  const qualityDisplay   = getQualityStatusDisplay(result.imageQuality.status);
-  const priorityColour   = getPriorityColour(result.recommendation.priority);
+  // Derive values from CentralCaseDetail
+  const drGrade     = result.drGradeCnn ?? result.drGradeRuleEngine ?? 0;
+  const isReferable = drGrade >= 2;   // grade 2+ = referable
+  const severity    = getSeverityDisplay(drGrade);
 
-  const qualityBadgeVariant =
-    result.imageQuality.status === 'pass' ? 'success' :
-    result.imageQuality.status === 'borderline' ? 'warning' : 'danger';
+  const priority = isReferable
+    ? (drGrade >= 4 ? 'EMERGENCY' : drGrade >= 3 ? 'URGENT' : 'ROUTINE')
+    : 'ROUTINE';
+  const priorityColour = getPriorityColour(priority);
 
-  const referralVariant = result.referableDR.isReferable ? 'danger' : 'success';
+  const actionText = isReferable
+    ? severity.workerAdvice
+    : 'Advise the patient to continue annual screening and maintain good blood sugar control.';
+
+  const referralVariant = isReferable ? 'danger' : 'success';
+
+  const confidencePct = result.confidenceScore != null
+    ? `${Math.round(result.confidenceScore * 100)}%`
+    : 'N/A';
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -36,14 +45,14 @@ export default function ReportScreen() {
           <View style={styles.headerAccent} />
           <View style={styles.headerContent}>
             <Text style={styles.reportTitle}>RETINASAARTHI SCREENING REPORT</Text>
-            <Text style={styles.reportTimestamp}>{formatDateTime(result.processedAt)}</Text>
+            <Text style={styles.reportTimestamp}>{formatDateTime(result.caseId ? new Date().toISOString() : '')}</Text>
           </View>
         </View>
 
-        {/* Feature 5: Human-in-the-Loop Status */}
+        {/* Human-in-the-Loop Status */}
         <HumanInTheLoopStatus
           currentStage="awaiting_doctor"
-          isReferable={result.referableDR.isReferable}
+          isReferable={isReferable}
         />
 
         {/* Patient section */}
@@ -56,34 +65,36 @@ export default function ReportScreen() {
           </View>
         </View>
 
-        {/* Image quality section */}
+        {/* Case info */}
         <View style={styles.reportSection}>
-          <Text style={styles.sectionHeader}>IMAGE QUALITY</Text>
-          <View style={styles.badgeRow}>
-            <StatusBadge label={qualityDisplay.badgeText} variant={qualityBadgeVariant} size="md" />
-            <Text style={styles.qualityScore}>
-              Score: {Math.round(result.imageQuality.qualityScore * 100)}%
-            </Text>
+          <Text style={styles.sectionHeader}>CASE INFORMATION</Text>
+          <View style={styles.infoGrid}>
+            <Row label="CASE ID"    value={result.caseId} />
+            {result.eyeLaterality && <Row label="EYE" value={result.eyeLaterality.toUpperCase()} />}
+            {result.status && <Row label="STATUS" value={result.status.replace('_', ' ').toUpperCase()} />}
           </View>
-          {result.enhancement.applied && (
-            <Text style={styles.infoNote}>
-              ✦ Automatic image enhancement was applied before analysis.
-            </Text>
-          )}
         </View>
 
         {/* Severity section */}
         <View style={styles.reportSection}>
           <Text style={styles.sectionHeader}>DR SEVERITY ASSESSMENT</Text>
-          <View style={[styles.severityBlock, { backgroundColor: severityDisplay.backgroundColour }]}>
-            <Text style={[styles.severityGrade, { color: severityDisplay.colour }]}>
-              Grade {result.severity.level} — {severityDisplay.shortLabel.toUpperCase()}
+          <View style={[styles.severityBlock, { backgroundColor: severity.backgroundColour }]}>
+            <Text style={[styles.severityGrade, { color: severity.colour }]}>
+              Grade {drGrade} — {severity.shortLabel.toUpperCase()}
             </Text>
-            <Text style={[styles.severityFullLabel, { color: severityDisplay.colour }]}>
-              {severityDisplay.fullLabel}
+            <Text style={[styles.severityFullLabel, { color: severity.colour }]}>
+              {severity.fullLabel}
             </Text>
           </View>
-          <Text style={styles.explanationText}>{severityDisplay.whatThisMeans}</Text>
+          <Text style={styles.explanationText}>{severity.whatThisMeans}</Text>
+          {result.confidenceScore != null && (
+            <Text style={styles.confidenceNote}>Model confidence: {confidencePct}</Text>
+          )}
+          {result.branchAgreement != null && (
+            <Text style={styles.confidenceNote}>
+              CNN & rule-engine: {result.branchAgreement ? '✓ agree' : '⚠ disagree'}
+            </Text>
+          )}
         </View>
 
         {/* Referral section */}
@@ -92,23 +103,23 @@ export default function ReportScreen() {
           <View style={styles.referralRow}>
             <Text style={styles.referralLabel}>Referral required:</Text>
             <StatusBadge
-              label={result.referableDR.isReferable ? 'YES' : 'NO'}
+              label={isReferable ? 'YES' : 'NO'}
               variant={referralVariant}
               size="lg"
             />
           </View>
           <View style={[styles.priorityTag, { borderLeftColor: priorityColour }]}>
             <Text style={[styles.priorityTagText, { color: priorityColour }]}>
-              {result.recommendation.priority.toUpperCase()}
+              {priority}
             </Text>
-            <Text style={styles.actionText}>{result.recommendation.action}</Text>
+            <Text style={styles.actionText}>{actionText}</Text>
           </View>
         </View>
 
         {/* Explanation */}
         <View style={styles.reportSection}>
           <Text style={styles.sectionHeader}>EXPLANATION FOR HEALTH WORKER</Text>
-          <Text style={styles.explanationText}>{severityDisplay.workerAdvice}</Text>
+          <Text style={styles.explanationText}>{severity.workerAdvice}</Text>
         </View>
 
         {/* Disclaimer */}
@@ -119,7 +130,7 @@ export default function ReportScreen() {
         {/* Footer */}
         <View style={styles.footerLine} />
         <Text style={styles.footer}>
-          Generated by RetinaSaarthi AI Screening Tool · {formatDateTime(result.processedAt)}
+          Generated by RetinaSaarthi AI Screening Tool · Case {result.caseId}
         </Text>
       </ScrollView>
     </SafeAreaView>
@@ -207,19 +218,6 @@ const styles = StyleSheet.create({
 
   infoGrid: { gap: 0 },
 
-  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  qualityScore: {
-    fontSize: Typography.base,
-    color: Colors.textSecondary,
-    fontWeight: Typography.medium,
-  },
-  infoNote: {
-    fontSize: Typography.sm,
-    color: Colors.accentGoldDark,
-    marginTop: Spacing.sm,
-    fontWeight: Typography.semibold,
-  },
-
   severityBlock: {
     borderRadius: 0,
     padding: Spacing.md,
@@ -240,6 +238,12 @@ const styles = StyleSheet.create({
     fontSize: Typography.base,
     color: Colors.textPrimary,
     lineHeight: 22,
+  },
+  confidenceNote: {
+    fontSize: Typography.sm,
+    color: Colors.textMuted,
+    marginTop: Spacing.xs,
+    fontWeight: Typography.medium,
   },
 
   referralRow: {

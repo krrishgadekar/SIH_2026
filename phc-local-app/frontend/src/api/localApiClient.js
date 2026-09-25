@@ -10,11 +10,26 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 // waiting on a backend that is down.
 const REAL_CALL_TIMEOUT_MS = 8000;
 
+/**
+ * The technician's session token from POST /auth/login (App.jsx keeps the
+ * login payload in localStorage 'netra_phc_auth'). Sent as a Bearer header on
+ * every real call; required once the local backend runs with
+ * LOCAL_AUTH_ENABLED=true.
+ */
+function authHeader() {
+  try {
+    const token = JSON.parse(localStorage.getItem('netra_phc_auth') || 'null')?.token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
 async function fetchWithTimeout(url, options = {}, timeoutMs = REAL_CALL_TIMEOUT_MS) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...options, signal: controller.signal });
+    return await fetch(url, { ...options, headers: { ...authHeader(), ...(options.headers || {}) }, signal: controller.signal });
   } finally {
     clearTimeout(timer);
   }
@@ -24,6 +39,18 @@ class LocalApiClient {
   constructor() {
     this.useMock = USE_MOCK_DATA;
     this.baseUrl = LOCAL_API_BASE;
+  }
+
+  /** POST /auth/login -> { token, expiresAt, user }. Throws with the backend's message. */
+  async login(username, password) {
+    const res = await fetchWithTimeout(`${this.baseUrl}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.message || `Login failed (${res.status})`);
+    return body;
   }
 
   async getPatients() {

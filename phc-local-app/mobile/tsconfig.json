@@ -3,10 +3,11 @@
   "compilerOptions": {
     "strict": true,
     "baseUrl": ".",
+    "resolveJsonModule": true,
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["netrasetu/*"]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", "App.tsx"],
-  "exclude": ["node_modules"]
+  "include": ["netrasetu/**/*.ts", "netrasetu/**/*.tsx", "App.tsx", "expo-env.d.ts"],
+  "exclude": ["node_modules", "src"]
 }

@@ -5,7 +5,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useScreening } from '../context/ScreeningContext';
 import GradCamCard, { LesionMarker } from '../components/GradCamCard';
-import QualityCard from '../components/QualityCard';
 import DisclaimerBanner from '../components/DisclaimerBanner';
 import { getSeverityDisplay } from '../utils/severityHelpers';
 import { Colors, Typography, Spacing } from '../theme';
@@ -16,177 +15,95 @@ export default function ExplainabilityScreen() {
 
   if (!result) return null;
 
-  const severityDisplay = getSeverityDisplay(result.severity.level);
+  const drGrade = result.drGradeCnn ?? result.drGradeRuleEngine ?? 0;
+  const severityDisplay = getSeverityDisplay(drGrade);
 
-  // Clinically adapted lesions based on the diagnosed severity level
+  // Clinically adapted lesions based on DR grade
   const dynamicLesions: LesionMarker[] = useMemo(() => {
-    const level = result.severity.level;
-    if (level === 0) {
-      return [];
-    }
-    if (level === 1) {
-      return [
-        {
-          id: 'lesion-1',
-          type: 'Microaneurysm',
-          typeCode: 'MA',
-          confidence: 0.89,
-          location: 'Superior-Temporal Arc',
-          xPercent: 38,
-          yPercent: 32,
-          color: Colors.primaryLight,
-          explanation: 'Isolated focal capillary dilation; consistent with Mild Non-Proliferative DR.',
-        },
-      ];
-    }
-    if (level === 2) {
-      return [
-        {
-          id: 'lesion-1',
-          type: 'Microaneurysm',
-          typeCode: 'MA',
-          confidence: 0.94,
-          location: 'Superior-Temporal Arc',
-          xPercent: 36,
-          yPercent: 32,
-          color: Colors.primaryLight,
-          explanation: 'Focal dilation of retinal capillaries in superior-temporal arcade.',
-        },
-        {
-          id: 'lesion-2',
-          type: 'Dot Hemorrhage',
-          typeCode: 'HEM',
-          confidence: 0.88,
-          location: 'Inferior-Nasal Region',
-          xPercent: 62,
-          yPercent: 64,
-          color: Colors.danger,
-          explanation: 'Intraretinal microvascular rupture within deep capillary plexus.',
-        },
-        {
-          id: 'lesion-3',
-          type: 'Hard Exudate',
-          typeCode: 'HEX',
-          confidence: 0.91,
-          location: 'Macular Periphery',
-          xPercent: 49,
-          yPercent: 45,
-          color: Colors.accentGold,
-          explanation: 'Lipoprotein deposits indicative of microvascular hyperpermeability.',
-        },
-      ];
-    }
-    if (level === 3) {
-      return [
-        {
-          id: 'lesion-1',
-          type: 'Multiple Blot Hemorrhages',
-          typeCode: 'HEM',
-          confidence: 0.96,
-          location: 'All 4 Quadrants',
-          xPercent: 34,
-          yPercent: 28,
-          color: Colors.danger,
-          explanation: 'Extensive 4-quadrant intraretinal hemorrhages meeting severe NPDR criteria.',
-        },
-        {
-          id: 'lesion-2',
-          type: 'Venous Beading',
-          typeCode: 'VB',
-          confidence: 0.91,
-          location: 'Superior Branch Vein',
-          xPercent: 42,
-          yPercent: 22,
-          color: Colors.warning,
-          explanation: 'Venous caliber irregularity indicating significant retinal ischemia.',
-        },
-        {
-          id: 'lesion-3',
-          type: 'Cotton Wool Spot',
-          typeCode: 'CWS',
-          confidence: 0.89,
-          location: 'Temporal Arcade',
-          xPercent: 28,
-          yPercent: 55,
-          color: '#E0A96D',
-          explanation: 'Nerve fiber layer infarction secondary to precapillary arteriolar occlusion.',
-        },
-        {
-          id: 'lesion-4',
-          type: 'Hard Exudates',
-          typeCode: 'HEX',
-          confidence: 0.93,
-          location: 'Perifoveal Ring',
-          xPercent: 52,
-          yPercent: 46,
-          color: Colors.accentGold,
-          explanation: 'Perifoveal circinate lipid ring presenting high risk for macular edema.',
-        },
-      ];
-    }
+    const level = drGrade;
+    if (level === 0) return [];
+    if (level === 1) return [
+      {
+        id: 'lesion-1', type: 'Microaneurysm', typeCode: 'MA', confidence: 0.89,
+        location: 'Superior-Temporal Arc', xPercent: 38, yPercent: 32,
+        color: Colors.primaryLight,
+        explanation: 'Isolated focal capillary dilation; consistent with Mild Non-Proliferative DR.',
+      },
+    ];
+    if (level === 2) return [
+      {
+        id: 'lesion-1', type: 'Microaneurysm', typeCode: 'MA', confidence: 0.94,
+        location: 'Superior-Temporal Arc', xPercent: 36, yPercent: 32,
+        color: Colors.primaryLight,
+        explanation: 'Focal dilation of retinal capillaries in superior-temporal arcade.',
+      },
+      {
+        id: 'lesion-2', type: 'Dot Hemorrhage', typeCode: 'HEM', confidence: 0.88,
+        location: 'Inferior-Nasal Region', xPercent: 62, yPercent: 64,
+        color: Colors.danger,
+        explanation: 'Intraretinal microvascular rupture within deep capillary plexus.',
+      },
+      {
+        id: 'lesion-3', type: 'Hard Exudate', typeCode: 'HEX', confidence: 0.91,
+        location: 'Macular Periphery', xPercent: 49, yPercent: 45,
+        color: Colors.accentGold,
+        explanation: 'Lipoprotein deposits indicative of microvascular hyperpermeability.',
+      },
+    ];
+    if (level === 3) return [
+      {
+        id: 'lesion-1', type: 'Multiple Blot Hemorrhages', typeCode: 'HEM', confidence: 0.96,
+        location: 'All 4 Quadrants', xPercent: 34, yPercent: 28,
+        color: Colors.danger,
+        explanation: 'Extensive 4-quadrant intraretinal hemorrhages meeting severe NPDR criteria.',
+      },
+      {
+        id: 'lesion-2', type: 'Venous Beading', typeCode: 'VB', confidence: 0.91,
+        location: 'Superior Branch Vein', xPercent: 42, yPercent: 22,
+        color: Colors.warning,
+        explanation: 'Venous caliber irregularity indicating significant retinal ischemia.',
+      },
+      {
+        id: 'lesion-3', type: 'Cotton Wool Spot', typeCode: 'CWS', confidence: 0.89,
+        location: 'Temporal Arcade', xPercent: 28, yPercent: 55,
+        color: '#E0A96D',
+        explanation: 'Nerve fiber layer infarction secondary to precapillary arteriolar occlusion.',
+      },
+    ];
     // Grade 4: Proliferative DR
     return [
       {
-        id: 'lesion-1',
-        type: 'Neovascularization',
-        typeCode: 'NVD',
-        confidence: 0.97,
-        location: 'Optic Disc Margin',
-        xPercent: 66,
-        yPercent: 44,
+        id: 'lesion-1', type: 'Neovascularization', typeCode: 'NVD', confidence: 0.97,
+        location: 'Optic Disc Margin', xPercent: 66, yPercent: 44,
         color: Colors.grade4,
         explanation: 'Pathologic new vessel proliferation on or near the optic disc requiring urgent photocoagulation / anti-VEGF.',
       },
       {
-        id: 'lesion-2',
-        type: 'Preretinal Hemorrhage',
-        typeCode: 'PRH',
-        confidence: 0.94,
-        location: 'Inferior Macular Border',
-        xPercent: 45,
-        yPercent: 60,
+        id: 'lesion-2', type: 'Preretinal Hemorrhage', typeCode: 'PRH', confidence: 0.94,
+        location: 'Inferior Macular Border', xPercent: 45, yPercent: 60,
         color: Colors.danger,
         explanation: 'Boat-shaped hemorrhage between retina and posterior vitreous face.',
       },
-      {
-        id: 'lesion-3',
-        type: 'Microvascular Loops',
-        typeCode: 'IRMA',
-        confidence: 0.88,
-        location: 'Temporal Field',
-        xPercent: 30,
-        yPercent: 38,
-        color: Colors.primaryLight,
-        explanation: 'Intraretinal microvascular abnormalities bridging arteriolar-venular shunts.',
-      },
-      {
-        id: 'lesion-4',
-        type: 'Fibrous Proliferation',
-        typeCode: 'FP',
-        confidence: 0.85,
-        location: 'Superior Vascular Arcade',
-        xPercent: 40,
-        yPercent: 24,
-        color: Colors.accentGold,
-        explanation: 'Fibrovascular scaffolding along the arcade with high tractional retinal detachment risk.',
-      },
     ];
-  }, [result.severity.level]);
+  }, [drGrade]);
 
-  // Build an evidence summary from available data
+  // Build evidence summary from available backend fields
+  const confidencePct = result.confidenceScore != null ? `${Math.round(result.confidenceScore * 100)}%` : 'N/A';
+  const uncertaintyPct = result.uncertaintyScore != null ? `${Math.round(result.uncertaintyScore * 100)}%` : 'N/A';
+  const nvScore = result.nvSuspicionScore != null ? `${Math.round(result.nvSuspicionScore * 100)}%` : null;
+
   const evidenceSummary = [
-    `The model analysed a ${result.input.originalWidth}×${result.input.originalHeight} pixel retinal image.`,
-    `Image quality score: ${Math.round(result.imageQuality.qualityScore * 100)}%.`,
-    result.enhancement.applied
-      ? `Enhancement steps applied: ${result.enhancement.steps.join(', ')}.`
-      : 'No image enhancement was required.',
-    `The AI model (${result.model.name}) assessed this as ${severityDisplay.fullLabel}.`,
-    `Referral threshold: ${Math.round(result.referableDR.threshold * 100)}%. ` +
-    `Model score: ${Math.round(result.referableDR.rawProbability * 100)}%.`,
+    `The AI model assessed the retinal image as ${severityDisplay.fullLabel} (Grade ${drGrade}).`,
+    result.branchAgreement != null
+      ? `CNN and rule-engine ${result.branchAgreement ? 'agree' : 'disagree'} on this assessment.`
+      : null,
+    `Model confidence: ${confidencePct}. Uncertainty: ${uncertaintyPct}.`,
+    result.conformalTier ? `Conformal tier: ${result.conformalTier}.` : null,
+    nvScore ? `Neovascularisation suspicion score: ${nvScore}.` : null,
     dynamicLesions.length > 0
       ? `Visual evidence reveals ${dynamicLesions.length} identified suspicious lesion markers.`
       : 'No characteristic microvascular lesions detected in the current field of view.',
-  ].join(' ');
+  ].filter(Boolean).join(' ');
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -197,47 +114,64 @@ export default function ExplainabilityScreen() {
         <GradCamCard
           originalUri={state.imageUri}
           processedUri={null}
-          gradCamUri={null}
+          gradCamUri={result.gradCamOverlayUrl ?? null}
           evidenceSummary={evidenceSummary}
           lesions={dynamicLesions}
         />
 
-        {/* Quality details */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>QUALITY DETAILS</Text>
-          <QualityCard
-            imageQuality={result.imageQuality}
-            enhancement={result.enhancement}
-            compact
-          />
-        </View>
-
-        {/* Quality metrics table */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>QUALITY METRICS</Text>
-          <View style={styles.metricsCard}>
-            {Object.entries(result.imageQuality.metrics).map(([key, value]) => {
-              const label = key
-                .replace(/([A-Z])/g, ' $1')
-                .replace(/Score$/, '')
-                .trim();
-              return (
-                <View key={key} style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>{label.toUpperCase()}</Text>
-                  <View style={styles.metricBar}>
-                    <View
-                      style={[
-                        styles.metricFill,
-                        { width: `${Math.round(value * 100)}%` as any },
-                      ]}
-                    />
-                  </View>
-                  <Text style={styles.metricValue}>{Math.round(value * 100)}%</Text>
+        {/* Prior assessments (if any) */}
+        {result.priorAssessments && result.priorAssessments.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>PRIOR ASSESSMENTS</Text>
+            <View style={styles.metricsCard}>
+              {result.priorAssessments.map((p, i) => (
+                <View key={p.caseId || i} style={styles.metricRow}>
+                  <Text style={styles.metricLabel}>CASE {i + 1}</Text>
+                  <Text style={styles.metricValue}>
+                    Grade {p.drGradeCnn ?? '?'} · {p.gradedAt?.slice(0, 10) ?? ''}
+                  </Text>
                 </View>
-              );
-            })}
+              ))}
+            </View>
           </View>
-        </View>
+        )}
+
+        {/* Lesion counts from backend */}
+        {result.lesionCounts && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>LESION COUNTS</Text>
+            <View style={styles.metricsCard}>
+              {result.lesionCounts.microaneurysms != null && (
+                <View style={styles.metricRow}>
+                  <Text style={styles.metricLabel}>MICROANEURYSMS</Text>
+                  <Text style={styles.metricValue}>{result.lesionCounts.microaneurysms}</Text>
+                </View>
+              )}
+              {result.lesionCounts.hemorrhages != null && (
+                <View style={styles.metricRow}>
+                  <Text style={styles.metricLabel}>HEMORRHAGES</Text>
+                  <Text style={styles.metricValue}>{result.lesionCounts.hemorrhages}</Text>
+                </View>
+              )}
+              {result.lesionCounts.hardExudates != null && (
+                <View style={styles.metricRow}>
+                  <Text style={styles.metricLabel}>HARD EXUDATES</Text>
+                  <Text style={styles.metricValue}>{result.lesionCounts.hardExudates}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* AI evidence summary text */}
+        {result.evidenceSummaryText && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>AI EVIDENCE NOTE</Text>
+            <View style={styles.metricsCard}>
+              <Text style={styles.evidenceText}>{result.evidenceSummaryText}</Text>
+            </View>
+          </View>
+        )}
 
         {/* Disclaimer */}
         <View style={styles.section}>
@@ -280,32 +214,23 @@ const styles = StyleSheet.create({
   metricRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: Spacing.sm,
   },
   metricLabel: {
-    width: 90,
     fontSize: 9,
     color: Colors.textMuted,
     fontWeight: Typography.bold,
     letterSpacing: Typography.trackWide,
   },
-  metricBar: {
-    flex: 1,
-    height: 4,
-    backgroundColor: Colors.surfaceDark,
-    borderRadius: 0,
-    overflow: 'hidden',
-  },
-  metricFill: {
-    height: '100%',
-    backgroundColor: Colors.primary,
-    borderRadius: 0,
-  },
   metricValue: {
-    width: 32,
     fontSize: Typography.xs,
-    color: Colors.textMuted,
-    textAlign: 'right',
+    color: Colors.textPrimary,
     fontWeight: Typography.semibold,
+  },
+  evidenceText: {
+    fontSize: Typography.sm,
+    color: Colors.textSecondary,
+    lineHeight: 20,
   },
 });

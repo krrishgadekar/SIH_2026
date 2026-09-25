@@ -8,8 +8,14 @@ import React, {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { QueueItem, QueueState } from '../types/queue';
 import { ScreeningSession } from '../types/screening';
+import { 
+  initDb, 
+  loadQueueFromDb, 
+  saveSessionToDb, 
+  updateQueueItemStatusDb, 
+  removeSessionFromDb 
+} from '../db/database';
 
-const STORAGE_KEY = '@retina_saarthi_queue';
 const LAST_SYNC_KEY = '@retina_saarthi_last_sync';
 
 // ── Reducer ────────────────────────────────────────────────────────────────
@@ -75,26 +81,19 @@ export function QueueProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     (async () => {
       try {
-        const [rawItems, rawLastSync] = await Promise.all([
-          AsyncStorage.getItem(STORAGE_KEY),
-          AsyncStorage.getItem(LAST_SYNC_KEY),
-        ]);
+        await initDb();
+        const items = await loadQueueFromDb();
+        const rawLastSync = await AsyncStorage.getItem(LAST_SYNC_KEY);
 
-        const items: QueueItem[] = rawItems ? JSON.parse(rawItems) : [];
         dispatch({
           type: 'LOAD_QUEUE',
           payload: { items, lastSyncAt: rawLastSync || null },
         });
-      } catch {
-        // Storage read failure — start with empty queue
+      } catch (e) {
+        console.error('Failed to load queue from sqlite:', e);
       }
     })();
   }, []);
-
-  // Persist queue whenever it changes
-  useEffect(() => {
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state.items)).catch(() => {});
-  }, [state.items]);
 
   const enqueue = async (session: ScreeningSession) => {
     const item: QueueItem = {
@@ -105,14 +104,17 @@ export function QueueProvider({ children }: { children: ReactNode }) {
       lastAttemptAt: null,
       errorMessage: null,
     };
+    await saveSessionToDb(session, item);
     dispatch({ type: 'ADD_ITEM', payload: item });
   };
 
   const updateItemStatus = async (id: string, updates: Partial<QueueItem>) => {
+    await updateQueueItemStatusDb(id, updates);
     dispatch({ type: 'UPDATE_ITEM', payload: { id, updates } });
   };
 
   const removeItem = async (id: string) => {
+    await removeSessionFromDb(id);
     dispatch({ type: 'REMOVE_ITEM', payload: id });
   };
 

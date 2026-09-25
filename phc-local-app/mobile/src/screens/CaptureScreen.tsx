@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  ScrollView, Alert,
+  ScrollView, Alert, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -12,17 +12,20 @@ import { useCamera } from '../hooks/useCamera';
 import StepIndicator from '../components/StepIndicator';
 import ImagePreview from '../components/ImagePreview';
 import CaptureGuidancePanel from '../components/CaptureGuidancePanel';
+import { runLocalQualityGate } from '../utils/qualityGate';
 import { Colors, Typography, Spacing, Shadows, TouchTarget } from '../theme';
 
 export default function CaptureScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
-  const { setImage } = useScreening();
+  const { setImage, setCaptureMetadata, setQualityGate } = useScreening();
   const { openCamera, openImagePicker } = useCamera();
 
   const [capturedUri, setCapturedUri] = useState<string | null>(null);
   const [capturedMimeType, setCapturedMimeType] = useState<string>('image/jpeg');
   const [capturedFilename, setCapturedFilename] = useState<string>('retina.jpg');
   const [isLoading, setIsLoading] = useState(false);
+  const [eyeLaterality, setEyeLaterality] = useState<'left' | 'right' | null>(null);
+  const [isRunningGate, setIsRunningGate] = useState(false);
 
   const handleOpenCamera = async () => {
     setIsLoading(true);
@@ -58,10 +61,31 @@ export default function CaptureScreen() {
     );
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (!capturedUri) return;
-    setImage(capturedUri, capturedMimeType, capturedFilename);
-    navigation.navigate(Routes.Questionnaire);
+
+    setIsRunningGate(true);
+    try {
+      // Run local quality gate before saving
+      const gateResult = await runLocalQualityGate(capturedUri);
+      setQualityGate(gateResult);
+    } catch (e) {
+      // Non-blocking: if gate fails, set borderline
+      setQualityGate({ status: 'borderline', reason: null });
+    } finally {
+      setIsRunningGate(false);
+    }
+
+    setImage(capturedUri, capturedMimeType, capturedFilename, eyeLaterality ?? undefined);
+    setCaptureMetadata({
+      cameraDeviceReported: 'mobile',
+      pupilStatus: 'unknown',
+      lightingEnvironment: 'indoor_clinic',
+      observedIssues: ['none_noticed'],
+      workerUsabilityRating: 'clear',
+      eyeLaterality: eyeLaterality ?? undefined,
+    });
+    navigation.navigate(Routes.QualityResult);
   };
 
   return (
@@ -147,15 +171,46 @@ export default function CaptureScreen() {
               onRetake={handleRetake}
             />
 
+            {/* Eye laterality selection */}
+            <View style={styles.lateralitySection}>
+              <Text style={styles.lateralityLabel}>WHICH EYE?</Text>
+              <View style={styles.lateralityRow}>
+                {(['left', 'right'] as const).map((eye) => (
+                  <TouchableOpacity
+                    key={eye}
+                    style={[
+                      styles.lateralityButton,
+                      eyeLaterality === eye && styles.lateralityButtonSelected,
+                    ]}
+                    onPress={() => setEyeLaterality(eye)}
+                    activeOpacity={0.8}
+                    id={`btn-eye-${eye}`}
+                  >
+                    <Text style={[
+                      styles.lateralityButtonText,
+                      eyeLaterality === eye && styles.lateralityButtonTextSelected,
+                    ]}>
+                      {eye.toUpperCase()} EYE
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
             <TouchableOpacity
-              style={[styles.continueButton, Shadows.sm]}
+              style={[styles.continueButton, (isRunningGate) && styles.continueButtonDisabled, Shadows.sm]}
               onPress={handleContinue}
+              disabled={isRunningGate}
               activeOpacity={0.85}
               accessibilityRole="button"
               accessibilityLabel="Continue to quality check"
               id="btn-capture-continue"
             >
-              <Text style={styles.continueText}>CONTINUE TO CLINICAL QUESTIONS →</Text>
+              {isRunningGate ? (
+                <ActivityIndicator color={Colors.textInverse} />
+              ) : (
+                <Text style={styles.continueText}>CONTINUE TO QUALITY CHECK →</Text>
+              )}
             </TouchableOpacity>
           </View>
         )}
@@ -252,6 +307,39 @@ const styles = StyleSheet.create({
 
   previewSection: { marginBottom: Spacing.xl },
 
+  lateralitySection: { marginTop: Spacing.base, marginBottom: Spacing.md },
+  lateralityLabel: {
+    fontSize: Typography.xs,
+    fontWeight: Typography.bold,
+    color: Colors.textMuted,
+    letterSpacing: Typography.trackUltraWide,
+    marginBottom: Spacing.sm,
+  },
+  lateralityRow: { flexDirection: 'row', gap: Spacing.md },
+  lateralityButton: {
+    flex: 1,
+    paddingVertical: Spacing.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    backgroundColor: Colors.surface,
+    borderRadius: 0,
+    minHeight: TouchTarget.minHeight,
+  },
+  lateralityButtonSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primaryFaded,
+  },
+  lateralityButtonText: {
+    fontSize: Typography.sm,
+    fontWeight: Typography.bold,
+    color: Colors.textSecondary,
+    letterSpacing: Typography.trackWide,
+  },
+  lateralityButtonTextSelected: {
+    color: Colors.primary,
+  },
+
   continueButton: {
     backgroundColor: Colors.primary,
     borderRadius: 0,
@@ -267,6 +355,10 @@ const styles = StyleSheet.create({
     fontWeight: Typography.bold,
     color: Colors.textInverse,
     letterSpacing: Typography.trackWide,
+  },
+  continueButtonDisabled: {
+    backgroundColor: Colors.disabled,
+    borderColor: Colors.border,
   },
 
   tipsBox: {

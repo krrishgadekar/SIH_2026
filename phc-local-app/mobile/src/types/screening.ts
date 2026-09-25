@@ -1,116 +1,146 @@
 /**
- * TypeScript interfaces that EXACTLY mirror the FastAPI backend JSON response.
+ * TypeScript interfaces that EXACTLY mirror the FastAPI/Express backend JSON response.
  * Field names are preserved verbatim — do NOT rename them.
  */
 
-// ── Backend response root ──────────────────────────────────────────────────
+// ── Central API Models ─────────────────────────────────────────────────────
 
-export interface ScreeningResult {
-  status: string;
-  processedAt: string;
-
-  model: ModelInfo;
-  input: InputInfo;
-  imageQuality: ImageQuality;
-  enhancement: Enhancement;
-  severity: Severity;
-  referableDR: ReferableDR;
-  confidence: Confidence;
-  recommendation: Recommendation;
+export interface CaseSummaryResponse {
+  caseId: string;
+  receivedAt: string;
+  status: 'processing' | 'awaiting_image' | 'graded' | 'error';
+  duplicate?: boolean;
+  fromSummary?: boolean;
 }
 
-// ── Sub-types (exact backend field names) ────────────────────────────────
-
-export interface ModelInfo {
-  version: string;
-  name: string;
-  imageSize: number;
+export interface CaseStatusResponse {
+  caseId: string;
+  status: 'processing' | 'awaiting_image' | 'graded' | 'error';
 }
 
-export interface InputInfo {
-  filename: string;
-  contentType: string;
-  originalHeight: number;
-  originalWidth: number;
-}
-
-export interface ImageQuality {
-  status: 'pass' | 'borderline' | 'retake' | 'good' | 'poor';
-  qualityScore: number;
-  issues: string[];
-  metrics: Record<string, number>;
-}
-
-export interface Enhancement {
-  applied: boolean;
-  steps: string[];
-  message: string;
-}
-
-export interface Severity {
-  level: number;       // 0–4 (DR grade)
-  code: string;        // e.g. 'no_dr', 'mild_npdr', 'moderate_npdr', 'severe_npdr', 'proliferative_dr'
-  label: string;       // human-readable label from backend
-  classProbabilities: Record<string, number> | number[];  // dictionary of class probabilities or array
-}
-
-export interface ReferableDR {
-  isReferable: boolean;
-  definition: string;
-  probability: number;
-  rawProbability: number;
-  threshold: number;
-}
-
-export interface Confidence {
-  score: number;
-  uncertaintyScore: number;
-  predictiveEntropy: number;
-  mcDropoutPasses: number;
-}
-
-export interface Recommendation {
-  action: string;
-  priority: string;  // e.g. 'ROUTINE', 'URGENT', 'EMERGENCY'
-}
-
-// ── Local patient registration ─────────────────────────────────────────────
-
-export interface PatientInfo {
+export interface PatientSearchItem {
+  patientId: string;
+  patientReference: string;
   name: string;
   age: number;
-  referenceId: string;   // PHC reference / contact identifier
+  contactNumberMasked: string;
+  registeredAt: string;
+  matchedOn: string[];
+  score: number;
+}
+
+export interface LesionCounts {
+  microaneurysms: number | null;
+  hemorrhages: number | null;
+  hardExudates: number | null;
+  softExudates: null;
+  detail: {
+    redTotal: number;
+    redPerQuadrant: number[];
+    brightPerQuadrant: number[];
+    minAreaPx: number;
+    procedure: string;
+  };
+}
+
+export interface PriorAssessment {
+  caseId: string;
+  gradedAt: string;
+  drGradeCnn: number | null;
+}
+
+export interface CentralCaseDetail {
+  caseId: string;
+  patientReference: string;
+  imageUrl: string | null;
+  gradCamOverlayUrl: string | null;
+  lesionCounts: LesionCounts | null;
+  nvSuspicionScore: number | null;
+  evidenceSummaryText: string | null;
+  drGradeCnn: number | null;
+  drGradeRuleEngine: number | null;
+  branchAgreement: boolean | null;
+  confidenceScore: number | null;
+  uncertaintyScore: number | null;
+  conformalTier: 'A' | 'B' | 'C' | null;
+  lesionAttentionConsistencyScore: number | null;
+  questionnaireData: QuestionnaireData;
+  captureMetadata: CaptureMetadataPayload;
+  priorAssessments: PriorAssessment[];
+  eyeLaterality: 'left' | 'right' | null;
+  eyeLateralitySource: 'dicom' | 'technician' | null;
+  eyeLateralityMismatch: boolean;
+  foveaUnreliable: boolean | null;
+  status: 'processing' | 'awaiting_image' | 'graded' | 'error';
+  failureCode: string | null;
+  failedAt: string | null;
+}
+
+// ── Local Quality Gate Result ──────────────────────────────────────────────
+
+export type QualityStatus = 'pass' | 'borderline' | 'retake';
+export type QualityReason = 'blur' | 'low_illumination' | 'insufficient_fov' | 'glare' | 'motion_artifact' | 'eyelash_occlusion' | null;
+
+export interface QualityGateResult {
+  status: QualityStatus;
+  reason: QualityReason;
 }
 
 // ── Questionnaire ──────────────────────────────────────────────────────────
 
-export type DiabetesDuration = '<1' | '1-5' | '5-10' | '>10';
+export type DiabetesDuration = 'lt1' | '1to5' | '5to10' | 'gt10';
 export type GlycemicControl  = 'good' | 'moderate' | 'poor';
 export type BloodPressure    = 'normal' | 'high' | 'unknown';
-export type PregnancyStatus  = 'yes' | 'no' | 'not_applicable';
 
 export interface QuestionnaireData {
-  diabetesDuration: DiabetesDuration | null;
-  glycemicControl: GlycemicControl | null;
-  bloodPressure: BloodPressure | null;
-  pregnancy: PregnancyStatus | null;
-  symptoms: SymptomKey[];
+  riskFactors: {
+    yearsSinceDiagnosis: DiabetesDuration | null;
+    glycemicControl: GlycemicControl | null;
+    bloodPressure: BloodPressure | null;
+    pregnant: boolean | null;
+  };
+  symptoms: {
+    blurredVision: boolean;
+    floaters: boolean;
+    suddenVisionChange: boolean;
+    eyePain: boolean;
+  };
+  language: string;
 }
 
-export type SymptomKey =
-  | 'blurred_vision'
-  | 'floaters'
-  | 'sudden_vision_change'
-  | 'eye_pain';
+export interface CaptureMetadataPayload {
+  cameraDeviceReported: string;
+  pupilStatus: 'dilated' | 'non_dilated' | 'unknown';
+  lightingEnvironment: 'indoor_clinic' | 'outdoor_mobile' | 'low_light';
+  observedIssues: string[]; // e.g. ["none_noticed"]
+  workerUsabilityRating: 'clear' | 'not_sure' | 'clearly_unusable';
+  eyeLaterality?: 'left' | 'right';
+}
 
 // ── Full screening session ─────────────────────────────────────────────────
+
+export interface PatientInfo {
+  id?: string;
+  name: string;
+  age: number;
+  contactNumber: string;
+  referenceId: string;   // PHC reference / contact identifier
+  consentGivenAt?: string;
+}
 
 export interface ScreeningSession {
   id: string;                         // local UUID
   patient: PatientInfo;
   imageUri: string | null;
+  eyeLaterality: 'left' | 'right' | null;
   questionnaire: QuestionnaireData;
-  result: ScreeningResult | null;
+  captureMetadata?: CaptureMetadataPayload;
+  qualityGateResult?: QualityGateResult;
+  centralCaseId?: string;
+  result: CentralCaseDetail | null;
   createdAt: string;                  // ISO timestamp
   syncStatus: 'pending' | 'synced' | 'error';
 }
+
+// Alias for backwards compatibility temporarily
+export type ScreeningResult = CentralCaseDetail;
