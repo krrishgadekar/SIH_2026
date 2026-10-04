@@ -60,8 +60,7 @@ router.post('/', requirePhcApiKey, upload.single('image'), async (req, res, next
     const result = await ingestion.ingestCase({ ...req.body, imageFile: req.file });
     caseId = result.caseId;
 
-    e.
-      if(result.duplicate) return res.status(200).json(result);
+    if(result.duplicate) return res.status(200).json(result);
 
     gradingQueue.enqueue(caseId);
 

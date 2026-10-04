@@ -496,11 +496,11 @@ test real SMS sending; every other value here is safe to share.
 
 | File | Key variables |
 |---|---|
-| `central-system/backend/.env` | `DATABASE_URL`, `CORS_ALLOWED_ORIGINS`, `AUTH_ENABLED`, `JWT_SECRET`, `PHC_AUTH_ENABLED`, `MATLAB_EXECUTABLE`, `INFERENCE_BACKEND` (`matlab` / `python` / `remote`), `MEDIA_ENCRYPTION_KEY`, `MATLAB_ALLOW_FALLBACK` |
+| `central-system/backend/.env` | `DATABASE_URL`, `CORS_ALLOWED_ORIGINS`, `AUTH_ENABLED`, `JWT_SECRET`, `PHC_AUTH_ENABLED`, `MATLAB_EXECUTABLE`, `INFERENCE_BACKEND` (`matlab` / `python` / `remote`), `SEG_INFERENCE_BACKEND` (`matlab` / `python`), `PYTHON_EXECUTABLE` (unset = bare `python` on `PATH` — set explicitly if that isn't your intended interpreter), `MEDIA_ENCRYPTION_KEY`, `MATLAB_ALLOW_FALLBACK` |
 | `phc-local-app/backend/.env` | `CENTRAL_API_URL`, `PHC_CODE`, `PHC_ID`, `PHC_API_KEY`, `MATLAB_EXECUTABLE`, `LOCAL_AUTH_ENABLED`, `QUALITY_GATE_ALLOW_FALLBACK` |
 | `central-system/frontend/.env` | `VITE_CENTRAL_API_BASE`, `VITE_DATA_MODE` |
 | `phc-local-app/frontend/.env` | `VITE_LOCAL_API_BASE`, `VITE_DATA_MODE` |
-| `phc-local-app/mobile/.env` | `EXPO_PUBLIC_CENTRAL_API_URL`, `EXPO_PUBLIC_PHC_API_KEY`, `EXPO_PUBLIC_PHC_CODE` |
+| `phc-local-app/mobile/.env` | `EXPO_PUBLIC_CENTRAL_API_URL`, `EXPO_PUBLIC_PHC_API_KEY`, `EXPO_PUBLIC_PHC_CODE`, `EXPO_PUBLIC_USE_RN_FETCH` (keep set to `1` — Expo Go's own fetch can't send the image upload), `EXPO_PUBLIC_TECHNICIANS` (bakes in fixed logins for a release build reached off the PHC's LAN) |
 
 No app has a built-in server URL — an unset one shows an on-screen error, never a silent default.
 `VITE_DATA_MODE=mock` shows fixture data with a permanent **"DEMO DATA"** banner and is never used

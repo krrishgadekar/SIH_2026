@@ -1,3 +1,4 @@
+-- Up Migration
 
 ALTER TABLE referrals DROP CONSTRAINT IF EXISTS referrals_status_check;
 ALTER TABLE referrals ADD CONSTRAINT referrals_status_check

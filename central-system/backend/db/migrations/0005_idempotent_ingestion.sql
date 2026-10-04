@@ -1,3 +1,4 @@
+-- Up Migration
 
 WITH ranked AS (
   SELECT case_id, capture_id_ref,
@@ -20,7 +21,7 @@ ALTER TABLE cases ADD CONSTRAINT cases_status_check
 ALTER TABLE cases ADD CONSTRAINT cases_image_required_unless_awaiting
   CHECK (status = 'awaiting_image' OR image_path IS NOT NULL);
 
-
+-- Down Migration
 ALTER TABLE cases DROP CONSTRAINT IF EXISTS cases_image_required_unless_awaiting;
 ALTER TABLE cases DROP CONSTRAINT IF EXISTS cases_status_check;
 ALTER TABLE cases ADD CONSTRAINT cases_status_check

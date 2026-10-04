@@ -1,3 +1,4 @@
+-- Up Migration
 
 
 ALTER TABLE cases

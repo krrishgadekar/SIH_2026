@@ -1,3 +1,4 @@
+-- Up Migration
 
 CREATE TABLE IF NOT EXISTS grading_recoveries (
   recovery_id  UUID PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -1,3 +1,4 @@
+-- Up Migration
 
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS eye_laterality_reported TEXT
   CHECK (eye_laterality_reported IN ('left', 'right'));

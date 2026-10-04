@@ -1,3 +1,4 @@
+-- Up Migration
 
 ALTER TABLE phc_sites ADD COLUMN IF NOT EXISTS last_contact_at TIMESTAMPTZ;
 

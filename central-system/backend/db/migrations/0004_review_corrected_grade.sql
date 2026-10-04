@@ -1,3 +1,4 @@
+-- Up Migration
 
 ALTER TABLE ophthalmologist_reviews
   ADD COLUMN IF NOT EXISTS corrected_grade INTEGER

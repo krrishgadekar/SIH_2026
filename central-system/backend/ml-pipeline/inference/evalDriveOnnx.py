@@ -18,9 +18,9 @@ INPUT_SIZE = segInfer.INPUT_SIZE
 
 
 def onnx_path(role):
-"
     return modelPaths.resolve_checkpoint(
         modelPaths.CHECKPOINTS[role].replace(".pt", ".onnx"))
+
 
 
 def _read_gray(path):

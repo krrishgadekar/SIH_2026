@@ -1,3 +1,4 @@
+-- Up Migration
 
 ALTER TABLE grading_results DROP CONSTRAINT IF EXISTS grading_results_claimed_by_fkey;
 ALTER TABLE grading_results

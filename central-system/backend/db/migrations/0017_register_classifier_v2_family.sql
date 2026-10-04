@@ -1,3 +1,4 @@
+-- Up Migration
 
 
 INSERT INTO model_versions

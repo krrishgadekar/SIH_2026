@@ -1,3 +1,4 @@
+-- Up Migration
 
 ALTER TABLE phc_sites ADD COLUMN IF NOT EXISTS api_key_hash TEXT;
 CREATE UNIQUE INDEX IF NOT EXISTS uq_phc_sites_api_key_hash

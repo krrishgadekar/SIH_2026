@@ -1,3 +1,4 @@
+-- Up Migration
 
 CREATE TABLE IF NOT EXISTS resource_recommendations (
   recommendation_id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),

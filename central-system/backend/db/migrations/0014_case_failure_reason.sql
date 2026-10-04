@@ -1,3 +1,4 @@
+-- Up Migration
 
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS failure_code   TEXT;
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS failure_reason TEXT;
