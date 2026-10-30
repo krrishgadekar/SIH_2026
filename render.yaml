@@ -30,11 +30,6 @@
 # step refuses a render.yaml that sets it on a free-tier service). Both
 # scripts are idempotent and run on every container start instead.)
 
-databases:
-  - name: netrasetu-db
-    databaseName: netrasetu_central
-    plan: free
-    region: singapore
 
 services:
   - type: web
@@ -53,9 +48,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        fromDatabase:
-          name: netrasetu-db
-          property: connectionString
+        sync: false  
 
       # ── Auth / media encryption ──────────────────────────────────────────
       - key: AUTH_ENABLED
