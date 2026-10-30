@@ -40,9 +40,27 @@ fixed demo-only account, intentionally public for judge access.
 | **DISTRICT WORKER** (district admin) | `admin@demo.netrasetu.local` | `Harbor-Falcon-29` |
 
 Both are fixed demo-only accounts, intentionally public for judge access; the system holds only
-public-dataset images, no real patient data. The hosted services run on free-tier hosting and
-sleep when idle, so the **first request can take up to ~1 minute** while they wake — if a login
-seems to hang, wait and try once more.
+public-dataset images, no real patient data.
+
+### Before you try the hosted demo: expect waits
+
+The hosted backends run on free-tier hosting that **sleeps after ~15 minutes idle**. Nothing is
+broken when a step is slow; the service is waking up.
+
+| What you do | Expected wait |
+|---|---|
+| First login / first page of data after idle | up to **~1 minute** (if it seems stuck, wait and retry once) |
+| Quality check on a new capture | a few seconds (up to ~30 s if the PHC service was asleep) |
+| AI grading of a new capture | **~1–2 minutes** per case (it appears in the ophthalmologist queue when done) |
+| First new capture after a long idle | the AI service may still be waking and the case can show **"grading failed at central"** — simply capture again once, and it will grade normally |
+
+**Fastest way to see everything:** log in as the ophthalmologist — pre-graded demo cases are
+already in the queue (including a branch-disagreement case), so the full review flow works without
+waiting for any new grading.
+
+On the hosted demo, the PHC quality check shows a **"This check ran on a backup system"** notice.
+That is expected and honest: this host has no MATLAB, so the verified JavaScript port of the MATLAB
+quality gate runs instead, and the app always tells the technician when that happens.
 
 This hosted deployment is a **separate configuration from the full local/offline deployment** —
 see "Two deployment modes" below and `docs/TECHNICAL_DOCUMENTATION.md` for the full explanation of
