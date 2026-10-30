@@ -8,6 +8,7 @@ const path = require('path');
 const pool = require('../db/pgClient');
 const mediaPaths = require('./mediaPaths');
 const mediaCrypto = require('./mediaCrypto');
+const mediaStore = require('./mediaStore');
 const cfg = require('./authConfig');
 const lesionCounts = require('./lesionCounts');
 const engineProvenance = require('./engineProvenance');
@@ -278,6 +279,8 @@ async function ingestCase(fields) {
 
     await touchPhc(client, f, { fullSync: true });
     await client.query('COMMIT');
+    // Durable copy: the local disk may be ephemeral (see services/mediaStore.js).
+    await mediaStore.persistDir(mediaPaths.caseDir(caseId));
 
     return {
       caseId, receivedAt: receivedAt.toISOString(),

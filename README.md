@@ -32,6 +32,18 @@ seconds instead of screening everyone.
 **Demo technician login (hosted PHC station):** username `demo`, password `Fundus-Comet-52` — a
 fixed demo-only account, intentionally public for judge access.
 
+**Demo central logins** (https://centralsys.vercel.app — scroll past the intro, then pick the matching role card):
+
+| Role card | Email | Password |
+|---|---|---|
+| **OPHTHALMOLOGIST** | `ophthalmologist@demo.netrasetu.local` | `Retina-Comet-74` |
+| **DISTRICT WORKER** (district admin) | `admin@demo.netrasetu.local` | `Harbor-Falcon-29` |
+
+Both are fixed demo-only accounts, intentionally public for judge access; the system holds only
+public-dataset images, no real patient data. The hosted services run on free-tier hosting and
+sleep when idle, so the **first request can take up to ~1 minute** while they wake — if a login
+seems to hang, wait and try once more.
+
 This hosted deployment is a **separate configuration from the full local/offline deployment** —
 see "Two deployment modes" below and `docs/TECHNICAL_DOCUMENTATION.md` for the full explanation of
 why they differ and what each one proves.

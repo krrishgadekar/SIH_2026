@@ -98,6 +98,7 @@ router.get('/cases/:captureRef/gradcam', requirePhcApiKey, async (req, res, next
   try {
     const own = await findOwnCase(req, res);
     if (!own) return;
+    if (own.gradcam_path) await require('../services/mediaStore').restoreFile(own.gradcam_path);
     if (!own.gradcam_path || !fs.existsSync(own.gradcam_path)) {
       return res.status(404).json({
         error: 'gradcam_not_available', message: 'No GradCAM overlay exists for this case.',

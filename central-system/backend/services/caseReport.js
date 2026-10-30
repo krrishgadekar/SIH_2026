@@ -9,6 +9,7 @@ const { execFile } = require('child_process');
 const pool = require('../db/pgClient');
 const mediaPaths = require('./mediaPaths');
 const mediaCrypto = require('./mediaCrypto');
+const mediaStore = require('./mediaStore');
 const matlabSession = require('./matlabSessionClient');
 const engineProvenance = require('./engineProvenance');
 
@@ -114,11 +115,13 @@ function provenanceRows(row) {
 // temp plaintext copies (mediaCrypto.withPlaintextCopy); the PDF it writes is
 // encrypted as soon as it exists.
 async function render(caseId, row) {
+  await mediaStore.restoreCaseDir(caseId);
   const gradcam = row.gradcam_path && fs.existsSync(row.gradcam_path) ? row.gradcam_path : null;
   const out = await mediaCrypto.withPlaintextCopy(row.image_path || null, (imagePath) =>
     mediaCrypto.withPlaintextCopy(gradcam, (gradcamPath) =>
       renderPlain(caseId, { ...row, image_path: imagePath, gradcam_path: gradcamPath })));
   mediaCrypto.encryptFileInPlace(out);
+  await mediaStore.persistFile(out);
   return out;
 }
 
@@ -194,6 +197,7 @@ async function getOrCreateReport(caseId, { force = false } = {}) {
   if (row.status !== 'graded' || row.dr_grade_cnn == null) return { error: 'case_not_graded' };
 
   const existing = row.rationale_report_path;
+  if (existing) await mediaStore.restoreFile(existing);
   if (!force && existing && fs.existsSync(existing)) {
     const mtime = fs.statSync(existing).mtime;
     if (!row.graded_at || mtime >= row.graded_at) {

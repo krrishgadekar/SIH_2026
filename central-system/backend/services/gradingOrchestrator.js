@@ -7,6 +7,7 @@ const os = require('os');
 const pool = require('../db/pgClient');
 const mediaPaths = require('./mediaPaths');
 const mediaCrypto = require('./mediaCrypto');
+const mediaStore = require('./mediaStore');
 const { fromMatlab, fromMatlabDeep } = require('./matlabInterop');
 const matlabFallback = require('./matlabFallback');
 const matlabSession = require('./matlabSessionClient');
@@ -455,6 +456,7 @@ async function hasClearedCameraSiteProbation(phcId, cameraDeviceId, excludeCaseI
 async function processCase(caseId) {
   const { rows } = await pool.query('SELECT image_path FROM cases WHERE case_id = $1', [caseId]);
   if (!rows.length) return gradeCase(caseId, null);   // throws "not found", as before
+  await mediaStore.restoreCaseDir(caseId);   // disk may have been wiped since ingestion
   try {
     return await mediaCrypto.withPlaintextCopy(rows[0].image_path,
       (plainImagePath) => gradeCase(caseId, plainImagePath));
@@ -464,6 +466,7 @@ async function processCase(caseId) {
     } catch (err) {
       console.error(`[gradingOrchestrator] case ${caseId}: could not encrypt pipeline outputs: ${err.message}`);
     }
+    await mediaStore.persistDir(mediaPaths.caseDir(caseId));
   }
 }
 

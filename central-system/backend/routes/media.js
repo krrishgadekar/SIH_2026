@@ -10,6 +10,7 @@ const requireAuth = require('../middleware/requireAuth');
 const requireRole = require('../middleware/requireRole');
 const mediaPaths = require('../services/mediaPaths');
 const mediaCrypto = require('../services/mediaCrypto');
+const mediaStore = require('../services/mediaStore');
 const { logAccess } = require('../services/accessLog');
 
 const router = express.Router();
@@ -29,6 +30,9 @@ router.get('/*', requireAuth, requireRole('ophthalmologist', 'district_admin'), 
   if (!rel || inside.startsWith('..') || path.isAbsolute(inside)) return notFound(res);
 
   if (inside.split(path.sep)[0] === 'chunks') return notFound(res);
+
+  // Disk may be ephemeral: bring the file back from the durable copy if needed.
+  await mediaStore.restoreFile(abs);
 
   let stat;
   try { stat = fs.statSync(abs); } catch { return notFound(res); }
