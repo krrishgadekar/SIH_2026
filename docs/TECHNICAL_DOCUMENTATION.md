@@ -500,7 +500,7 @@ Only public research datasets are used anywhere in this system, and no real pati
 | Central backend (API) | Render (Docker, free tier) | https://netrasetu-central.onrender.com/health |
 | PHC local backend (API) | Render (Docker, free tier) | https://netrasetu-phc.onrender.com/health |
 | ML inference service | Render (Docker, free tier) | internal, reached by the central backend over HTTP |
-| Database | Render Postgres (free tier) | internal |
+| Database | Neon PostgreSQL (free tier, Singapore) | internal |
 | Mobile app | EAS-built standalone APK, direct install | https://expo.dev/artifacts/eas/AXeqZ3jshQkh7qTIsaXkO3nUBWXyqH9XnyRv1di0jYo.apk |
 
 **What a judge can do on the demo.** Log in to the PHC web app with the demo technician account
@@ -533,8 +533,11 @@ it is built specifically to survive on infrastructure that has **no MATLAB at al
 
 - Render's free tier spins services down after ~15 minutes idle; the first request after idle is
   slower while it wakes back up.
-- Media storage on this deployment is ephemeral (resets on redeploy) — the local/offline
-  deployment does not have this limitation, since it owns its own disk.
+- Render's free-tier disk is ephemeral (it resets on every sleep, restart and redeploy), so case
+  media is also stored in the database, encrypted, in a `media_blobs` table, and restored to disk on
+  first access (`services/mediaStore.js`). Images survive restarts; this was verified by restarting
+  the service and reloading every case. The local/offline deployment owns its own disk and uses the
+  same code, where the database copy is simply a backup.
 - SMS referral notifications are wired for real sending (not a dry-run), but a Twilio trial
   account only delivers to manually-verified numbers — a judge's phone may not receive the SMS
   step live unless pre-verified, even though the referral itself completes correctly.

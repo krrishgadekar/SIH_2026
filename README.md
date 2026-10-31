@@ -245,9 +245,11 @@ We'd rather a judge read this than discover it live.
   verified against their MATLAB originals (0 mismatches across hundreds of test cases — see
   `docs/ML_BENCHMARKS.md` §7). See "Two deployment modes" below for why this split exists and what
   it does and doesn't mean for the result you see.
-- **Media storage on the hosted demo is ephemeral.** Render's free-tier filesystem resets on
-  redeploy, so images from older demo cases may 404 after a redeploy. The local/offline deployment
-  does not have this limitation.
+- **The hosted demo's database is Neon (free-tier PostgreSQL).** Render's free filesystem resets on
+  every sleep, restart and redeploy, so case media (fundus images, Grad-CAM overlays, masks, report
+  PDFs) is also stored in that database, still AES-256-GCM encrypted, and restored to disk on first
+  access (`central-system/backend/services/mediaStore.js`). Images therefore survive restarts —
+  verified by restarting the service and reloading every case.
 
 Full status detail: `docs/TECHNICAL_DOCUMENTATION.md`.
 
